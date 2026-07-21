@@ -1,0 +1,22 @@
+{
+  "name": "karangtaruna-rawaarum",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo - Website Karang Taruna Kelurahan Rawa Arum, Kec. Grogol, Kota Cilegon",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently --names SERVER,CLIENT --prefix-colors blue,green \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:client": "npm run dev --workspace=client",
+    "dev:server": "npm run dev --workspace=server",
+    "build:client": "npm run build --workspace=client",
+    "start:server": "npm run start --workspace=server",
+    "lint:client": "npm run lint --workspace=client",
+    "install:all": "npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
