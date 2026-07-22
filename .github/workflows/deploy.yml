@@ -15,8 +15,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Rebuild & Restart Docker Containers
+        shell: powershell
         run: |
-          echo "Starting local deployment on server..."
+          Write-Host "Starting deployment on Windows Server..."
           docker compose up -d --build
           docker image prune -f
-          echo "Deployment completed successfully!"
+          Write-Host "Deployment completed successfully!"
