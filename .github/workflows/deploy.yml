@@ -1,0 +1,30 @@
+name: Continuous Integration & Deployment (CI/CD)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to Production Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH to Remote Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_SSH_PORT || 22 }}
+          script: |
+            echo "Starting auto-deployment on remote server..."
+            cd ${{ secrets.PROJECT_PATH }}
+            git pull origin main
+            docker compose up -d --build
+            docker image prune -f
+            echo "Deployment completed successfully!"
