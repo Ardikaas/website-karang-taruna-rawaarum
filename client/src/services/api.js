@@ -13,7 +13,7 @@ import {
   MOCK_RECENT_ITEMS,
 } from '../constants/mockData';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'http://localhost:5555/api';
 
 // --------------- Fallback map by info type ---------------
 const FALLBACK_MAP = {

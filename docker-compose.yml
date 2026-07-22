@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: karangtaruna-server
+    ports:
+      - "${SERVER_PORT:-5555}:5555"
+    environment:
+      - PORT=5555
+      - MONGO_URI=${MONGO_URI:-mongodb://host.docker.internal:27017/karangtaruna}
+      - NODE_ENV=production
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - karangtaruna-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+        reservations:
+          cpus: '0.10'
+          memory: 128M
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: karangtaruna-client
+    ports:
+      - "${CLIENT_PORT:-8080}:80"
+    depends_on:
+      server:
+        condition: service_healthy
+    networks:
+      - karangtaruna-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.05'
+          memory: 64M
+
+networks:
+  karangtaruna-network:
+    driver: bridge

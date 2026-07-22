@@ -35,7 +35,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 // --------------- Server Startup ---------------
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5555;
 
 const startServer = async () => {
   try {

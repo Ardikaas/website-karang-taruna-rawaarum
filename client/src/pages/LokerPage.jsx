@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-
 import { fetchInfoItems } from '../services/api';
 
 const LokerPage = () => {
@@ -25,16 +24,22 @@ const LokerPage = () => {
   );
 
   return (
-    <section className="informasi-section" style={{ paddingTop: '140px', minHeight: '80vh' }}>
-      <div className="container">
-        <div className="section-header" data-watermark="CAREERS">
-          <span className="section-tag">Pusat Karir Pemuda</span>
-          <h2 className="section-title">Lowongan Kerja & Pelatihan</h2>
-          <div className="title-underline"></div>
+    <div className="subpage-layout">
+      <div className="subpage-bg-glow"></div>
+      <div className="container subpage-container">
+        <div className="subpage-header">
+          <div className="section-header" data-watermark="CAREERS">
+            <span className="section-tag">Pusat Karir Pemuda</span>
+            <h1 className="section-title">Lowongan Kerja & Pelatihan</h1>
+            <div className="title-underline"></div>
+          </div>
+          <p className="subpage-intro">
+            Informasi peluang kerja, magang industri, dan pelatihan keterampilan bagi generasi muda Kelurahan Rawa Arum.
+          </p>
         </div>
 
         {/* Search Control */}
-        <div className="info-controls">
+        <div className="info-controls" style={{ marginBottom: '2.5rem' }}>
           <div className="info-search-wrapper">
             <i className="fa-solid fa-magnifying-glass info-search-icon"></i>
             <input
@@ -83,7 +88,7 @@ const LokerPage = () => {
           </div>
         )}
       </div>
-    </section>
+    </div>
   );
 };
 
