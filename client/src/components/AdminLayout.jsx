@@ -2,14 +2,18 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const NAV_ITEMS = [
-  { to: '/admin/dashboard', icon: 'fa-gauge-high',    label: 'Dashboard'   },
-  { to: '/admin/konten',    icon: 'fa-newspaper',      label: 'Konten'      },
-  { to: '/admin/program',   icon: 'fa-briefcase',      label: 'Program'     },
-  { to: '/admin/kemitraan', icon: 'fa-handshake',      label: 'Kemitraan'   },
-  { to: '/admin/anggota',   icon: 'fa-users',          label: 'Anggota'     },
-  { to: '/admin/subscriber',icon: 'fa-envelope-open-text', label: 'Subscriber' },
-  { to: '/admin/pengurus',  icon: 'fa-sitemap',        label: 'Pengurus'    },
-  { to: '/admin/settings',  icon: 'fa-gear',           label: 'Pengaturan'  },
+  { to: '/admin/dashboard', icon: 'fa-gauge-high', label: 'Dashboard' },
+  { to: '/admin/konten', icon: 'fa-newspaper', label: 'Konten' },
+  { to: '/admin/program', icon: 'fa-briefcase', label: 'Program' },
+  { to: '/admin/kemitraan', icon: 'fa-handshake', label: 'Kemitraan' },
+  { to: '/admin/anggota', icon: 'fa-users', label: 'Anggota' },
+  {
+    to: '/admin/subscriber',
+    icon: 'fa-envelope-open-text',
+    label: 'Subscriber',
+  },
+  { to: '/admin/pengurus', icon: 'fa-sitemap', label: 'Pengurus' },
+  { to: '/admin/settings', icon: 'fa-gear', label: 'Pengaturan' },
 ];
 
 const AdminLayout = ({ children }) => {
@@ -57,11 +61,17 @@ const AdminLayout = ({ children }) => {
               {admin?.username?.[0]?.toUpperCase() ?? 'A'}
             </div>
             <div className="admin-sidebar__user-info">
-              <div className="admin-sidebar__user-name">{admin?.username ?? 'Admin'}</div>
+              <div className="admin-sidebar__user-name">
+                {admin?.username ?? 'Admin'}
+              </div>
               <div className="admin-sidebar__user-role">Administrator</div>
             </div>
           </div>
-          <button className="admin-sidebar__logout-btn" onClick={handleLogout} title="Logout">
+          <button
+            className="admin-sidebar__logout-btn"
+            onClick={handleLogout}
+            title="Logout"
+          >
             <i className="fa-solid fa-right-from-bracket" />
           </button>
         </div>
@@ -69,9 +79,7 @@ const AdminLayout = ({ children }) => {
 
       {/* ── Main Content ── */}
       <div className="admin-main">
-        <main className="admin-content">
-          {children}
-        </main>
+        <main className="admin-content">{children}</main>
       </div>
     </div>
   );
