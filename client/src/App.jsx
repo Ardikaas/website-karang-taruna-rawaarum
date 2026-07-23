@@ -33,7 +33,7 @@ import AdminLayout from './components/AdminLayout';
 import { AuthProvider } from './context/AuthContext';
 
 // API Service
-import { subscribeNewsletter } from './services/api';
+import { submitRegistration, subscribeNewsletter } from './services/api';
 
 const SCROLL_THRESHOLD = 50;
 const TOAST_DURATION_MS = 4000;
@@ -44,6 +44,17 @@ const App = () => {
   const [activeSection, setActiveSection] = useState('home');
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [regModalOpen, setRegModalOpen] = useState(false);
+
+  // --------------- Registration Form ---------------
+  const [regForm, setRegForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    interest: 'Sosial & Keagamaan',
+    reason: '',
+  });
+  const [regSubmitting, setRegSubmitting] = useState(false);
 
   // --------------- Toast ---------------
   const [toast, setToast] = useState({
@@ -91,6 +102,34 @@ const App = () => {
   }, []);
 
   // --------------- Form Handlers ---------------
+  const handleRegisterSubmit = async (e) => {
+    e.preventDefault();
+    setRegSubmitting(true);
+
+    try {
+      await submitRegistration(regForm);
+      showToastMessage(
+        'Pendaftaran Anda berhasil dikirim! Kami akan menghubungi Anda segera.'
+      );
+      setRegForm({
+        name: '',
+        email: '',
+        phone: '',
+        interest: 'Sosial & Keagamaan',
+        reason: '',
+      });
+      setRegModalOpen(false);
+    } catch (err) {
+      showToastMessage(
+        err.message ||
+          'Gagal mengirim pendaftaran. Server kemungkinan offline.',
+        'error'
+      );
+    } finally {
+      setRegSubmitting(false);
+    }
+  };
+
   const handleNewsletterSubmit = async (e) => {
     e.preventDefault();
     if (!newsletterEmail) return;
