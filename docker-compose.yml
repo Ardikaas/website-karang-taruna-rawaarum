@@ -3,8 +3,8 @@ version: '3.8'
 services:
   server:
     build:
-      context: ./server
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: server/Dockerfile
     container_name: karangtaruna-server
     ports:
       - "${SERVER_PORT:-5555}:5555"
@@ -28,8 +28,8 @@ services:
 
   client:
     build:
-      context: ./client
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: client/Dockerfile
     container_name: karangtaruna-client
     ports:
       - "${CLIENT_PORT:-5556}:80"
