@@ -87,7 +87,7 @@ const Home = () => {
                       <span><i className="fa-regular fa-calendar" style={{ marginRight: '6px' }}></i> {item.date}</span>
                     </div>
                     <h3 className="info-title">{item.title}</h3>
-                    <p className="info-desc">{item.description}</p>
+                    <p className="info-desc" dangerouslySetInnerHTML={{ __html: item.description }}></p>
                     <Link to={`/${item.type}`} className="info-btn">
                       {item.linkText} <i className="fa-solid fa-arrow-right-long"></i>
                     </Link>

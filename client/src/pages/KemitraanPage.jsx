@@ -1,14 +1,27 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { fetchPartners } from '../services/api';
 
 const KemitraanPage = () => {
+  const [partners, setPartners] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
 
-  const partners = [
-    { id: 1, name: 'PT Hanindo Bakti Sejahtera', logo: '/assets/hanindo.png', type: 'Mitra Industri Utama' },
-    { id: 2, name: 'PT Mutiara Alfini', logo: '/assets/mutiara_alfini.png', type: 'Mitra Pembangunan Wilayah' }
-  ];
+    const loadPartners = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchPartners();
+        setPartners(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPartners();
+  }, []);
 
   const benefits = [
     {
@@ -95,19 +108,31 @@ const KemitraanPage = () => {
         {/* Section 1: Current Partners */}
         <div className="org-block">
           <h2 className="org-block-title">Mitra Resmi Kami</h2>
-          <div className="current-partners-grid">
-            {partners.map((partner) => (
-              <div key={partner.id} className="partner-detail-card" title={partner.name}>
-                <div className="partner-logo-box">
-                  <img src={partner.logo} alt={partner.name} className="partner-logo-img" />
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+              <i className="fa-solid fa-spinner fa-spin" style={{ color: 'var(--accent)', fontSize: '1.5rem' }} />
+            </div>
+          ) : (
+            <div className="current-partners-grid">
+              {partners.map((partner) => (
+                <div key={partner._id} className="partner-detail-card" title={partner.name}>
+                  <div className="partner-logo-box">
+                    {partner.logoUrl ? (
+                      <img src={partner.logoUrl} alt={partner.name} className="partner-logo-img" />
+                    ) : (
+                      <div style={{ fontWeight: '700', color: 'var(--primary-deep)', fontSize: '0.9rem', textAlign: 'center' }}>
+                        {partner.name}
+                      </div>
+                    )}
+                  </div>
+                  <div className="partner-text-box">
+                    <h3 className="partner-company-name">{partner.name}</h3>
+                    <span className="partner-type-tag"><i className="fa-solid fa-award"></i> {partner.category || 'Mitra Industri'}</span>
+                  </div>
                 </div>
-                <div className="partner-text-box">
-                  <h3 className="partner-company-name">{partner.name}</h3>
-                  <span className="partner-type-tag"><i className="fa-solid fa-award"></i> {partner.type}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Section 2: Why Partner */}
@@ -158,7 +183,7 @@ const KemitraanPage = () => {
               Unduh Proposal Kemitraan kami atau diskusikan model kerja sama yang paling sesuai dengan kebutuhan strategis perusahaan Anda.
             </p>
             <div className="cta-buttons-row">
-              <a href="https://wa.me/628123456789" target="_blank" rel="noopener noreferrer" className="btn btn-primary">
+              <a href="https://wa.me/6281234567890" target="_blank" rel="noopener noreferrer" className="btn btn-primary">
                 <i className="fa-brands fa-whatsapp"></i> Hubungi via WhatsApp
               </a>
               <a href="#kontak" className="btn btn-outline" style={{ borderColor: 'rgba(255, 255, 255, 0.3)', color: '#ffffff' }}>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 
 // Layout Components
 import Navbar from './components/Navbar';
@@ -13,10 +13,24 @@ import LokerPage from './pages/LokerPage';
 import KegiatanPage from './pages/KegiatanPage';
 import PengumumanPage from './pages/PengumumanPage';
 import UmkmPage from './pages/UmkmPage';
-import AdminPage from './pages/AdminPage';
 import StrukturPage from './pages/StrukturPage';
 import KemitraanPage from './pages/KemitraanPage';
 import KontakPage from './pages/KontakPage';
+import ProgramPage from './pages/ProgramPage';
+
+// Admin Pages & Layout
+import AdminLoginPage from './pages/admin/AdminLoginPage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminKontenPage from './pages/admin/AdminKontenPage';
+import AdminAnggotaPage from './pages/admin/AdminAnggotaPage';
+import AdminSubscriberPage from './pages/admin/AdminSubscriberPage';
+import AdminSettingsPage from './pages/admin/AdminSettingsPage';
+import AdminPengurusPage from './pages/admin/AdminPengurusPage';
+import AdminProgramPage from './pages/admin/AdminProgramPage';
+import AdminPartnerPage from './pages/admin/AdminPartnerPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import AdminLayout from './components/AdminLayout';
+import { AuthProvider } from './context/AuthContext';
 
 // API Service
 import { submitRegistration, subscribeNewsletter } from './services/api';
@@ -117,19 +131,26 @@ const App = () => {
   };
 
   // --------------- Render ---------------
-  return (
-    <>
-      <Navbar
-        activeSection={activeSection}
-        scrolled={scrolled}
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-        onOpenRegModal={() => setRegModalOpen(true)}
-      />
+  const location = useLocation();
+  const isAdminPath = location.pathname.startsWith('/admin');
 
-      <main style={{ minHeight: '80vh' }}>
+  return (
+    <AuthProvider>
+      {!isAdminPath && (
+        <Navbar
+          activeSection={activeSection}
+          scrolled={scrolled}
+          mobileMenuOpen={mobileMenuOpen}
+          setMobileMenuOpen={setMobileMenuOpen}
+          onOpenRegModal={() => setRegModalOpen(true)}
+        />
+      )}
+
+      <main style={{ minHeight: isAdminPath ? '100vh' : '80vh' }}>
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<Home />} />
+          <Route path="/program" element={<ProgramPage />} />
           <Route path="/loker" element={<LokerPage />} />
           <Route path="/kegiatan" element={<KegiatanPage />} />
           <Route path="/pengumuman" element={<PengumumanPage />} />
@@ -137,16 +158,101 @@ const App = () => {
           <Route path="/struktur" element={<StrukturPage />} />
           <Route path="/kemitraan" element={<KemitraanPage />} />
           <Route path="/kontak" element={<KontakPage />} />
-          <Route path="/admin" element={<AdminPage showToastMessage={showToastMessage} />} />
+
+          {/* Admin Routes */}
+          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route 
+            path="/admin/dashboard" 
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <AdminDashboardPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/konten" 
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <AdminKontenPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/anggota" 
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <AdminAnggotaPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/subscriber" 
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <AdminSubscriberPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/settings" 
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <AdminSettingsPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/pengurus" 
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <AdminPengurusPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/program" 
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <AdminProgramPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/kemitraan" 
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <AdminPartnerPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            } 
+          />
         </Routes>
       </main>
 
-      <Footer
-        newsletterEmail={newsletterEmail}
-        setNewsletterEmail={setNewsletterEmail}
-        onNewsletterSubmit={handleNewsletterSubmit}
-        newsletterSubmitting={newsletterSubmitting}
-      />
+      {!isAdminPath && (
+        <Footer
+          newsletterEmail={newsletterEmail}
+          setNewsletterEmail={setNewsletterEmail}
+          onNewsletterSubmit={handleNewsletterSubmit}
+          newsletterSubmitting={newsletterSubmitting}
+        />
+      )}
 
       <RegistrationModal
         isOpen={regModalOpen}
@@ -162,7 +268,7 @@ const App = () => {
         message={toast.message}
         type={toast.type}
       />
-    </>
+    </AuthProvider>
   );
 };
 

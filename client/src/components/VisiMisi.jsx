@@ -1,6 +1,26 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
+import { fetchSiteSettings } from '../services/api';
 
 const VisiMisi = () => {
+  const [settings, setSettings] = useState(null);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      const data = await fetchSiteSettings();
+      setSettings(data);
+    };
+    loadSettings();
+  }, []);
+
+  const visiText = settings?.visiText || "Mewujudkan Karang Taruna Kelurahan Rawa Arum sebagai wadah pengembangan generasi muda yang mandiri, berkarakter, inovatif, dan berjiwa sosial tinggi demi membangun Rawa Arum yang maju dan sejahtera.";
+  
+  const misiList = (settings?.misiList && settings.misiList.length > 0) ? settings.misiList : [
+    "Melaksanakan penguatan solidaritas dan komunikasi rutin antar anggota kepengurusan secara berkala.",
+    "Mengembangkan potensi wirausaha pemuda guna melahirkan kemandirian finansial berbasis produk lokal.",
+    "Aktif menyelenggarakan bakti sosial, kepedulian lingkungan hidup, serta tanggap bencana di Kelurahan.",
+    "Mendorong implementasi teknologi informasi untuk membuka akses informasi loker dan UMKM bagi warga sekitar."
+  ];
+
   return (
     <section className="visi-misi-section" id="visi-misi">
       <div className="container">
@@ -13,40 +33,20 @@ const VisiMisi = () => {
           <div className="visi-content">
             <h3 style={{ marginBottom: '1.5rem', fontSize: '1.6rem', color: 'var(--primary-deep)' }}>Visi Utama</h3>
             <p className="visi-text">
-              "Mewujudkan Karang Taruna Kelurahan Rawa Arum sebagai wadah pengembangan generasi muda yang mandiri, berkarakter, inovatif, dan berjiwa sosial tinggi demi membangun Rawa Arum yang maju dan sejahtera."
+              "{visiText}"
             </p>
           </div>
           <div className="misi-content">
             <h3 style={{ marginBottom: '1.5rem', fontSize: '1.6rem', color: 'var(--primary-deep)' }}>Misi Organisasi</h3>
             <ul className="misi-list">
-              <li className="misi-item">
-                <span className="misi-num">1</span>
-                <div className="misi-text-content">
-                  <h4>Konsolidasi Internal</h4>
-                  <p>Melaksanakan penguatan solidaritas dan komunikasi rutin antar anggota kepengurusan secara berkala.</p>
-                </div>
-              </li>
-              <li className="misi-item">
-                <span className="misi-num">2</span>
-                <div className="misi-text-content">
-                  <h4>Pemberdayaan Ekonomi Kreatif</h4>
-                  <p>Mengembangkan potensi wirausaha pemuda guna melahirkan kemandirian finansial berbasis produk lokal.</p>
-                </div>
-              </li>
-              <li className="misi-item">
-                <span className="misi-num">3</span>
-                <div className="misi-text-content">
-                  <h4>Aksi Sosial Kemasyarakatan</h4>
-                  <p>Aktif menyelenggarakan bakti sosial, kepedulian lingkungan hidup, serta tanggap bencana di Kelurahan.</p>
-                </div>
-              </li>
-              <li className="misi-item">
-                <span className="misi-num">4</span>
-                <div className="misi-text-content">
-                  <h4>Akselerasi Literasi Digital</h4>
-                  <p>Mendorong implementasi teknologi informasi untuk membuka akses informasi loker dan UMKM bagi warga sekitar.</p>
-                </div>
-              </li>
+              {misiList.map((misi, idx) => (
+                <li key={idx} className="misi-item">
+                  <span className="misi-num">{idx + 1}</span>
+                  <div className="misi-text-content">
+                    <p style={{ marginTop: 0, fontSize: '0.95rem' }}>{misi}</p>
+                  </div>
+                </li>
+              ))}
             </ul>
           </div>
         </div>

@@ -1,11 +1,31 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
+import { fetchSiteSettings } from '../services/api';
 
 const Hero = ({ currentSlide, slides, onDotClick }) => {
+  const [settings, setSettings] = useState(null);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      const data = await fetchSiteSettings();
+      setSettings(data);
+    };
+    loadSettings();
+  }, []);
+
+  const activeSlide = slides[currentSlide] || slides[0];
+
+  // Dynamic titles or fallback to current slide text
+  const titleHtml = settings?.heroTitle 
+    ? `${settings.heroTitle} <br/><span class="text-accent">${settings.heroSubtitle || ''}</span>`
+    : activeSlide.title;
+
+  const descText = settings?.heroDescription || activeSlide.desc;
+
   return (
     <section 
       className="hero-section" 
       id="home"
-      style={{ backgroundImage: `url(${slides[currentSlide].image})` }}
+      style={{ backgroundImage: `url(${activeSlide.image})` }}
     >
       <div className="hero-overlay-left">
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="hero-curve-svg">
@@ -18,11 +38,11 @@ const Hero = ({ currentSlide, slides, onDotClick }) => {
         <div className="hero-content">
           <h1 
             className="hero-title"
-            dangerouslySetInnerHTML={{ __html: slides[currentSlide].title }}
+            dangerouslySetInnerHTML={{ __html: titleHtml }}
           />
           <div className="hero-title-underline"></div>
           
-          <p className="hero-desc">{slides[currentSlide].desc}</p>
+          <p className="hero-desc">{descText}</p>
           
           <div className="hero-buttons">
             <a href="#pilar" className="btn btn-primary">

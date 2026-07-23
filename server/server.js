@@ -10,17 +10,31 @@ const seedDatabase = require('./utils/seed');
 const infoRoutes = require('./routes/info.routes');
 const registerRoutes = require('./routes/register.routes');
 const newsletterRoutes = require('./routes/newsletter.routes');
+const authRoutes = require('./routes/auth.routes');
+const uploadRoutes = require('./routes/upload.routes');
+const pengurusRoutes = require('./routes/pengurus.routes');
+const settingsRoutes = require('./routes/settings.routes');
+const programRoutes = require('./routes/program.routes');
+const partnerRoutes = require('./routes/partner.routes');
+const path = require('path');
 
 const app = express();
 
 // --------------- Middleware ---------------
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // --------------- API Routes ---------------
+app.use('/api/auth', authRoutes);
 app.use('/api/info', infoRoutes);
 app.use('/api/register', registerRoutes);
 app.use('/api/newsletter', newsletterRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/pengurus', pengurusRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/program', programRoutes);
+app.use('/api/partner', partnerRoutes);
 
 // --------------- Health & Index ---------------
 app.get('/', (_req, res) => {
