@@ -1,5 +1,8 @@
 # AGENTS.md -- Panduan SOP Pengembangan Kode
 
+> [!CAUTION]
+> **ATURAN SANGAT KETAT (STRICT RULE):** File ini (`.agents/AGENTS.md`) bersifat **READ-ONLY** untuk AI Agent. AI Agent **DILARANG KERAS** mengubah, menambah, atau menghapus isi dokumen ini secara mandiri tanpa instruksi langsung dan spesifik dari User (Developer Manusia).
+
 Dokumen ini adalah **Standard Operating Procedure (SOP)** yang WAJIB dipatuhi oleh setiap AI Agent maupun developer manusia yang bekerja pada codebase ini. Tidak ada pengecualian.
 
 ---
@@ -80,15 +83,15 @@ server/
 
 ## Konvensi Penamaan File
 
-| Lokasi             | Pola Penamaan                  | Contoh                     |
-| ------------------ | ------------------------------ | -------------------------- |
-| `components/`      | PascalCase `.jsx`              | `Navbar.jsx`, `Footer.jsx` |
-| `pages/`           | PascalCase + `Page` suffix     | `LokerPage.jsx`            |
-| `constants/`       | camelCase `.js`                | `mockData.js`              |
-| `services/`        | camelCase `.js`                | `api.js`                   |
-| `controllers/`     | kebab-case + `.controller.js`  | `info.controller.js`       |
-| `routes/`          | kebab-case + `.routes.js`      | `info.routes.js`           |
-| `models/`          | PascalCase `.js`               | `InfoItem.js`              |
+| Lokasi         | Pola Penamaan                 | Contoh                     |
+| -------------- | ----------------------------- | -------------------------- |
+| `components/`  | PascalCase `.jsx`             | `Navbar.jsx`, `Footer.jsx` |
+| `pages/`       | PascalCase + `Page` suffix    | `LokerPage.jsx`            |
+| `constants/`   | camelCase `.js`               | `mockData.js`              |
+| `services/`    | camelCase `.js`               | `api.js`                   |
+| `controllers/` | kebab-case + `.controller.js` | `info.controller.js`       |
+| `routes/`      | kebab-case + `.routes.js`     | `info.routes.js`           |
+| `models/`      | PascalCase `.js`              | `InfoItem.js`              |
 
 ---
 
@@ -146,6 +149,20 @@ server/
 2. Buat controller di `server/controllers/nama.controller.js`
 3. Buat route di `server/routes/nama.routes.js`
 4. Daftarkan route di `server/server.js`
+
+---
+
+## Sistem Otomatisasi Git & Linter
+
+Proyek ini menggunakan sistem otomatisasi Git Hook untuk menjaga kerapian dan validitas kode sebelum masuk ke repositori GitHub:
+
+1. **Prettier (Code Formatter)**: Konfigurasi formatting diatur di `.prettierrc` di root. Semua spasi, tab, tanda kutip, dan titik koma akan dirapikan otomatis saat commit.
+2. **Husky & lint-staged**: Git Hook diatur di `.husky/pre-commit` yang memicu `npx lint-staged` sebelum proses commit diselesaikan.
+3. **Oxlint (Linter)**:
+   - Menggunakan konfigurasi `client/.oxlintrc.json` dan `server/.oxlintrc.json`.
+   - Mengaktifkan aturan `"no-console": "error"`. Setiap `console.log` yang tertinggal akan dideteksi sebagai error, dan proses commit otomatis dibatalkan (_aborted_).
+   - Untuk debugging, gunakan `console.warn()` atau `console.error()`, atau hapus print out sebelum melakukan commit.
+4. **API Testing**: Gunakan file `api-test.http` di root untuk melakukan uji coba endpoint server lokal langsung dari editor dengan ekstensi _REST Client_ (tanpa memerlukan Postman).
 
 ---
 
