@@ -6,7 +6,6 @@ const NAV_ITEMS = [
   { to: '/admin/konten',    icon: 'fa-newspaper',      label: 'Konten'      },
   { to: '/admin/program',   icon: 'fa-briefcase',      label: 'Program'     },
   { to: '/admin/kemitraan', icon: 'fa-handshake',      label: 'Kemitraan'   },
-  { to: '/admin/anggota',   icon: 'fa-users',          label: 'Anggota'     },
   { to: '/admin/subscriber',icon: 'fa-envelope-open-text', label: 'Subscriber' },
   { to: '/admin/pengurus',  icon: 'fa-sitemap',        label: 'Pengurus'    },
   { to: '/admin/settings',  icon: 'fa-gear',           label: 'Pengaturan'  },

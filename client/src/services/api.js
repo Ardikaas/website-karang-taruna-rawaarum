@@ -322,18 +322,20 @@ export const verifyAdminToken = async () => {
  * @returns {Promise<Object>} { totalInfo, totalAnggota, totalSubscriber, recentInfo, recentAnggota }
  */
 export const fetchAdminStats = async () => {
-  const [infoItems, registrations, subscribers] = await Promise.all([
+  const [infoItems, programs, partners, subscribers] = await Promise.all([
     fetchInfoItems(),
-    fetchRegistrations(),
+    fetchPrograms(),
+    fetchPartners(),
     fetchSubscribers(),
   ]);
 
   return {
     totalInfo: infoItems.length,
-    totalAnggota: registrations.length,
+    totalProgram: programs.length,
+    totalPartner: partners.length,
     totalSubscriber: subscribers.length,
     recentInfo: infoItems.slice(0, 5),
-    recentAnggota: registrations.slice(0, 5),
+    recentSubscribers: subscribers.slice(0, 5),
   };
 };
 

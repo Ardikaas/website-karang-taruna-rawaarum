@@ -160,6 +160,10 @@ const AdminProgramPage = () => {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [sortBy, setSortBy] = useState('alphabetical');
 
   // Form State
   const [showModal, setShowModal] = useState(false);
@@ -263,6 +267,32 @@ const AdminProgramPage = () => {
     }
   };
 
+  // Get dynamic unique categories from program list
+  const categories = ['all', ...new Set(list.map(item => item.category))];
+
+  const filteredList = list
+    .filter((item) => {
+      const matchesCategory = filterCategory === 'all' || item.category === filterCategory;
+      const matchesStatus = filterStatus === 'all' || item.status === filterStatus;
+      const query = searchQuery.toLowerCase().trim();
+      const matchesSearch = 
+        item.title.toLowerCase().includes(query) ||
+        item.description.toLowerCase().includes(query) ||
+        item.category.toLowerCase().includes(query) ||
+        (item.target && item.target.toLowerCase().includes(query));
+      return matchesCategory && matchesStatus && matchesSearch;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'alphabetical') {
+        return a.title.localeCompare(b.title);
+      } else if (sortBy === 'newest') {
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      } else if (sortBy === 'oldest') {
+        return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+      }
+      return 0;
+    });
+
   if (loading && list.length === 0) {
     return (
       <div className="admin-loading-container">
@@ -294,12 +324,111 @@ const AdminProgramPage = () => {
 
       {/* Program Table */}
       <div className="admin-card">
-        <div className="admin-card__header" style={{ justifyContent: 'space-between' }}>
-          <h2 className="admin-card__title">Daftar Program Kerja ({list.length})</h2>
+        <div className="admin-card__header" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid #edf2f7' }}>
+          <div className="admin-tabs" style={{ marginBottom: 0, borderBottom: 'none' }}>
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                className={`admin-tab-btn ${filterCategory === cat ? 'active' : ''}`}
+                onClick={() => setFilterCategory(cat)}
+              >
+                {cat === 'all' ? 'Semua Pilar' : cat}
+              </button>
+            ))}
+          </div>
+          <div className="admin-text-muted" style={{ fontSize: '0.85rem', fontWeight: '500' }}>
+            Menampilkan {filteredList.length} dari {list.length} program
+          </div>
         </div>
+
+        {/* Filter & Search Toolbar */}
+        <div style={{ 
+          padding: '1rem 1.5rem', 
+          borderBottom: '1px solid #edf2f7', 
+          display: 'flex', 
+          gap: '1rem', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          flexWrap: 'wrap',
+          backgroundColor: '#f8fafc'
+        }}>
+          {/* Search Bar */}
+          <div style={{ position: 'relative', flex: '1', minWidth: '250px', maxWidth: '400px' }}>
+            <i className="fa-solid fa-magnifying-glass" style={{ 
+              position: 'absolute', 
+              left: '1rem', 
+              top: '50%', 
+              transform: 'translateY(-50%)', 
+              color: '#94a3b8' 
+            }} />
+            <input
+              type="text"
+              className="admin-form-control"
+              placeholder="Cari judul, rincian, atau pilar program..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ paddingLeft: '2.5rem', height: '40px', fontSize: '0.85rem' }}
+            />
+            {searchQuery && (
+              <button 
+                type="button" 
+                onClick={() => setSearchQuery('')}
+                style={{ 
+                  position: 'absolute', 
+                  right: '1rem', 
+                  top: '50%', 
+                  transform: 'translateY(-50%)', 
+                  background: 'none', 
+                  border: 'none', 
+                  color: '#94a3b8', 
+                  cursor: 'pointer' 
+                }}
+              >
+                <i className="fa-solid fa-circle-xmark" style={{ fontSize: '1rem' }} />
+              </button>
+            )}
+          </div>
+
+          {/* Status & Sort Selectors */}
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>
+                <i className="fa-solid fa-circle-info" /> Status:
+              </span>
+              <select
+                className="admin-form-control"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                style={{ width: '120px', height: '40px', padding: '0 0.5rem', fontSize: '0.85rem' }}
+              >
+                <option value="all">Semua</option>
+                <option value="Rencana">Rencana</option>
+                <option value="Berjalan">Berjalan</option>
+                <option value="Selesai">Selesai</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>
+                <i className="fa-solid fa-arrow-down-wide-short" /> Urutan:
+              </span>
+              <select
+                className="admin-form-control"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                style={{ width: '150px', height: '40px', padding: '0 0.5rem', fontSize: '0.85rem' }}
+              >
+                <option value="alphabetical">Nama (A - Z)</option>
+                <option value="newest">Terbaru</option>
+                <option value="oldest">Terlama</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         <div className="admin-card__body" style={{ padding: 0 }}>
           <div className="admin-table-wrapper">
-            {list.length > 0 ? (
+            {filteredList.length > 0 ? (
               <table className="admin-table">
                 <thead>
                   <tr>
@@ -312,7 +441,7 @@ const AdminProgramPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {list.map((item) => (
+                  {filteredList.map((item) => (
                     <tr key={item._id}>
                       <td style={{ width: '60px', textAlign: 'center' }}>
                         <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: 'rgba(249, 115, 22, 0.1)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
@@ -362,9 +491,25 @@ const AdminProgramPage = () => {
                 </tbody>
               </table>
             ) : (
-              <div className="admin-empty-state" style={{ padding: '4rem 2rem' }}>
-                <i className="fa-solid fa-briefcase" style={{ fontSize: '3rem', color: 'var(--text-muted)', marginBottom: '1rem' }} />
-                <p style={{ fontWeight: '500' }}>Belum ada program kerja</p>
+              <div className="admin-empty-state" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+                <i className="fa-solid fa-magnifying-glass" style={{ fontSize: '3rem', color: 'var(--text-muted)', marginBottom: '1rem' }} />
+                <p style={{ fontWeight: '500', color: 'var(--text-main)' }}>
+                  {searchQuery ? 'Tidak ada hasil pencarian yang cocok' : 'Belum ada program kerja'}
+                </p>
+                <p className="admin-text-muted" style={{ fontSize: '0.9rem', marginBottom: searchQuery ? '1rem' : '0' }}>
+                  {searchQuery 
+                    ? `Tidak ada program kerja yang cocok dengan kata kunci "${searchQuery}"` 
+                    : 'Silakan klik "Tambah Program Kerja" untuk mendaftarkan pilar baru.'}
+                </p>
+                {searchQuery && (
+                  <button 
+                    className="admin-btn admin-btn--outline admin-btn--sm"
+                    onClick={() => setSearchQuery('')}
+                    style={{ marginTop: '0.5rem' }}
+                  >
+                    Reset Pencarian
+                  </button>
+                )}
               </div>
             )}
           </div>

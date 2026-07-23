@@ -4,7 +4,6 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 // Layout Components
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import RegistrationModal from './components/RegistrationModal';
 import Toast from './components/Toast';
 
 // Pages
@@ -22,7 +21,6 @@ import ProgramPage from './pages/ProgramPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminKontenPage from './pages/admin/AdminKontenPage';
-import AdminAnggotaPage from './pages/admin/AdminAnggotaPage';
 import AdminSubscriberPage from './pages/admin/AdminSubscriberPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminPengurusPage from './pages/admin/AdminPengurusPage';
@@ -33,7 +31,7 @@ import AdminLayout from './components/AdminLayout';
 import { AuthProvider } from './context/AuthContext';
 
 // API Service
-import { submitRegistration, subscribeNewsletter } from './services/api';
+import { subscribeNewsletter } from './services/api';
 
 const SCROLL_THRESHOLD = 50;
 const TOAST_DURATION_MS = 4000;
@@ -44,7 +42,6 @@ const App = () => {
   const [activeSection, setActiveSection] = useState('home');
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [regModalOpen, setRegModalOpen] = useState(false);
 
   // --------------- Toast ---------------
   const [toast, setToast] = useState({ open: false, message: '', type: 'success' });
@@ -55,16 +52,6 @@ const App = () => {
       setToast({ open: false, message: '', type: 'success' });
     }, TOAST_DURATION_MS);
   };
-
-  // --------------- Registration Form ---------------
-  const [regForm, setRegForm] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    interest: 'Sosial & Keagamaan',
-    reason: '',
-  });
-  const [regSubmitting, setRegSubmitting] = useState(false);
 
   // --------------- Newsletter ---------------
   const [newsletterEmail, setNewsletterEmail] = useState('');
@@ -98,22 +85,6 @@ const App = () => {
   }, []);
 
   // --------------- Form Handlers ---------------
-  const handleRegisterSubmit = async (e) => {
-    e.preventDefault();
-    setRegSubmitting(true);
-
-    try {
-      await submitRegistration(regForm);
-      showToastMessage('Pendaftaran Anda berhasil dikirim! Kami akan menghubungi Anda segera.');
-      setRegForm({ name: '', email: '', phone: '', interest: 'Sosial & Keagamaan', reason: '' });
-      setRegModalOpen(false);
-    } catch (err) {
-      showToastMessage(err.message || 'Gagal mengirim pendaftaran. Server kemungkinan offline.', 'error');
-    } finally {
-      setRegSubmitting(false);
-    }
-  };
-
   const handleNewsletterSubmit = async (e) => {
     e.preventDefault();
     if (!newsletterEmail) return;
@@ -142,7 +113,6 @@ const App = () => {
           scrolled={scrolled}
           mobileMenuOpen={mobileMenuOpen}
           setMobileMenuOpen={setMobileMenuOpen}
-          onOpenRegModal={() => setRegModalOpen(true)}
         />
       )}
 
@@ -178,16 +148,6 @@ const App = () => {
               <ProtectedRoute>
                 <AdminLayout>
                   <AdminKontenPage />
-                </AdminLayout>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin/anggota" 
-            element={
-              <ProtectedRoute>
-                <AdminLayout>
-                  <AdminAnggotaPage />
                 </AdminLayout>
               </ProtectedRoute>
             } 
@@ -253,15 +213,6 @@ const App = () => {
           newsletterSubmitting={newsletterSubmitting}
         />
       )}
-
-      <RegistrationModal
-        isOpen={regModalOpen}
-        onClose={() => setRegModalOpen(false)}
-        regForm={regForm}
-        setRegForm={setRegForm}
-        onSubmit={handleRegisterSubmit}
-        submitting={regSubmitting}
-      />
 
       <Toast
         open={toast.open}
