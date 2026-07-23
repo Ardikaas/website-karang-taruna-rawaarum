@@ -20,6 +20,8 @@ jobs:
           Write-Host "Starting deployment on Windows Server..."
           docker compose build --no-cache
           docker compose down
+          docker ps -a -q --filter "name=karangtaruna-server" | ForEach-Object { docker rm -f $_ }
+          docker ps -a -q --filter "name=karangtaruna-client" | ForEach-Object { docker rm -f $_ }
           docker compose up -d
           docker image prune -f
           Write-Host "Deployment completed successfully!"
