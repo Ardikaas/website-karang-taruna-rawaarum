@@ -1,0 +1,5 @@
+# CODEOWNERS - Menentukan pemilik kode yang wajib menyetujui Pull Request.
+# Dokumentasi: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Semua perubahan pada file apa pun di repositori ini wajib mendapatkan persetujuan (approval) dari @Ardikaas sebelum bisa di-merge.
+*       @Ardikaas

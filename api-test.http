@@ -1,0 +1,64 @@
+### Variabel Global
+@baseUrl = http://localhost:5555
+
+### 1. Cek Status Kesehatan API (Health Check)
+GET {{baseUrl}}/api/health
+Accept: application/json
+
+###
+
+### 2. Berlangganan Newsletter
+POST {{baseUrl}}/api/newsletter
+Content-Type: application/json
+
+{
+  "email": "warga_cilegon@example.com"
+}
+
+###
+
+### 3. Ambil Semua Pelanggan Newsletter
+GET {{baseUrl}}/api/newsletter
+Accept: application/json
+
+###
+
+### 4. Pendaftaran Anggota Baru Karang Taruna
+POST {{baseUrl}}/api/register
+Content-Type: application/json
+
+{
+  "name": "Budi Setiawan",
+  "email": "budi.setiawan@example.com",
+  "phone": "081234567890",
+  "interest": "Seni Budaya",
+  "reason": "Ingin berkontribusi memajukan kegiatan pemuda di Kelurahan Rawa Arum."
+}
+
+###
+
+### 5. Ambil Semua Pendaftar Anggota
+GET {{baseUrl}}/api/register
+Accept: application/json
+
+###
+
+### 6. Membuat Pengumuman / Info Baru (Loker, UMKM, Kegiatan)
+POST {{baseUrl}}/api/info
+Content-Type: application/json
+
+{
+  "title": "Lowongan Kerja Admin Kelurahan",
+  "description": "Dibutuhkan tenaga admin harian lepas untuk kelurahan Rawa Arum. Syarat minimal SMA/SMK dan menguasai Ms. Office.",
+  "type": "loker",
+  "date": "23 Juli 2026",
+  "imageUrl": "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=400",
+  "badge": "Loker",
+  "linkText": "Hubungi Kelurahan"
+}
+
+###
+
+### 7. Ambil Semua Info (Bisa difilter ?type=loker|umkm|kegiatan|pengumuman)
+GET {{baseUrl}}/api/info?type=loker
+Accept: application/json
