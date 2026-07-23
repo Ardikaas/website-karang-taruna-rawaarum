@@ -1,8 +1,17 @@
 import { useState, useEffect } from 'react';
+import { fetchSiteSettings } from '../services/api';
 
 const KontakPage = () => {
+  const [settings, setSettings] = useState(null);
+
   useEffect(() => {
     window.scrollTo(0, 0);
+
+    const loadSettings = async () => {
+      const data = await fetchSiteSettings();
+      setSettings(data);
+    };
+    loadSettings();
   }, []);
 
   const [formData, setFormData] = useState({
@@ -25,9 +34,8 @@ const KontakPage = () => {
     e.preventDefault();
     setSubmitting(true);
 
-    // Simulate sending data to API
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await new Promise((resolve) => setTimeout(resolve, 1200));
       setSuccess(true);
       setFormData({
         name: '',
@@ -43,21 +51,26 @@ const KontakPage = () => {
     }
   };
 
+  const whatsappNum = settings?.whatsapp || '6281234567890';
+  const address = settings?.address || 'Kantor Kelurahan Rawa Arum, Kec. Grogol, Kota Cilegon, Banten 42436';
+  const email = settings?.email || 'kontak@karangtarunarawaarum.id';
+  const mapsEmbed = settings?.mapsEmbedUrl || 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15871.218525368565!2d106.01511252119934!3d-6.021111082260655!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e418fb5f03e2307%3A0xe1cc64e9a0de5f55!2sRawa%20Arum%2C%20Kec.%20Grogol%2C%20Kota%20Cilegon%2C%20Banten!5e0!3m2!1sid!2sid!4v1700000000000!5m2!1sid!2sid';
+
   const contactOptions = [
     {
       icon: 'fa-solid fa-handshake',
       title: 'Kolaborasi & Sponsor',
       desc: 'Diskusikan program sponsorship, kemitraan industri, CSR, atau showcase UMKM.',
-      actionText: 'Hubungi Humas',
-      link: 'https://wa.me/6281234567890',
+      actionText: 'Hubungi Humas via WA',
+      link: `https://wa.me/${whatsappNum}`,
       badge: 'B2B & CSR'
     },
     {
       icon: 'fa-solid fa-bullhorn',
       title: 'Aduan & Layanan',
       desc: 'Sampaikan saran, masukan, pengaduan sosial, atau kebutuhan administrasi kepemudaan.',
-      actionText: 'Layanan Pengaduan',
-      link: 'https://wa.me/6287798765432',
+      actionText: 'Layanan WhatsApp',
+      link: `https://wa.me/${whatsappNum}`,
       badge: 'Warga Rawa Arum'
     }
   ];
@@ -209,14 +222,14 @@ const KontakPage = () => {
                   <div className="info-detail-icon"><i className="fa-solid fa-location-dot"></i></div>
                   <div className="info-detail-text">
                     <strong>Alamat Kantor</strong>
-                    <span>Kantor Kelurahan Rawa Arum, Kec. Grogol, Kota Cilegon, Banten 42436</span>
+                    <span>{address}</span>
                   </div>
                 </div>
                 <div className="info-detail-row">
                   <div className="info-detail-icon"><i className="fa-solid fa-envelope"></i></div>
                   <div className="info-detail-text">
                     <strong>Email Resmi</strong>
-                    <a href="mailto:karangtarunarawaarum@gmail.com">karangtarunarawaarum@gmail.com</a>
+                    <a href={`mailto:${email}`}>{email}</a>
                   </div>
                 </div>
                 <div className="info-detail-row">
@@ -232,7 +245,7 @@ const KontakPage = () => {
               <div className="contact-map-wrapper">
                 <iframe 
                   title="Peta Kantor Kelurahan Rawa Arum"
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15871.218525368565!2d106.01511252119934!3d-6.021111082260655!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e418fb5f03e2307%3A0xe1cc64e9a0de5f55!2sRawa%20Arum%2C%20Kec.%20Grogol%2C%20Kota%20Cilegon%2C%20Banten!5e0!3m2!1sid!2sid!4v1700000000000!5m2!1sid!2sid" 
+                  src={mapsEmbed}
                   width="100%" 
                   height="220" 
                   style={{ border: 0, borderRadius: 'var(--radius-md)' }} 

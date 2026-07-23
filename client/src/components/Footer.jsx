@@ -1,5 +1,6 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { fetchSiteSettings } from '../services/api';
 
 const Footer = ({ 
   newsletterEmail, 
@@ -7,6 +8,23 @@ const Footer = ({
   onNewsletterSubmit, 
   newsletterSubmitting
 }) => {
+  const [settings, setSettings] = useState(null);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      const data = await fetchSiteSettings();
+      setSettings(data);
+    };
+    loadSettings();
+  }, []);
+
+  const address = settings?.address || 'Jl. Rawa Arum No. 12, Kec. Grogol, Kota Cilegon, Banten 42436';
+  const phone = settings?.phone || '0812-3456-7890';
+  const email = settings?.email || 'kontak@karangtarunarawaarum.id';
+  const ig = settings?.socialInstagram || 'https://instagram.com';
+  const fb = settings?.socialFacebook || 'https://facebook.com';
+  const yt = settings?.socialYoutube || 'https://youtube.com';
+
   return (
     <footer className="footer-section" id="kontak">
       <div className="container footer-grid">
@@ -23,9 +41,9 @@ const Footer = ({
             Bersama pemuda-pemudi potensial kelurahan Rawa Arum, kita kembangkan kebersamaan, kepedulian sosial, serta kontribusi aktif membangun daerah.
           </p>
           <div className="social-links">
-            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="social-icon"><i className="fa-brands fa-instagram"></i></a>
-            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="social-icon"><i className="fa-brands fa-facebook-f"></i></a>
-            <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="social-icon"><i className="fa-brands fa-youtube"></i></a>
+            <a href={ig} target="_blank" rel="noopener noreferrer" className="social-icon"><i className="fa-brands fa-instagram"></i></a>
+            <a href={fb} target="_blank" rel="noopener noreferrer" className="social-icon"><i className="fa-brands fa-facebook-f"></i></a>
+            <a href={yt} target="_blank" rel="noopener noreferrer" className="social-icon"><i className="fa-brands fa-youtube"></i></a>
           </div>
         </div>
 
@@ -35,7 +53,7 @@ const Footer = ({
           <ul className="footer-menu">
             <li><a href="/#home">Beranda</a></li>
             <li><a href="/#pilar">Profil</a></li>
-            <li><a href="/#program">Program Kerja</a></li>
+            <li><Link to="/program">Program Kerja</Link></li>
             <li><Link to="/kegiatan">Berita & Kegiatan</Link></li>
             <li><Link to="/loker">Lowongan Kerja</Link></li>
             <li><Link to="/umkm">Katalog UMKM</Link></li>
@@ -48,15 +66,15 @@ const Footer = ({
           <ul className="contact-list">
             <li>
               <i className="fa-solid fa-location-dot contact-icon"></i>
-              <span>Jl. Rawa Arum No. 12, Kec. Grogol, Kota Cilegon, Banten 42436</span>
+              <span>{address}</span>
             </li>
             <li>
               <i className="fa-solid fa-phone contact-icon"></i>
-              <a href="tel:081234567890">0812-3456-7890</a>
+              <a href={`tel:${phone.replace(/[^0-9]/g, '')}`}>{phone}</a>
             </li>
             <li>
               <i className="fa-solid fa-envelope contact-icon"></i>
-              <a href="mailto:karangtarunarawaarum@gmail.com">karangtarunarawaarum@gmail.com</a>
+              <a href={`mailto:${email}`}>{email}</a>
             </li>
           </ul>
         </div>
