@@ -94,7 +94,7 @@ const PengumumanPage = () => {
                       </span>
                     </div>
                     <h3 className="info-title">{item.title}</h3>
-                    <p className="info-desc">{item.description}</p>
+                    <p className="info-desc" dangerouslySetInnerHTML={{ __html: item.description }}></p>
                     <a href="#kontak" className="info-btn">
                       {item.linkText}{" "}
                       <i className="fa-solid fa-arrow-right-long"></i>

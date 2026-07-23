@@ -1,11 +1,17 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { fetchPartners } from '../services/api';
 
 const Kemitraan = () => {
-  const partners = [
-    { id: 1, name: 'PT Hanindo Bakti Sejahtera', logo: '/assets/hanindo.png' },
-    { id: 2, name: 'PT Mutiara Alfini', logo: '/assets/mutiara_alfini.png' }
-  ];
+  const [partners, setPartners] = useState([]);
+
+  useEffect(() => {
+    const loadPartners = async () => {
+      const data = await fetchPartners();
+      setPartners(data);
+    };
+    loadPartners();
+  }, []);
 
   return (
     <section className="partner-section" id="kemitraan">
@@ -17,11 +23,23 @@ const Kemitraan = () => {
         </div>
 
         <div className="grid-partners">
-          {partners.map((partner) => (
-            <div key={partner.id} className="partner-card" title={partner.name}>
-              <img src={partner.logo} alt={partner.name} className="partner-logo-img" />
+          {partners.length > 0 ? (
+            partners.map((partner) => (
+              <div key={partner._id} className="partner-card" title={partner.name}>
+                {partner.logoUrl ? (
+                  <img src={partner.logoUrl} alt={partner.name} className="partner-logo-img" />
+                ) : (
+                  <div style={{ fontWeight: '700', color: 'var(--primary-deep)', fontSize: '1rem', padding: '1rem', textAlign: 'center' }}>
+                    {partner.name}
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="partner-card">
+              <span style={{ color: 'var(--text-muted)' }}>Belum ada logo mitra</span>
             </div>
-          ))}
+          )}
         </div>
 
         <div className="partner-cta">

@@ -34,7 +34,58 @@ const getRegistrations = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Delete a registration by ID
+ * @route   DELETE /api/register/:id
+ * @access  Protected (admin)
+ */
+const deleteRegistration = async (req, res) => {
+  try {
+    const deleted = await Registration.findByIdAndDelete(req.params.id);
+
+    if (!deleted) {
+      return res.status(404).json({ error: 'Data pendaftaran tidak ditemukan.' });
+    }
+
+    res.json({ message: 'Data pendaftaran berhasil dihapus.', id: req.params.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+/**
+ * @desc    Update a registration status (Pending/Approved/Rejected)
+ * @route   PATCH /api/register/:id/status
+ * @access  Protected (admin)
+ */
+const updateRegistrationStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    if (!status || !['Pending', 'Approved', 'Rejected'].includes(status)) {
+      return res.status(400).json({ error: 'Status tidak valid. Harus Pending, Approved, atau Rejected.' });
+    }
+
+    const updated = await Registration.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true, runValidators: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Data pendaftaran tidak ditemukan.' });
+    }
+
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
 module.exports = {
   createRegistration,
   getRegistrations,
+  deleteRegistration,
+  updateRegistrationStatus,
 };
