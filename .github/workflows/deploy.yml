@@ -19,6 +19,7 @@ jobs:
         run: |
           Write-Host "Starting deployment on Windows Server..."
           docker compose build --no-cache
+          docker compose down
           docker compose up -d
           docker image prune -f
           Write-Host "Deployment completed successfully!"
