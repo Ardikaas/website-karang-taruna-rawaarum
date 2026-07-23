@@ -1,16 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchPengurus, createPengurus, updatePengurus, deletePengurus, uploadImage } from '../../services/api';
 import { getAvatarPhoto } from '../../constants/structureData';
 
 const INITIAL_FORM = {
   name: '',
-  role: 'Anggota',
-  category: 'bidang',
-  level: 3,
+  role: 'Anggota Bidang',
+  customRole: '',
+  customCategoryType: 'bidang',
+  customRoleLevel: 3,
   bidangId: 'kaderisasi',
   bidangTitle: 'Pemberdayaan Aparatur Organisasi & Kaderisasi',
   imageUrl: '',
-  isKoordinator: false
 };
 
 const DIVISION_MAP = [
@@ -26,15 +26,28 @@ const DIVISION_MAP = [
   { id: 'kustom', title: 'Bidang Kustom...' }
 ];
 
+const STANDARD_ROLES = [
+  { label: 'Ketua', category: 'harian', level: 1, isKoordinator: false },
+  { label: 'Wakil Ketua', category: 'harian', level: 2, isKoordinator: false },
+  { label: 'Sekretaris', category: 'harian', level: 3, isKoordinator: false },
+  { label: 'Bendahara', category: 'harian', level: 3, isKoordinator: false },
+  { label: 'Koordinator Bidang', category: 'bidang', level: 3, isKoordinator: true },
+  { label: 'Anggota Bidang', category: 'bidang', level: 3, isKoordinator: false },
+  { label: 'Pelindung / Pembina Kelurahan', category: 'pembina', level: 1, isKoordinator: false }
+];
+
 const AdminPengurusPage = () => {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterDivision, setFilterDivision] = useState('all');
+  const [sortBy, setSortBy] = useState('level');
 
   // Form & Modal States
   const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState('create'); // 'create' | 'edit'
+  const [modalMode, setModalMode] = useState('create');
   const [activeId, setActiveId] = useState(null);
   const [form, setForm] = useState({ ...INITIAL_FORM });
   const [submitting, setSubmitting] = useState(false);
@@ -74,15 +87,16 @@ const AdminPengurusPage = () => {
   };
 
   const handleOpenEdit = (item) => {
+    const isStandard = STANDARD_ROLES.some(r => r.label === item.role);
     setForm({
       name: item.name,
-      role: item.role,
-      category: item.category,
-      level: item.level || 3,
+      role: isStandard ? item.role : 'kustom',
+      customRole: isStandard ? '' : item.role,
+      customCategoryType: item.category || 'bidang',
+      customRoleLevel: item.level || 3,
       bidangId: item.bidangId || 'kaderisasi',
       bidangTitle: item.bidangTitle || '',
       imageUrl: item.imageUrl || '',
-      isKoordinator: item.isKoordinator || false,
     });
     setActiveId(item._id);
     setModalMode('edit');
@@ -108,59 +122,50 @@ const AdminPengurusPage = () => {
     }
   };
 
-  const handleCategoryChange = (cat) => {
-    const defaultRole = cat === 'pembina' ? 'Pelindung / Pembina' : cat === 'harian' ? 'Ketua' : 'Anggota';
-    setForm({
-      ...form,
-      category: cat,
-      role: defaultRole,
-      isKoordinator: false
-    });
-  };
-
-  const handleDivisionChange = (divId) => {
-    const divObj = DIVISION_MAP.find(d => d.id === divId);
-    setForm({
-      ...form,
-      bidangId: divId,
-      bidangTitle: divObj ? divObj.title : '',
-      role: form.isKoordinator ? 'Koordinator Bidang' : 'Anggota'
-    });
-  };
-
-  const handleKoorCheckbox = (isChecked) => {
-    setForm({
-      ...form,
-      isKoordinator: isChecked,
-      role: isChecked ? 'Koordinator Bidang' : 'Anggota'
-    });
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
-    setSubmitting(true);
 
-    const payload = { ...form };
-
-    // Format inputs depending on category
-    if (payload.category === 'pembina') {
-      payload.level = 1;
-      payload.bidangId = '';
-      payload.bidangTitle = '';
-      payload.isKoordinator = false;
-    } else if (payload.category === 'harian') {
-      payload.bidangId = '';
-      payload.bidangTitle = '';
-      payload.isKoordinator = false;
-    } else {
-      payload.level = 3;
-      if (payload.bidangId === 'kustom' && !payload.bidangTitle) {
-        setFormError('Nama bidang kustom wajib diisi.');
-        setSubmitting(false);
-        return;
-      }
+    const finalRole = form.role === 'kustom' ? form.customRole.trim() : form.role;
+    if (!finalRole) {
+      setFormError('Nama jabatan wajib diisi.');
+      return;
     }
+
+    let category = 'bidang';
+    let level = 3;
+    let isKoordinator = false;
+
+    if (form.role !== 'kustom') {
+      const standardObj = STANDARD_ROLES.find(r => r.label === form.role);
+      if (standardObj) {
+        category = standardObj.category;
+        level = standardObj.level;
+        isKoordinator = standardObj.isKoordinator;
+      }
+    } else {
+      category = form.customCategoryType;
+      level = category === 'pembina' ? 1 : form.customRoleLevel;
+      isKoordinator = category === 'bidang' && (finalRole.toLowerCase().includes('koordinator') || finalRole.toLowerCase().includes('kabid') || finalRole.toLowerCase().includes('ketua bidang'));
+    }
+
+    const payload = {
+      name: form.name,
+      role: finalRole,
+      category,
+      level,
+      bidangId: category === 'bidang' ? form.bidangId : '',
+      bidangTitle: category === 'bidang' ? form.bidangTitle : '',
+      imageUrl: form.imageUrl,
+      isKoordinator: category === 'bidang' ? isKoordinator : false
+    };
+
+    if (category === 'bidang' && payload.bidangId === 'kustom' && !payload.bidangTitle) {
+      setFormError('Nama bidang kustom wajib diisi.');
+      return;
+    }
+
+    setSubmitting(true);
 
     try {
       if (modalMode === 'create') {
@@ -190,9 +195,42 @@ const AdminPengurusPage = () => {
     }
   };
 
-  const filteredList = filterCategory === 'all'
-    ? list
-    : list.filter(item => item.category === filterCategory);
+  // Get dynamic unique categories from pengurus list
+  const categories = ['all', ...new Set(list.map(item => item.category))];
+
+  const filteredList = list
+    .filter((item) => {
+      const matchesCategory = filterCategory === 'all' || item.category === filterCategory;
+      const matchesDivision = filterDivision === 'all' || item.bidangId === filterDivision;
+      const query = searchQuery.toLowerCase().trim();
+      const matchesSearch = 
+        item.name.toLowerCase().includes(query) ||
+        item.role.toLowerCase().includes(query) ||
+        (item.bidangTitle && item.bidangTitle.toLowerCase().includes(query));
+      return matchesCategory && matchesDivision && matchesSearch;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'level') {
+        const catOrder = { pembina: 1, harian: 2, bidang: 3 };
+        const catA = catOrder[a.category] || 99;
+        const catB = catOrder[b.category] || 99;
+        if (catA !== catB) return catA - catB;
+        const lvlA = a.level || 99;
+        const lvlB = b.level || 99;
+        if (lvlA !== lvlB) return lvlA - lvlB;
+        if (a.isKoordinator !== b.isKoordinator) {
+          return a.isKoordinator ? -1 : 1;
+        }
+        return a.name.localeCompare(b.name);
+      } else if (sortBy === 'alphabetical') {
+        return a.name.localeCompare(b.name);
+      } else if (sortBy === 'newest') {
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      } else if (sortBy === 'oldest') {
+        return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+      }
+      return 0;
+    });
 
   if (loading && list.length === 0) {
     return (
@@ -225,20 +263,111 @@ const AdminPengurusPage = () => {
 
       {/* Tabs Filter */}
       <div className="admin-card">
-        <div className="admin-card__header" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+        <div className="admin-card__header" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid #edf2f7' }}>
           <div className="admin-tabs" style={{ marginBottom: 0, borderBottom: 'none' }}>
             {['all', 'pembina', 'harian', 'bidang'].map((cat) => (
               <button
                 key={cat}
                 className={`admin-tab-btn ${filterCategory === cat ? 'active' : ''}`}
-                onClick={() => setFilterCategory(cat)}
+                onClick={() => {
+                  setFilterCategory(cat);
+                  setFilterDivision('all');
+                }}
               >
                 {cat === 'all' ? 'Semua' : cat === 'pembina' ? 'Pembina/Pelindung' : cat === 'harian' ? 'Pengurus Harian' : 'Bidang Kerja'}
               </button>
             ))}
           </div>
-          <div className="admin-text-muted" style={{ fontSize: '0.9rem' }}>
-            Menampilkan {filteredList.length} orang pengurus
+          <div className="admin-text-muted" style={{ fontSize: '0.85rem', fontWeight: '500' }}>
+            Menampilkan {filteredList.length} dari {list.length} pengurus
+          </div>
+        </div>
+
+        {/* Filter & Search Toolbar */}
+        <div style={{ 
+          padding: '1rem 1.5rem', 
+          borderBottom: '1px solid #edf2f7', 
+          display: 'flex', 
+          gap: '1rem', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          flexWrap: 'wrap',
+          backgroundColor: '#f8fafc'
+        }}>
+          {/* Search Bar */}
+          <div style={{ position: 'relative', flex: '1', minWidth: '250px', maxWidth: '400px' }}>
+            <i className="fa-solid fa-magnifying-glass" style={{ 
+              position: 'absolute', 
+              left: '1rem', 
+              top: '50%', 
+              transform: 'translateY(-50%)', 
+              color: '#94a3b8' 
+            }} />
+            <input
+              type="text"
+              className="admin-form-control"
+              placeholder="Cari nama pengurus, jabatan, atau divisi..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ paddingLeft: '2.5rem', height: '40px', fontSize: '0.85rem' }}
+            />
+            {searchQuery && (
+              <button 
+                type="button" 
+                onClick={() => setSearchQuery('')}
+                style={{ 
+                  position: 'absolute', 
+                  right: '1rem', 
+                  top: '50%', 
+                  transform: 'translateY(-50%)', 
+                  background: 'none', 
+                  border: 'none', 
+                  color: '#94a3b8', 
+                  cursor: 'pointer' 
+                }}
+              >
+                <i className="fa-solid fa-circle-xmark" style={{ fontSize: '1rem' }} />
+              </button>
+            )}
+          </div>
+
+          {/* Right Selectors: Division & Sort */}
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            {filterCategory === 'bidang' && (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>
+                  <i className="fa-solid fa-sitemap" /> Divisi:
+                </span>
+                <select
+                  className="admin-form-control"
+                  value={filterDivision}
+                  onChange={(e) => setFilterDivision(e.target.value)}
+                  style={{ width: '180px', height: '40px', padding: '0 0.5rem', fontSize: '0.85rem' }}
+                >
+                  <option value="all">Semua Divisi</option>
+                  {DIVISION_MAP.filter(d => d.id !== 'kustom').map((d) => (
+                    <option key={d.id} value={d.id}>{d.title}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>
+                <i className="fa-solid fa-arrow-down-wide-short" /> Urutkan:
+              </span>
+              <select
+                className="admin-form-control"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                style={{ width: '150px', height: '40px', padding: '0 0.5rem', fontSize: '0.85rem' }}
+              >
+                <option value="level">Hirarki (Level)</option>
+                <option value="alphabetical">Nama (A - Z)</option>
+                <option value="newest">Terbaru</option>
+                <option value="oldest">Terlama</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -314,9 +443,25 @@ const AdminPengurusPage = () => {
                 </tbody>
               </table>
             ) : (
-              <div className="admin-empty-state" style={{ padding: '4rem 2rem' }}>
-                <i className="fa-solid fa-sitemap" style={{ fontSize: '3rem', color: 'var(--text-muted)', marginBottom: '1rem' }} />
-                <p style={{ fontWeight: '500' }}>Tidak ada data pengurus ditemukan</p>
+              <div className="admin-empty-state" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+                <i className="fa-solid fa-magnifying-glass" style={{ fontSize: '3rem', color: 'var(--text-muted)', marginBottom: '1rem' }} />
+                <p style={{ fontWeight: '500', color: 'var(--text-main)' }}>
+                  {searchQuery ? 'Tidak ada hasil pencarian yang cocok' : 'Tidak ada data pengurus ditemukan'}
+                </p>
+                <p className="admin-text-muted" style={{ fontSize: '0.9rem', marginBottom: searchQuery ? '1rem' : '0' }}>
+                  {searchQuery 
+                    ? `Tidak ada pengurus yang cocok dengan kata kunci "${searchQuery}"` 
+                    : 'Silakan klik "Tambah Pengurus" untuk menambahkan anggota baru.'}
+                </p>
+                {searchQuery && (
+                  <button 
+                    className="admin-btn admin-btn--outline admin-btn--sm"
+                    onClick={() => setSearchQuery('')}
+                    style={{ marginTop: '0.5rem' }}
+                  >
+                    Reset Pencarian
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -358,66 +503,57 @@ const AdminPengurusPage = () => {
                 </div>
 
                 <div className="admin-form-group">
-                  <label className="admin-form-label">Kategori Jabatan</label>
+                  <label className="admin-form-label">Jabatan Pengurus</label>
                   <select
                     className="admin-form-control"
-                    value={form.category}
-                    onChange={(e) => handleCategoryChange(e.target.value)}
+                    value={form.role}
+                    onChange={(e) => setForm({ ...form, role: e.target.value })}
                   >
-                    <option value="pembina">Pelindung / Pembina Kelurahan</option>
-                    <option value="harian">Pengurus Harian (Ketua, Sekr, Bend, dll)</option>
-                    <option value="bidang">Pengurus Divisi Bidang Kerja</option>
+                    <option value="Ketua">Ketua</option>
+                    <option value="Wakil Ketua">Wakil Ketua</option>
+                    <option value="Sekretaris">Sekretaris</option>
+                    <option value="Bendahara">Bendahara</option>
+                    <option value="Koordinator Bidang">Koordinator Bidang</option>
+                    <option value="Anggota Bidang">Anggota Bidang</option>
+                    <option value="Pelindung / Pembina Kelurahan">Pelindung / Pembina Kelurahan</option>
+                    <option value="kustom">+ Tambah Jabatan Kustom...</option>
                   </select>
                 </div>
               </div>
 
-              {/* ── Sub-Form: Pengurus Harian ── */}
-              {form.category === 'harian' && (
+              {/* Custom Role Fields */}
+              {form.role === 'kustom' && (
                 <div className="admin-grid-2">
                   <div className="admin-form-group">
-                    <label className="admin-form-label">Jabatan Spesifik</label>
+                    <label className="admin-form-label">Nama Jabatan Kustom</label>
                     <input
                       type="text"
                       className="admin-form-control"
                       required
-                      placeholder="Contoh: Wakil Ketua I, Sekretaris"
-                      value={form.role}
-                      onChange={(e) => setForm({ ...form, role: e.target.value })}
+                      placeholder="Contoh: Wakil Sekretaris I, Humas"
+                      value={form.customRole}
+                      onChange={(e) => setForm({ ...form, customRole: e.target.value })}
                     />
                   </div>
 
                   <div className="admin-form-group">
-                    <label className="admin-form-label">Tingkat Hirarki (Untuk Posisi Tabel)</label>
+                    <label className="admin-form-label">Penempatan Struktur / Kategori</label>
                     <select
                       className="admin-form-control"
-                      value={form.level}
-                      onChange={(e) => setForm({ ...form, level: parseInt(e.target.value) })}
+                      value={form.customCategoryType}
+                      onChange={(e) => setForm({ ...form, customCategoryType: e.target.value })}
                     >
-                      <option value={1}>Tingkat 1 (Ketua)</option>
-                      <option value={2}>Tingkat 2 (Wakil Ketua)</option>
-                      <option value={3}>Tingkat 3 (Sekretaris, Bendahara, dll)</option>
+                      <option value="harian">Pengurus Harian (Ketua, Sekr, Bend, dll)</option>
+                      <option value="bidang">Pengurus Divisi Bidang Kerja</option>
+                      <option value="pembina">Pelindung / Pembina Kelurahan</option>
                     </select>
                   </div>
                 </div>
               )}
 
-              {/* ── Sub-Form: Pembina / Pelindung ── */}
-              {form.category === 'pembina' && (
-                <div className="admin-form-group">
-                  <label className="admin-form-label">Jabatan Pembina</label>
-                  <input
-                    type="text"
-                    className="admin-form-control"
-                    required
-                    placeholder="Contoh: Pelindung / Pembina"
-                    value={form.role}
-                    onChange={(e) => setForm({ ...form, role: e.target.value })}
-                  />
-                </div>
-              )}
-
-              {/* ── Sub-Form: Bidang Kerja ── */}
-              {form.category === 'bidang' && (
+              {/* Show Division Selector if category is 'bidang' */}
+              {((form.role !== 'kustom' && ['Koordinator Bidang', 'Anggota Bidang'].includes(form.role)) || 
+                (form.role === 'kustom' && form.customCategoryType === 'bidang')) && (
                 <>
                   <div className="admin-grid-2">
                     <div className="admin-form-group">
@@ -425,7 +561,15 @@ const AdminPengurusPage = () => {
                       <select
                         className="admin-form-control"
                         value={form.bidangId}
-                        onChange={(e) => handleDivisionChange(e.target.value)}
+                        onChange={(e) => {
+                          const divId = e.target.value;
+                          const divObj = DIVISION_MAP.find(d => d.id === divId);
+                          setForm({
+                            ...form,
+                            bidangId: divId,
+                            bidangTitle: divObj ? divObj.title : ''
+                          });
+                        }}
                       >
                         {DIVISION_MAP.map((d) => (
                           <option key={d.id} value={d.id}>{d.title}</option>
@@ -433,17 +577,19 @@ const AdminPengurusPage = () => {
                       </select>
                     </div>
 
-                    <div className="admin-form-group" style={{ display: 'flex', alignItems: 'center', height: '100%', paddingTop: '1.75rem' }}>
-                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: '600', color: 'var(--text-main)', fontSize: '0.9rem' }}>
-                        <input
-                          type="checkbox"
-                          checked={form.isKoordinator}
-                          onChange={(e) => handleKoorCheckbox(e.target.checked)}
-                          style={{ width: '17px', height: '17px', cursor: 'pointer' }}
-                        />
-                        Sebagai Koordinator Bidang
-                      </label>
-                    </div>
+                    {form.role === 'kustom' && (
+                      <div className="admin-form-group">
+                        <label className="admin-form-label">Tingkat Hirarki Kustom</label>
+                        <select
+                          className="admin-form-control"
+                          value={form.customRoleLevel}
+                          onChange={(e) => setForm({ ...form, customRoleLevel: parseInt(e.target.value) })}
+                        >
+                          <option value={3}>Anggota / Koordinator Biasa (Level 3)</option>
+                          <option value={2}>Pimpinan Bidang (Level 2)</option>
+                        </select>
+                      </div>
+                    )}
                   </div>
 
                   {form.bidangId === 'kustom' && (
@@ -459,18 +605,6 @@ const AdminPengurusPage = () => {
                       />
                     </div>
                   )}
-
-                  <div className="admin-form-group">
-                    <label className="admin-form-label">Jabatan Divisi</label>
-                    <input
-                      type="text"
-                      className="admin-form-control"
-                      required
-                      placeholder="Contoh: Anggota, Koordinator Bidang"
-                      value={form.role}
-                      onChange={(e) => setForm({ ...form, role: e.target.value })}
-                    />
-                  </div>
                 </>
               )}
 
@@ -478,7 +612,6 @@ const AdminPengurusPage = () => {
               <div className="admin-form-group">
                 <label className="admin-form-label">Foto Profil Pengurus (Opsional)</label>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.25rem' }}>
-                  {/* Styled Drag & Drop / Selection Area */}
                   <div style={{ flex: 1, minWidth: '220px' }}>
                     <input
                       type="file"
@@ -520,7 +653,6 @@ const AdminPengurusPage = () => {
                     </label>
                   </div>
 
-                  {/* Thumbnail Preview Area */}
                   {(form.imageUrl || form.name) && (
                     <div style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', border: '2px solid #cbd5e1' }}>
                       <img
@@ -557,7 +689,6 @@ const AdminPengurusPage = () => {
                   )}
                 </div>
 
-                {/* Option to manual URL input */}
                 <div style={{ marginTop: '0.75rem' }}>
                   <button
                     type="button"

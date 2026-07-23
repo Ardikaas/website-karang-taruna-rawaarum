@@ -8,7 +8,6 @@ const seedDatabase = require('./utils/seed');
 
 // Route modules
 const infoRoutes = require('./routes/info.routes');
-const registerRoutes = require('./routes/register.routes');
 const newsletterRoutes = require('./routes/newsletter.routes');
 const authRoutes = require('./routes/auth.routes');
 const uploadRoutes = require('./routes/upload.routes');
@@ -28,7 +27,6 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 // --------------- API Routes ---------------
 app.use('/api/auth', authRoutes);
 app.use('/api/info', infoRoutes);
-app.use('/api/register', registerRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/pengurus', pengurusRoutes);

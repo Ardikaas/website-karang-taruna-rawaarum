@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Centralized API service layer.
  *
@@ -53,7 +54,9 @@ export const fetchInfoItems = async (type = null) => {
 
     return await res.json();
   } catch (_err) {
-    console.warn(`API offline (fetchInfoItems type=${type}). Using fallback data.`);
+    console.warn(
+      `API offline (fetchInfoItems type=${type}). Using fallback data.`
+    );
     if (type && FALLBACK_MAP[type]) {
       return FALLBACK_MAP[type];
     }
@@ -322,18 +325,24 @@ export const verifyAdminToken = async () => {
  * @returns {Promise<Object>} { totalInfo, totalAnggota, totalSubscriber, recentInfo, recentAnggota }
  */
 export const fetchAdminStats = async () => {
-  const [infoItems, registrations, subscribers] = await Promise.all([
-    fetchInfoItems(),
-    fetchRegistrations(),
-    fetchSubscribers(),
-  ]);
+  const [infoItems, registrations, subscribers, programs, partners] =
+    await Promise.all([
+      fetchInfoItems(),
+      fetchRegistrations(),
+      fetchSubscribers(),
+      fetchPrograms(),
+      fetchPartners(),
+    ]);
 
   return {
     totalInfo: infoItems.length,
     totalAnggota: registrations.length,
     totalSubscriber: subscribers.length,
+    totalProgram: programs.length,
+    totalPartner: partners.length,
     recentInfo: infoItems.slice(0, 5),
     recentAnggota: registrations.slice(0, 5),
+    recentSubscribers: subscribers.slice(0, 5),
   };
 };
 
@@ -447,7 +456,7 @@ const getMockPengurusFlat = () => {
     category: 'pembina',
     level: 1,
     imageUrl: '',
-    isKoordinator: false
+    isKoordinator: false,
   });
   structureData.harian.forEach((h, index) => {
     list.push({
@@ -457,10 +466,10 @@ const getMockPengurusFlat = () => {
       category: 'harian',
       level: h.level,
       imageUrl: '',
-      isKoordinator: false
+      isKoordinator: false,
     });
   });
-  structureData.bidang.forEach(b => {
+  structureData.bidang.forEach((b) => {
     list.push({
       _id: `mock-koor-${b.id}`,
       name: b.koordinator,
@@ -470,7 +479,7 @@ const getMockPengurusFlat = () => {
       bidangId: b.id,
       bidangTitle: b.title,
       isKoordinator: true,
-      imageUrl: ''
+      imageUrl: '',
     });
     b.anggota.forEach((name, index) => {
       list.push({
@@ -482,7 +491,7 @@ const getMockPengurusFlat = () => {
         bidangId: b.id,
         bidangTitle: b.title,
         isKoordinator: false,
-        imageUrl: ''
+        imageUrl: '',
       });
     });
   });
@@ -519,7 +528,8 @@ export const createPengurus = async (payload) => {
     body: JSON.stringify(payload),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Gagal menyimpan anggota pengurus.');
+  if (!res.ok)
+    throw new Error(data.error || 'Gagal menyimpan anggota pengurus.');
   return data;
 };
 
@@ -553,7 +563,8 @@ export const deletePengurus = async (id) => {
     headers: getAuthHeaders(),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Gagal menghapus anggota pengurus.');
+  if (!res.ok)
+    throw new Error(data.error || 'Gagal menghapus anggota pengurus.');
   return data;
 };
 
@@ -566,45 +577,60 @@ export const deletePengurus = async (id) => {
  */
 export const groupPengurusData = (flatList) => {
   const data = {
-    pembina: { name: 'Kepala Kelurahan Rawa Arum', role: 'Pelindung / Pembina', imageUrl: '' },
+    pembina: {
+      name: 'Kepala Kelurahan Rawa Arum',
+      role: 'Pelindung / Pembina',
+      imageUrl: '',
+    },
     harian: [],
-    bidang: []
+    bidang: [],
   };
 
-  const pembinaDoc = flatList.find(p => p.category === 'pembina');
+  const pembinaDoc = flatList.find((p) => p.category === 'pembina');
   if (pembinaDoc) {
-    data.pembina = { name: pembinaDoc.name, role: pembinaDoc.role, imageUrl: pembinaDoc.imageUrl, _id: pembinaDoc._id };
+    data.pembina = {
+      name: pembinaDoc.name,
+      role: pembinaDoc.role,
+      imageUrl: pembinaDoc.imageUrl,
+      _id: pembinaDoc._id,
+    };
   }
 
   data.harian = flatList
-    .filter(p => p.category === 'harian')
+    .filter((p) => p.category === 'harian')
     .sort((a, b) => a.level - b.level);
 
   const bidangMap = {};
   const standardBidangList = [
-    { id: 'kaderisasi', title: 'Pemberdayaan Aparatur Organisasi & Kaderisasi' },
+    {
+      id: 'kaderisasi',
+      title: 'Pemberdayaan Aparatur Organisasi & Kaderisasi',
+    },
     { id: 'advokasi', title: 'Advokasi, HAM & Lingkungan Hidup' },
-    { id: 'hubungan', title: 'Hubungan Antar-Lembaga, Masyarakat, dan Industri' },
+    {
+      id: 'hubungan',
+      title: 'Hubungan Antar-Lembaga, Masyarakat, dan Industri',
+    },
     { id: 'perempuan', title: 'Pemberdayaan Perempuan dan Anak' },
     { id: 'media', title: 'Media, Data, dan Informasi' },
     { id: 'seni', title: 'Seni, Budaya, dan Olahraga' },
     { id: 'ekonomi', title: 'Kemandirian Organisasi dan Ekonomi Kreatif' },
     { id: 'pendidikan', title: 'Pendidikan dan Keagamaan' },
-    { id: 'sosial', title: 'Sosial, Kemanusiaan, dan Mitigasi Bencana' }
+    { id: 'sosial', title: 'Sosial, Kemanusiaan, dan Mitigasi Bencana' },
   ];
 
-  standardBidangList.forEach(b => {
+  standardBidangList.forEach((b) => {
     bidangMap[b.id] = {
       id: b.id,
       title: b.title,
       koordinator: '',
       koordinatorDoc: null,
       anggota: [],
-      anggotaDocs: []
+      anggotaDocs: [],
     };
   });
 
-  flatList.forEach(p => {
+  flatList.forEach((p) => {
     if (p.category === 'bidang' && p.bidangId) {
       if (!bidangMap[p.bidangId]) {
         bidangMap[p.bidangId] = {
@@ -613,7 +639,7 @@ export const groupPengurusData = (flatList) => {
           koordinator: '',
           koordinatorDoc: null,
           anggota: [],
-          anggotaDocs: []
+          anggotaDocs: [],
         };
       }
 
@@ -639,26 +665,32 @@ export const fetchSiteSettings = async () => {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return await res.json();
   } catch (_err) {
-    console.warn('API offline (fetchSiteSettings). Using mock default settings.');
+    console.warn(
+      'API offline (fetchSiteSettings). Using mock default settings.'
+    );
     return {
       heroTitle: 'KARANG TARUNA KELURAHAN RAWA ARUM',
       heroSubtitle: 'Muda, Beda, Berkarya untuk Kemajuan Rawa Arum',
-      heroDescription: 'Wadah pengembangan generasi muda Kelurahan Rawa Arum yang berkesadaran sosial, kreatif, inovatif, dan berdaya saing.',
-      visiText: 'Terwujudnya Pemuda Rawa Arum yang Mandiri, Berkarakter, Kreatif, dan Berjiwa Sosial tinggi dalam membangun Kelurahan Rawa Arum yang Sejahtera.',
+      heroDescription:
+        'Wadah pengembangan generasi muda Kelurahan Rawa Arum yang berkesadaran sosial, kreatif, inovatif, dan berdaya saing.',
+      visiText:
+        'Terwujudnya Pemuda Rawa Arum yang Mandiri, Berkarakter, Kreatif, dan Berjiwa Sosial tinggi dalam membangun Kelurahan Rawa Arum yang Sejahtera.',
       misiList: [
         'Mewujudkan pemuda yang bertakwa, berakhlak mulia, dan berpengetahuan luas.',
         'Meningkatkan jiwa kewirausahaan dan kemandirian ekonomi pemuda kelurahan.',
         'Mendorong aksi tanggap sosial, pelestarian lingkungan, dan kemanusiaan.',
-        'Mempererat tali silaturahmi dan solidaritas antar pemuda se-Kelurahan Rawa Arum.'
+        'Mempererat tali silaturahmi dan solidaritas antar pemuda se-Kelurahan Rawa Arum.',
       ],
-      address: 'Jl. Raya Merak No. 12, Kel. Rawa Arum, Kec. Grogol, Kota Cilegon, Banten 42436',
+      address:
+        'Jl. Raya Merak No. 12, Kel. Rawa Arum, Kec. Grogol, Kota Cilegon, Banten 42436',
       phone: '0812-3456-7890',
       whatsapp: '6281234567890',
       email: 'kontak@karangtarunarawaarum.id',
-      mapsEmbedUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3967.68598762397!2d106.0123!3d-5.9812!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNcKwNTgnNTIuMyJTIDEwNsKwMDAnNDQuMyJF!5e0!3m2!1sid!2sid!4v1600000000000!5m2!1sid!2sid',
+      mapsEmbedUrl:
+        'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3967.68598762397!2d106.0123!3d-5.9812!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNcKwNTgnNTIuMyJTIDEwNsKwMDAnNDQuMyJF!5e0!3m2!1sid!2sid!4v1600000000000!5m2!1sid!2sid',
       socialInstagram: 'https://instagram.com/kartar_rawaarum',
       socialFacebook: 'https://facebook.com/kartar.rawaarum',
-      socialYoutube: 'https://youtube.com/@kartarrawaarum'
+      socialYoutube: 'https://youtube.com/@kartarrawaarum',
     };
   }
 };
@@ -670,7 +702,8 @@ export const updateSiteSettings = async (payload) => {
     body: JSON.stringify(payload),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Gagal menyimpan pengaturan situs.');
+  if (!res.ok)
+    throw new Error(data.error || 'Gagal menyimpan pengaturan situs.');
   return data;
 };
 
@@ -684,11 +717,56 @@ export const fetchPrograms = async () => {
   } catch (_err) {
     console.warn('API offline (fetchPrograms). Using mock default programs.');
     return [
-      { _id: 'p1', title: 'Pelatihan Kewirausahaan Pemuda', category: 'Ekonomi Kreatif', description: 'Workshop digital marketing, packaging UMKM, dan pendampingan legalitas NIB gratis untuk wirausaha muda.', icon: 'fa-lightbulb', target: 'Pemuda Pelaku Usaha', status: 'Berjalan' },
-      { _id: 'p2', title: 'Turnamen Olahraga Pemuda Kelurahan', category: 'Olahraga & Seni', description: 'Kompetisi sepak bola, futsal, dan bulu tangkis antar RW se-Kelurahan Rawa Arum.', icon: 'fa-trophy', target: 'Pemuda & Warga', status: 'Berjalan' },
-      { _id: 'p3', title: 'Pengajian & Kajian Rutin Remaja Masjid', category: 'Keagamaan', description: 'Kegiatan pembinaan mental, spiritual, dan kajian tematik kepemudaan setiap bulan.', icon: 'fa-hands-praying', target: 'Remaja Masjid & Warga', status: 'Berjalan' },
-      { _id: 'p4', title: 'Aksi Bersih Lingkungan & Tanggap Bencana', category: 'Sosial & Lingkungan', description: 'Kerja bakti pembersihan drainase, penanaman pohon, dan kesiapsiagaan mitigasi banjir.', icon: 'fa-tree', target: 'Masyarakat Rawa Arum', status: 'Berjalan' },
-      { _id: 'p5', title: 'Bantuan Hukum & Advokasi Hak Pemuda', category: 'Advokasi & HAM', description: 'Konsultasi hukum gratis dan pendampingan advokasi tenaga kerja lokal ke industri sekitar.', icon: 'fa-scale-balanced', target: 'Pencari Kerja & Pemuda', status: 'Berjalan' },
+      {
+        _id: 'p1',
+        title: 'Pelatihan Kewirausahaan Pemuda',
+        category: 'Ekonomi Kreatif',
+        description:
+          'Workshop digital marketing, packaging UMKM, dan pendampingan legalitas NIB gratis untuk wirausaha muda.',
+        icon: 'fa-lightbulb',
+        target: 'Pemuda Pelaku Usaha',
+        status: 'Berjalan',
+      },
+      {
+        _id: 'p2',
+        title: 'Turnamen Olahraga Pemuda Kelurahan',
+        category: 'Olahraga & Seni',
+        description:
+          'Kompetisi sepak bola, futsal, dan bulu tangkis antar RW se-Kelurahan Rawa Arum.',
+        icon: 'fa-trophy',
+        target: 'Pemuda & Warga',
+        status: 'Berjalan',
+      },
+      {
+        _id: 'p3',
+        title: 'Pengajian & Kajian Rutin Remaja Masjid',
+        category: 'Keagamaan',
+        description:
+          'Kegiatan pembinaan mental, spiritual, dan kajian tematik kepemudaan setiap bulan.',
+        icon: 'fa-hands-praying',
+        target: 'Remaja Masjid & Warga',
+        status: 'Berjalan',
+      },
+      {
+        _id: 'p4',
+        title: 'Aksi Bersih Lingkungan & Tanggap Bencana',
+        category: 'Sosial & Lingkungan',
+        description:
+          'Kerja bakti pembersihan drainase, penanaman pohon, dan kesiapsiagaan mitigasi banjir.',
+        icon: 'fa-tree',
+        target: 'Masyarakat Rawa Arum',
+        status: 'Berjalan',
+      },
+      {
+        _id: 'p5',
+        title: 'Bantuan Hukum & Advokasi Hak Pemuda',
+        category: 'Advokasi & HAM',
+        description:
+          'Konsultasi hukum gratis dan pendampingan advokasi tenaga kerja lokal ke industri sekitar.',
+        icon: 'fa-scale-balanced',
+        target: 'Pencari Kerja & Pemuda',
+        status: 'Berjalan',
+      },
     ];
   }
 };
@@ -735,9 +813,32 @@ export const fetchPartners = async () => {
   } catch (_err) {
     console.warn('API offline (fetchPartners). Using mock default partners.');
     return [
-      { _id: 'pt1', name: 'Pemerintah Kelurahan Rawa Arum', category: 'Pemerintahan', description: 'Mitra utama dalam pembinaan kemasyarakatan dan fasilitas kantor sekretariat.', logoUrl: '', websiteUrl: '#' },
-      { _id: 'pt2', name: 'Kecamatan Grogol Kota Cilegon', category: 'Pemerintahan', description: 'Instansi pembina program kepemudaan tingkat kecamatan.', logoUrl: '', websiteUrl: '#' },
-      { _id: 'pt3', name: 'Kemitraan Industri Kawasan Cilegon', category: 'Industri & Swasta', description: 'Sinergi penyaluran tenaga kerja lokal dan program Tanggung Jawab Sosial Lingkungan (TJSL).', logoUrl: '', websiteUrl: '#' },
+      {
+        _id: 'pt1',
+        name: 'Pemerintah Kelurahan Rawa Arum',
+        category: 'Pemerintahan',
+        description:
+          'Mitra utama dalam pembinaan kemasyarakatan dan fasilitas kantor sekretariat.',
+        logoUrl: '',
+        websiteUrl: '#',
+      },
+      {
+        _id: 'pt2',
+        name: 'Kecamatan Grogol Kota Cilegon',
+        category: 'Pemerintahan',
+        description: 'Instansi pembina program kepemudaan tingkat kecamatan.',
+        logoUrl: '',
+        websiteUrl: '#',
+      },
+      {
+        _id: 'pt3',
+        name: 'Kemitraan Industri Kawasan Cilegon',
+        category: 'Industri & Swasta',
+        description:
+          'Sinergi penyaluran tenaga kerja lokal dan program Tanggung Jawab Sosial Lingkungan (TJSL).',
+        logoUrl: '',
+        websiteUrl: '#',
+      },
     ];
   }
 };

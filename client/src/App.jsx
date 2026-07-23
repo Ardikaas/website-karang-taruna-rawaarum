@@ -4,8 +4,8 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 // Layout Components
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import RegistrationModal from './components/RegistrationModal';
 import Toast from './components/Toast';
+import RegistrationModal from './components/RegistrationModal';
 
 // Pages
 import Home from './pages/Home';
@@ -33,7 +33,7 @@ import AdminLayout from './components/AdminLayout';
 import { AuthProvider } from './context/AuthContext';
 
 // API Service
-import { submitRegistration, subscribeNewsletter } from './services/api';
+import { subscribeNewsletter } from './services/api';
 
 const SCROLL_THRESHOLD = 50;
 const TOAST_DURATION_MS = 4000;
@@ -44,10 +44,13 @@ const App = () => {
   const [activeSection, setActiveSection] = useState('home');
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [regModalOpen, setRegModalOpen] = useState(false);
 
   // --------------- Toast ---------------
-  const [toast, setToast] = useState({ open: false, message: '', type: 'success' });
+  const [toast, setToast] = useState({
+    open: false,
+    message: '',
+    type: 'success',
+  });
 
   const showToastMessage = (message, type = 'success') => {
     setToast({ open: true, message, type });
@@ -55,16 +58,6 @@ const App = () => {
       setToast({ open: false, message: '', type: 'success' });
     }, TOAST_DURATION_MS);
   };
-
-  // --------------- Registration Form ---------------
-  const [regForm, setRegForm] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    interest: 'Sosial & Keagamaan',
-    reason: '',
-  });
-  const [regSubmitting, setRegSubmitting] = useState(false);
 
   // --------------- Newsletter ---------------
   const [newsletterEmail, setNewsletterEmail] = useState('');
@@ -98,22 +91,6 @@ const App = () => {
   }, []);
 
   // --------------- Form Handlers ---------------
-  const handleRegisterSubmit = async (e) => {
-    e.preventDefault();
-    setRegSubmitting(true);
-
-    try {
-      await submitRegistration(regForm);
-      showToastMessage('Pendaftaran Anda berhasil dikirim! Kami akan menghubungi Anda segera.');
-      setRegForm({ name: '', email: '', phone: '', interest: 'Sosial & Keagamaan', reason: '' });
-      setRegModalOpen(false);
-    } catch (err) {
-      showToastMessage(err.message || 'Gagal mengirim pendaftaran. Server kemungkinan offline.', 'error');
-    } finally {
-      setRegSubmitting(false);
-    }
-  };
-
   const handleNewsletterSubmit = async (e) => {
     e.preventDefault();
     if (!newsletterEmail) return;
@@ -160,87 +137,90 @@ const App = () => {
           <Route path="/kontak" element={<KontakPage />} />
 
           {/* Admin Routes */}
-          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route
+            path="/admin"
+            element={<Navigate to="/admin/dashboard" replace />}
+          />
           <Route path="/admin/login" element={<AdminLoginPage />} />
-          <Route 
-            path="/admin/dashboard" 
+          <Route
+            path="/admin/dashboard"
             element={
               <ProtectedRoute>
                 <AdminLayout>
                   <AdminDashboardPage />
                 </AdminLayout>
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin/konten" 
+          <Route
+            path="/admin/konten"
             element={
               <ProtectedRoute>
                 <AdminLayout>
                   <AdminKontenPage />
                 </AdminLayout>
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin/anggota" 
+          <Route
+            path="/admin/anggota"
             element={
               <ProtectedRoute>
                 <AdminLayout>
                   <AdminAnggotaPage />
                 </AdminLayout>
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin/subscriber" 
+          <Route
+            path="/admin/subscriber"
             element={
               <ProtectedRoute>
                 <AdminLayout>
                   <AdminSubscriberPage />
                 </AdminLayout>
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin/settings" 
+          <Route
+            path="/admin/settings"
             element={
               <ProtectedRoute>
                 <AdminLayout>
                   <AdminSettingsPage />
                 </AdminLayout>
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin/pengurus" 
+          <Route
+            path="/admin/pengurus"
             element={
               <ProtectedRoute>
                 <AdminLayout>
                   <AdminPengurusPage />
                 </AdminLayout>
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin/program" 
+          <Route
+            path="/admin/program"
             element={
               <ProtectedRoute>
                 <AdminLayout>
                   <AdminProgramPage />
                 </AdminLayout>
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin/kemitraan" 
+          <Route
+            path="/admin/kemitraan"
             element={
               <ProtectedRoute>
                 <AdminLayout>
                   <AdminPartnerPage />
                 </AdminLayout>
               </ProtectedRoute>
-            } 
+            }
           />
         </Routes>
       </main>
@@ -253,7 +233,6 @@ const App = () => {
           newsletterSubmitting={newsletterSubmitting}
         />
       )}
-
       <RegistrationModal
         isOpen={regModalOpen}
         onClose={() => setRegModalOpen(false)}
@@ -263,11 +242,7 @@ const App = () => {
         submitting={regSubmitting}
       />
 
-      <Toast
-        open={toast.open}
-        message={toast.message}
-        type={toast.type}
-      />
+      <Toast open={toast.open} message={toast.message} type={toast.type} />
     </AuthProvider>
   );
 };

@@ -1,18 +1,155 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchPartners, createPartner, updatePartner, deletePartner, uploadImage } from '../../services/api';
 
 const INITIAL_FORM = {
   name: '',
   category: 'Industri & Swasta',
+  customCategory: '',
   description: '',
   logoUrl: '',
   websiteUrl: '#'
+};
+
+const STANDARD_CATEGORIES = [
+  'Pemerintahan',
+  'Industri & Swasta',
+  'Lembaga Pendidikan',
+  'UMKM Lokal'
+];
+
+// Custom Light-weight Rich Text Editor component
+const RichTextEditor = ({ value, onChange, placeholder }) => {
+  const editorRef = useRef(null);
+
+  // Sync initial value only when editor content differs from state
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== value) {
+      editorRef.current.innerHTML = value || '';
+    }
+  }, [value]);
+
+  const executeCommand = (command, val = null) => {
+    document.execCommand(command, false, val);
+    if (editorRef.current) {
+      onChange(editorRef.current.innerHTML);
+    }
+  };
+
+  const handleInput = (e) => {
+    onChange(e.target.innerHTML);
+  };
+
+  const addLink = () => {
+    const url = prompt('Masukkan URL Link (contoh: https://google.com):');
+    if (url) {
+      executeCommand('createLink', url);
+    }
+  };
+
+  return (
+    <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden', background: '#fff' }}>
+      <style>{`
+        .custom-rich-editor[contenteditable]:empty:before {
+          content: attr(placeholder);
+          color: #94a3b8;
+          cursor: text;
+        }
+      `}</style>
+      {/* Toolbar */}
+      <div style={{ 
+        display: 'flex', 
+        gap: '0.25rem', 
+        padding: '0.5rem', 
+        borderBottom: '1px solid #e2e8f0', 
+        background: '#f8fafc',
+        flexWrap: 'wrap'
+      }}>
+        <button
+          type="button"
+          onClick={() => executeCommand('bold')}
+          className="admin-btn admin-btn--outline admin-btn--sm"
+          style={{ padding: '0.4rem 0.6rem', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}
+          title="Tebal (Bold)"
+        >
+          <i className="fa-solid fa-bold" />
+        </button>
+        <button
+          type="button"
+          onClick={() => executeCommand('italic')}
+          className="admin-btn admin-btn--outline admin-btn--sm"
+          style={{ padding: '0.4rem 0.6rem', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}
+          title="Miring (Italic)"
+        >
+          <i className="fa-solid fa-italic" />
+        </button>
+        <button
+          type="button"
+          onClick={() => executeCommand('underline')}
+          className="admin-btn admin-btn--outline admin-btn--sm"
+          style={{ padding: '0.4rem 0.6rem', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}
+          title="Garis Bawah (Underline)"
+        >
+          <i className="fa-solid fa-underline" />
+        </button>
+        <div style={{ width: '1px', background: '#e2e8f0', margin: '0 0.25rem' }} />
+        <button
+          type="button"
+          onClick={addLink}
+          className="admin-btn admin-btn--outline admin-btn--sm"
+          style={{ padding: '0.4rem 0.6rem', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}
+          title="Sisipkan Link"
+        >
+          <i className="fa-solid fa-link" />
+        </button>
+        <button
+          type="button"
+          onClick={() => executeCommand('insertUnorderedList')}
+          className="admin-btn admin-btn--outline admin-btn--sm"
+          style={{ padding: '0.4rem 0.6rem', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}
+          title="Daftar Poin (List)"
+        >
+          <i className="fa-solid fa-list-ul" />
+        </button>
+        <button
+          type="button"
+          onClick={() => executeCommand('removeFormat')}
+          className="admin-btn admin-btn--outline admin-btn--sm"
+          style={{ padding: '0.4rem 0.6rem', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}
+          title="Hapus Format"
+        >
+          <i className="fa-solid fa-text-slash" />
+        </button>
+      </div>
+
+      {/* Content Editable Area */}
+      <div
+        ref={editorRef}
+        contentEditable
+        onInput={handleInput}
+        className="custom-rich-editor"
+        style={{
+          minHeight: '150px',
+          maxHeight: '300px',
+          overflowY: 'auto',
+          padding: '0.75rem 1rem',
+          outline: 'none',
+          fontSize: '0.9rem',
+          lineHeight: '1.6',
+          color: '#334155'
+        }}
+        placeholder={placeholder}
+      />
+    </div>
+  );
 };
 
 const AdminPartnerPage = () => {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [sortBy, setSortBy] = useState('alphabetical');
 
   // Form State
   const [showModal, setShowModal] = useState(false);
@@ -56,9 +193,11 @@ const AdminPartnerPage = () => {
   };
 
   const handleOpenEdit = (item) => {
+    const isStandard = STANDARD_CATEGORIES.includes(item.category);
     setForm({
       name: item.name,
-      category: item.category || 'Industri & Swasta',
+      category: isStandard ? item.category : 'kustom',
+      customCategory: isStandard ? '' : item.category,
       description: item.description || '',
       logoUrl: item.logoUrl || '',
       websiteUrl: item.websiteUrl || '#',
@@ -90,13 +229,28 @@ const AdminPartnerPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
+
+    const finalCategory = form.category === 'kustom' ? form.customCategory.trim() : form.category;
+    if (!finalCategory) {
+      setFormError('Kategori mitra wajib diisi.');
+      return;
+    }
+
     setSubmitting(true);
+
+    const payload = {
+      name: form.name,
+      category: finalCategory,
+      description: form.description,
+      logoUrl: form.logoUrl,
+      websiteUrl: form.websiteUrl
+    };
 
     try {
       if (modalMode === 'create') {
-        await createPartner(form);
+        await createPartner(payload);
       } else {
-        await updatePartner(activeId, form);
+        await updatePartner(activeId, payload);
       }
       setShowModal(false);
       loadData();
@@ -119,6 +273,30 @@ const AdminPartnerPage = () => {
       setDeleting(false);
     }
   };
+
+  // Get dynamic unique categories from partner list
+  const categories = ['all', ...new Set(list.map(item => item.category || 'Lainnya'))];
+
+  const filteredList = list
+    .filter((item) => {
+      const matchesCategory = filterCategory === 'all' || item.category === filterCategory;
+      const query = searchQuery.toLowerCase().trim();
+      const matchesSearch = 
+        item.name.toLowerCase().includes(query) ||
+        (item.description && item.description.toLowerCase().includes(query)) ||
+        (item.category && item.category.toLowerCase().includes(query));
+      return matchesCategory && matchesSearch;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'alphabetical') {
+        return a.name.localeCompare(b.name);
+      } else if (sortBy === 'newest') {
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      } else if (sortBy === 'oldest') {
+        return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+      }
+      return 0;
+    });
 
   if (loading && list.length === 0) {
     return (
@@ -151,12 +329,92 @@ const AdminPartnerPage = () => {
 
       {/* Partner Table */}
       <div className="admin-card">
-        <div className="admin-card__header" style={{ justifyContent: 'space-between' }}>
-          <h2 className="admin-card__title">Daftar Instansi & Perusahaan Mitra ({list.length})</h2>
+        <div className="admin-card__header" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid #edf2f7' }}>
+          <div className="admin-tabs" style={{ marginBottom: 0, borderBottom: 'none' }}>
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                className={`admin-tab-btn ${filterCategory === cat ? 'active' : ''}`}
+                onClick={() => setFilterCategory(cat)}
+              >
+                {cat === 'all' ? 'Semua Mitra' : cat}
+              </button>
+            ))}
+          </div>
+          <div className="admin-text-muted" style={{ fontSize: '0.85rem', fontWeight: '500' }}>
+            Menampilkan {filteredList.length} dari {list.length} mitra
+          </div>
         </div>
+
+        {/* Filter & Search Toolbar */}
+        <div style={{ 
+          padding: '1rem 1.5rem', 
+          borderBottom: '1px solid #edf2f7', 
+          display: 'flex', 
+          gap: '1rem', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          flexWrap: 'wrap',
+          backgroundColor: '#f8fafc'
+        }}>
+          {/* Search Bar */}
+          <div style={{ position: 'relative', flex: '1', minWidth: '250px', maxWidth: '400px' }}>
+            <i className="fa-solid fa-magnifying-glass" style={{ 
+              position: 'absolute', 
+              left: '1rem', 
+              top: '50%', 
+              transform: 'translateY(-50%)', 
+              color: '#94a3b8' 
+            }} />
+            <input
+              type="text"
+              className="admin-form-control"
+              placeholder="Cari nama instansi, deskripsi, atau kategori..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ paddingLeft: '2.5rem', height: '40px', fontSize: '0.85rem' }}
+            />
+            {searchQuery && (
+              <button 
+                type="button" 
+                onClick={() => setSearchQuery('')}
+                style={{ 
+                  position: 'absolute', 
+                  right: '1rem', 
+                  top: '50%', 
+                  transform: 'translateY(-50%)', 
+                  background: 'none', 
+                  border: 'none', 
+                  color: '#94a3b8', 
+                  cursor: 'pointer' 
+                }}
+              >
+                <i className="fa-solid fa-circle-xmark" style={{ fontSize: '1rem' }} />
+              </button>
+            )}
+          </div>
+
+          {/* Sort Selector */}
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>
+              <i className="fa-solid fa-arrow-down-wide-short" /> Urutkan:
+            </span>
+            <select
+              className="admin-form-control"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              style={{ width: '160px', height: '40px', padding: '0 0.75rem', fontSize: '0.85rem' }}
+            >
+              <option value="alphabetical">Nama (A - Z)</option>
+              <option value="newest">Terbaru</option>
+              <option value="oldest">Terlama</option>
+            </select>
+          </div>
+        </div>
+
         <div className="admin-card__body" style={{ padding: 0 }}>
           <div className="admin-table-wrapper">
-            {list.length > 0 ? (
+            {filteredList.length > 0 ? (
               <table className="admin-table">
                 <thead>
                   <tr>
@@ -168,7 +426,7 @@ const AdminPartnerPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {list.map((item) => (
+                  {filteredList.map((item) => (
                     <tr key={item._id}>
                       <td style={{ width: '80px' }}>
                         {item.logoUrl ? (
@@ -192,8 +450,11 @@ const AdminPartnerPage = () => {
                           {item.category}
                         </span>
                       </td>
-                      <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', maxWidth: '300px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                        {item.description || '-'}
+                      <td>
+                        <div 
+                          style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', maxWidth: '300px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }} 
+                          dangerouslySetInnerHTML={{ __html: item.description || '-' }}
+                        />
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
@@ -218,9 +479,25 @@ const AdminPartnerPage = () => {
                 </tbody>
               </table>
             ) : (
-              <div className="admin-empty-state" style={{ padding: '4rem 2rem' }}>
-                <i className="fa-solid fa-handshake" style={{ fontSize: '3rem', color: 'var(--text-muted)', marginBottom: '1rem' }} />
-                <p style={{ fontWeight: '500' }}>Belum ada mitra terdaftar</p>
+              <div className="admin-empty-state" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+                <i className="fa-solid fa-magnifying-glass" style={{ fontSize: '3rem', color: 'var(--text-muted)', marginBottom: '1rem' }} />
+                <p style={{ fontWeight: '500', color: 'var(--text-main)' }}>
+                  {searchQuery ? 'Tidak ada hasil pencarian yang cocok' : 'Belum ada mitra terdaftar'}
+                </p>
+                <p className="admin-text-muted" style={{ fontSize: '0.9rem', marginBottom: searchQuery ? '1rem' : '0' }}>
+                  {searchQuery 
+                    ? `Tidak ada mitra yang cocok dengan kata kunci "${searchQuery}"` 
+                    : 'Silakan klik "Tambah Mitra Baru" untuk mendaftarkan mitra pertama.'}
+                </p>
+                {searchQuery && (
+                  <button 
+                    className="admin-btn admin-btn--outline admin-btn--sm"
+                    onClick={() => setSearchQuery('')}
+                    style={{ marginTop: '0.5rem' }}
+                  >
+                    Reset Pencarian
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -268,10 +545,10 @@ const AdminPartnerPage = () => {
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value })}
                   >
-                    <option value="Pemerintahan">Pemerintahan</option>
-                    <option value="Industri & Swasta">Industri & Swasta</option>
-                    <option value="Lembaga Pendidikan">Lembaga Pendidikan</option>
-                    <option value="UMKM Local">UMKM Lokal</option>
+                    {STANDARD_CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                    <option value="kustom">+ Tambah Kategori Lainnya...</option>
                   </select>
                 </div>
 
@@ -287,14 +564,27 @@ const AdminPartnerPage = () => {
                 </div>
               </div>
 
+              {/* Custom Category Input Field */}
+              {form.category === 'kustom' && (
+                <div className="admin-form-group">
+                  <label className="admin-form-label">Nama Kategori Kemitraan Baru</label>
+                  <input
+                    type="text"
+                    className="admin-form-control"
+                    required
+                    placeholder="Contoh: CSR / Swasta / BUMN / Media Partner"
+                    value={form.customCategory}
+                    onChange={(e) => setForm({ ...form, customCategory: e.target.value })}
+                  />
+                </div>
+              )}
+
               <div className="admin-form-group">
-                <label className="admin-form-label">Deskripsi Sinergi / Kerjasama</label>
-                <textarea
-                  className="admin-form-control"
-                  rows="3"
-                  placeholder="Jelaskan bentuk sinergi atau dukungan dari mitra ini..."
+                <label className="admin-form-label">Deskripsi Sinergi / Kerjasama (Toolbar Format Interaktif)</label>
+                <RichTextEditor
                   value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  onChange={(val) => setForm({ ...form, description: val })}
+                  placeholder="Jelaskan bentuk sinergi atau dukungan dari mitra ini..."
                 />
               </div>
 
