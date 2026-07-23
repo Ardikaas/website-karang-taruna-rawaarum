@@ -1,0 +1,25 @@
+name-template: 'v$RESOLVED_VERSION 🚀'
+tag-template: 'v$RESOLVED_VERSION'
+
+categories:
+  - title: '✨ Fitur Baru (Features)'
+    labels:
+      - 'feature'
+      - 'enhancement'
+      - 'feat'
+  - title: '🐛 Perbaikan Error (Bug Fixes)'
+    labels:
+      - 'bug'
+      - 'fix'
+  - title: '📝 Dokumentasi & Lain-lain (Documentation & Chores)'
+    labels:
+      - 'documentation'
+      - 'chore'
+      - 'refactor'
+
+change-template: '- $TITLE (#$NUMBER) oleh @$AUTHOR'
+
+template: |
+  ## Apa saja yang baru di rilis ini?
+
+  $CHANGES
