@@ -5,6 +5,7 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Toast from './components/Toast';
+import RegistrationModal from './components/RegistrationModal';
 
 // Pages
 import Home from './pages/Home';
@@ -21,6 +22,7 @@ import ProgramPage from './pages/ProgramPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminKontenPage from './pages/admin/AdminKontenPage';
+import AdminAnggotaPage from './pages/admin/AdminAnggotaPage';
 import AdminSubscriberPage from './pages/admin/AdminSubscriberPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminPengurusPage from './pages/admin/AdminPengurusPage';
@@ -44,7 +46,11 @@ const App = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // --------------- Toast ---------------
-  const [toast, setToast] = useState({ open: false, message: '', type: 'success' });
+  const [toast, setToast] = useState({
+    open: false,
+    message: '',
+    type: 'success',
+  });
 
   const showToastMessage = (message, type = 'success') => {
     setToast({ open: true, message, type });
@@ -113,6 +119,7 @@ const App = () => {
           scrolled={scrolled}
           mobileMenuOpen={mobileMenuOpen}
           setMobileMenuOpen={setMobileMenuOpen}
+          onOpenRegModal={() => setRegModalOpen(true)}
         />
       )}
 
@@ -130,77 +137,90 @@ const App = () => {
           <Route path="/kontak" element={<KontakPage />} />
 
           {/* Admin Routes */}
-          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route
+            path="/admin"
+            element={<Navigate to="/admin/dashboard" replace />}
+          />
           <Route path="/admin/login" element={<AdminLoginPage />} />
-          <Route 
-            path="/admin/dashboard" 
+          <Route
+            path="/admin/dashboard"
             element={
               <ProtectedRoute>
                 <AdminLayout>
                   <AdminDashboardPage />
                 </AdminLayout>
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin/konten" 
+          <Route
+            path="/admin/konten"
             element={
               <ProtectedRoute>
                 <AdminLayout>
                   <AdminKontenPage />
                 </AdminLayout>
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin/subscriber" 
+          <Route
+            path="/admin/anggota"
+            element={
+              <ProtectedRoute>
+                <AdminLayout>
+                  <AdminAnggotaPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/subscriber"
             element={
               <ProtectedRoute>
                 <AdminLayout>
                   <AdminSubscriberPage />
                 </AdminLayout>
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin/settings" 
+          <Route
+            path="/admin/settings"
             element={
               <ProtectedRoute>
                 <AdminLayout>
                   <AdminSettingsPage />
                 </AdminLayout>
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin/pengurus" 
+          <Route
+            path="/admin/pengurus"
             element={
               <ProtectedRoute>
                 <AdminLayout>
                   <AdminPengurusPage />
                 </AdminLayout>
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin/program" 
+          <Route
+            path="/admin/program"
             element={
               <ProtectedRoute>
                 <AdminLayout>
                   <AdminProgramPage />
                 </AdminLayout>
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/admin/kemitraan" 
+          <Route
+            path="/admin/kemitraan"
             element={
               <ProtectedRoute>
                 <AdminLayout>
                   <AdminPartnerPage />
                 </AdminLayout>
               </ProtectedRoute>
-            } 
+            }
           />
         </Routes>
       </main>
@@ -213,12 +233,16 @@ const App = () => {
           newsletterSubmitting={newsletterSubmitting}
         />
       )}
-
-      <Toast
-        open={toast.open}
-        message={toast.message}
-        type={toast.type}
+      <RegistrationModal
+        isOpen={regModalOpen}
+        onClose={() => setRegModalOpen(false)}
+        regForm={regForm}
+        setRegForm={setRegForm}
+        onSubmit={handleRegisterSubmit}
+        submitting={regSubmitting}
       />
+
+      <Toast open={toast.open} message={toast.message} type={toast.type} />
     </AuthProvider>
   );
 };
