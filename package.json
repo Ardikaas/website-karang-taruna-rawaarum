@@ -14,9 +14,18 @@
     "build:client": "npm run build --workspace=client",
     "start:server": "npm run start --workspace=server",
     "lint:client": "npm run lint --workspace=client",
-    "install:all": "npm install"
+    "install:all": "npm install",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.1.1",
+    "prettier": "^3.9.6"
+  },
+  "lint-staged": {
+    "*.{js,jsx,json,css,md}": "prettier --write",
+    "client/**/*.{js,jsx}": "npx oxlint",
+    "server/**/*.js": "npx oxlint"
   }
 }
