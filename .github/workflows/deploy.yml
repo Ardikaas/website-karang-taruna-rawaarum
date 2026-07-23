@@ -18,10 +18,21 @@ jobs:
         shell: powershell
         run: |
           Write-Host "Starting deployment on Windows Server..."
+          Write-Host "--- Killing any process on port 5555 and 5556 ---"
+          netstat -ano | findstr :5555 | ForEach-Object { $parts = $_ -split '\s+'; $pid = $parts[-1]; if ($pid -match '^\d+$' -and $pid -ne '0') { Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue } }
+          netstat -ano | findstr :5556 | ForEach-Object { $parts = $_ -split '\s+'; $pid = $parts[-1]; if ($pid -match '^\d+$' -and $pid -ne '0') { Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue } }
           docker compose build --no-cache
           docker compose down
           docker ps -a -q --filter "name=karangtaruna-server" | ForEach-Object { docker rm -f $_ }
           docker ps -a -q --filter "name=karangtaruna-client" | ForEach-Object { docker rm -f $_ }
           docker compose up -d
           docker image prune -f
+          Write-Host "--- Deployment diagnostics ---"
+          Write-Host "Running containers:"
+          docker ps --format "table {{.Names}}\t{{.Ports}}\t{{.Status}}"
+          Write-Host "Port 5555 listeners:"
+          netstat -ano | findstr :5555
+          Write-Host "Port 5556 listeners:"
+          netstat -ano | findstr :5556
           Write-Host "Deployment completed successfully!"
+

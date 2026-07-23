@@ -15,8 +15,7 @@ import {
 } from '../constants/mockData';
 import { structureData } from '../constants/structureData';
 
-const API_BASE =
-  import.meta.env.MODE === 'development' ? 'http://localhost:5555/api' : '/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5555/api';
 
 // --------------- Fallback map by info type ---------------
 const FALLBACK_MAP = {
