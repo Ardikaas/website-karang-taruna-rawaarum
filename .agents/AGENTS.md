@@ -1,7 +1,7 @@
 # AGENTS.md -- Panduan SOP Pengembangan Kode
 
 > [!CAUTION]
-> **ATURAN SANGAT KETAT (STRICT RULE):** File ini (`.agents/AGENTS.md`) bersifat **READ-ONLY** untuk AI Agent. AI Agent **DILARANG KERAS** mengubah, menambah, atau menghapus isi dokumen ini secara mandiri tanpa instruksi langsung dan spesifik dari User (Developer Manusia).
+> **ATURAN SANGAT KETAT (STRICT RULE):** File ini (`.agents/AGENTS.md`) bersifat **READ-ONLY** untuk AI Agent. AI Agent **DILARANG KERAS** mengubah, menambah, atau menghapus isi dokumen ini secara mandiri tanpa instruksi langsung dan spesifik dari saya (Ardikaas).
 
 Dokumen ini adalah **Standard Operating Procedure (SOP)** yang WAJIB dipatuhi oleh setiap AI Agent maupun developer manusia yang bekerja pada codebase ini. Tidak ada pengecualian.
 
