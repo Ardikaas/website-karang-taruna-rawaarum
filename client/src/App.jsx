@@ -4,8 +4,10 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 // Layout Components
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import Toast from './components/Toast';
 import RegistrationModal from './components/RegistrationModal';
+
+// Context
+import { useToast } from './context/ToastContext';
 
 // Pages
 import Home from './pages/Home';
@@ -13,15 +15,19 @@ import LokerPage from './pages/LokerPage';
 import KegiatanPage from './pages/KegiatanPage';
 import PengumumanPage from './pages/PengumumanPage';
 import UmkmPage from './pages/UmkmPage';
+import UmkmDetailPage from './pages/UmkmDetailPage';
 import StrukturPage from './pages/StrukturPage';
 import KemitraanPage from './pages/KemitraanPage';
 import KontakPage from './pages/KontakPage';
 import ProgramPage from './pages/ProgramPage';
+import LoginPage from './pages/LoginPage';
+import InfoDetailPage from './pages/InfoDetailPage';
+import PengurusProfilePage from './pages/pengurus/PengurusProfilePage';
 
 // Admin Pages & Layout
-import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminKontenPage from './pages/admin/AdminKontenPage';
+import AdminUmkmPage from './pages/admin/AdminUmkmPage';
 import AdminAnggotaPage from './pages/admin/AdminAnggotaPage';
 import AdminSubscriberPage from './pages/admin/AdminSubscriberPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
@@ -36,7 +42,6 @@ import { AuthProvider } from './context/AuthContext';
 import { submitRegistration, subscribeNewsletter } from './services/api';
 
 const SCROLL_THRESHOLD = 50;
-const TOAST_DURATION_MS = 4000;
 const HOME_SECTIONS = ['home', 'pilar', 'program', 'kemitraan', 'kontak'];
 
 const App = () => {
@@ -56,19 +61,8 @@ const App = () => {
   });
   const [regSubmitting, setRegSubmitting] = useState(false);
 
-  // --------------- Toast ---------------
-  const [toast, setToast] = useState({
-    open: false,
-    message: '',
-    type: 'success',
-  });
-
-  const showToastMessage = (message, type = 'success') => {
-    setToast({ open: true, message, type });
-    setTimeout(() => {
-      setToast({ open: false, message: '', type: 'success' });
-    }, TOAST_DURATION_MS);
-  };
+  // --------------- Toast Context ---------------
+  const { showSuccess, showError } = useToast();
 
   // --------------- Newsletter ---------------
   const [newsletterEmail, setNewsletterEmail] = useState('');
@@ -108,7 +102,7 @@ const App = () => {
 
     try {
       await submitRegistration(regForm);
-      showToastMessage(
+      showSuccess(
         'Pendaftaran Anda berhasil dikirim! Kami akan menghubungi Anda segera.'
       );
       setRegForm({
@@ -120,11 +114,7 @@ const App = () => {
       });
       setRegModalOpen(false);
     } catch (err) {
-      showToastMessage(
-        err.message ||
-          'Gagal mengirim pendaftaran. Server kemungkinan offline.',
-        'error'
-      );
+      showError(err, 'Gagal Mengirim Pendaftaran');
     } finally {
       setRegSubmitting(false);
     }
@@ -137,10 +127,10 @@ const App = () => {
 
     try {
       await subscribeNewsletter(newsletterEmail);
-      showToastMessage('Email Anda berhasil didaftarkan di newsletter!');
+      showSuccess('Email Anda berhasil didaftarkan di newsletter!');
       setNewsletterEmail('');
     } catch (err) {
-      showToastMessage(err.message || 'Gagal mendaftar newsletter.', 'error');
+      showError(err, 'Gagal Langganan Newsletter');
     } finally {
       setNewsletterSubmitting(false);
     }
@@ -148,11 +138,14 @@ const App = () => {
 
   // --------------- Render ---------------
   const location = useLocation();
-  const isAdminPath = location.pathname.startsWith('/admin');
+  const isDashboardOrAuthPath =
+    location.pathname.startsWith('/admin') ||
+    location.pathname.startsWith('/pengurus') ||
+    location.pathname.startsWith('/login');
 
   return (
     <AuthProvider>
-      {!isAdminPath && (
+      {!isDashboardOrAuthPath && (
         <Navbar
           activeSection={activeSection}
           scrolled={scrolled}
@@ -162,7 +155,7 @@ const App = () => {
         />
       )}
 
-      <main style={{ minHeight: isAdminPath ? '100vh' : '80vh' }}>
+      <main style={{ minHeight: isDashboardOrAuthPath ? '100vh' : '80vh' }}>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
@@ -171,20 +164,67 @@ const App = () => {
           <Route path="/kegiatan" element={<KegiatanPage />} />
           <Route path="/pengumuman" element={<PengumumanPage />} />
           <Route path="/umkm" element={<UmkmPage />} />
+          <Route path="/umkm/:id" element={<UmkmDetailPage />} />
+          <Route path="/informasi/:id" element={<InfoDetailPage />} />
+          <Route path="/info/:id" element={<InfoDetailPage />} />
           <Route path="/struktur" element={<StrukturPage />} />
           <Route path="/kemitraan" element={<KemitraanPage />} />
           <Route path="/kontak" element={<KontakPage />} />
 
-          {/* Admin Routes */}
+          {/* Auth & Pengurus Routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/pengurus"
+            element={<Navigate to="/pengurus/profile" replace />}
+          />
+          <Route
+            path="/pengurus/dashboard"
+            element={<Navigate to="/pengurus/profile" replace />}
+          />
+          <Route
+            path="/pengurus/profile"
+            element={
+              <ProtectedRoute
+                allowedRoles={['superadmin', 'admin', 'pengurus']}
+              >
+                <AdminLayout>
+                  <PengurusProfilePage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pengurus/konten"
+            element={
+              <ProtectedRoute
+                allowedRoles={['superadmin', 'admin', 'pengurus']}
+              >
+                <AdminLayout>
+                  <AdminKontenPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pengurus/umkm"
+            element={
+              <ProtectedRoute
+                allowedRoles={['superadmin', 'admin', 'pengurus']}
+              >
+                <AdminLayout>
+                  <AdminUmkmPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/admin"
             element={<Navigate to="/admin/dashboard" replace />}
           />
-          <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route
             path="/admin/dashboard"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <AdminLayout>
                   <AdminDashboardPage />
                 </AdminLayout>
@@ -194,7 +234,9 @@ const App = () => {
           <Route
             path="/admin/konten"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute
+                allowedRoles={['superadmin', 'admin', 'pengurus']}
+              >
                 <AdminLayout>
                   <AdminKontenPage />
                 </AdminLayout>
@@ -202,9 +244,21 @@ const App = () => {
             }
           />
           <Route
+            path="/admin/umkm"
+            element={
+              <ProtectedRoute
+                allowedRoles={['superadmin', 'admin', 'pengurus']}
+              >
+                <AdminLayout>
+                  <AdminUmkmPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/anggota"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <AdminLayout>
                   <AdminAnggotaPage />
                 </AdminLayout>
@@ -214,7 +268,7 @@ const App = () => {
           <Route
             path="/admin/subscriber"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <AdminLayout>
                   <AdminSubscriberPage />
                 </AdminLayout>
@@ -224,7 +278,7 @@ const App = () => {
           <Route
             path="/admin/settings"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <AdminLayout>
                   <AdminSettingsPage />
                 </AdminLayout>
@@ -234,7 +288,7 @@ const App = () => {
           <Route
             path="/admin/pengurus"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <AdminLayout>
                   <AdminPengurusPage />
                 </AdminLayout>
@@ -244,7 +298,7 @@ const App = () => {
           <Route
             path="/admin/program"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <AdminLayout>
                   <AdminProgramPage />
                 </AdminLayout>
@@ -254,7 +308,7 @@ const App = () => {
           <Route
             path="/admin/kemitraan"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <AdminLayout>
                   <AdminPartnerPage />
                 </AdminLayout>
@@ -264,7 +318,7 @@ const App = () => {
         </Routes>
       </main>
 
-      {!isAdminPath && (
+      {!isDashboardOrAuthPath && (
         <Footer
           newsletterEmail={newsletterEmail}
           setNewsletterEmail={setNewsletterEmail}
@@ -280,8 +334,6 @@ const App = () => {
         onSubmit={handleRegisterSubmit}
         submitting={regSubmitting}
       />
-
-      <Toast open={toast.open} message={toast.message} type={toast.type} />
     </AuthProvider>
   );
 };

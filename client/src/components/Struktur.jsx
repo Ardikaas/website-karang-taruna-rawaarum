@@ -1,4 +1,6 @@
+/* eslint-disable no-console */
 import React, { useState, useEffect } from 'react';
+
 import { Link } from 'react-router-dom';
 import { fetchPengurus } from '../services/api';
 
@@ -6,12 +8,15 @@ const STATIC_FALLBACK_BIDANG = [
   { title: 'Aparatur & Kaderisasi', koor: 'Derico' },
   { title: 'Advokasi, HAM & LH', koor: 'Aneka Rosani, S.H' },
   { title: 'Hub. Industri & Lembaga', koor: 'Fiki Kosasih' },
-  { title: 'Pemberdayaan Perempuan & Anak', koor: 'Nila Nurmala Dewi, S.I.Kom' },
+  {
+    title: 'Pemberdayaan Perempuan & Anak',
+    koor: 'Nila Nurmala Dewi, S.I.Kom',
+  },
   { title: 'Media, Data & Informasi', koor: 'Dodi' },
   { title: 'Seni, Budaya & Olahraga', koor: 'Nafis Setiyadi' },
   { title: 'Ekonomi Kreatif', koor: 'Imron Rosyadi' },
   { title: 'Pendidikan & Keagamaan', koor: 'Dewi Kurnia, S.Sos' },
-  { title: 'Sosial & Mitigasi Bencana', koor: 'Suhebi' }
+  { title: 'Sosial & Mitigasi Bencana', koor: 'Suhebi' },
 ];
 
 const Struktur = () => {
@@ -33,31 +38,64 @@ const Struktur = () => {
   }, []);
 
   // Filter specific nodes dynamically, fallback to static defaults if database empty
-  const pembina = list.find(p => p.category === 'pembina') || { name: 'Kepala Kelurahan Rawa Arum' };
-  const ketua = list.find(p => p.category === 'harian' && p.level === 1) || { name: 'Rifki Amrullah' };
-  const wakil1 = list.find(p => p.category === 'harian' && p.level === 2 && p.role.includes('I')) || { name: 'Imamul Hakim, S.AP' };
-  const wakil2 = list.find(p => p.category === 'harian' && p.level === 2 && p.role.includes('II')) || { name: 'Insan Ansori' };
-  
-  const sekretaris = list.find(p => p.category === 'harian' && p.role.toLowerCase() === 'sekretaris') || { name: 'Ibnu Aminudin, S.HI' };
-  const bendahara = list.find(p => p.category === 'harian' && p.role.toLowerCase() === 'bendahara') || { name: 'Febri Kurniawan, S.E' };
-  const wakilSekr = list.find(p => p.category === 'harian' && p.role.toLowerCase() === 'wakil sekretaris') || { name: 'Lendhia Marhani Pramesta, S.AP' };
-  const wakilBend = list.find(p => p.category === 'harian' && p.role.toLowerCase() === 'wakil bendahara') || { name: 'Cahya Agung Prayoga, S.T' };
+  const pembina = list.find((p) => p.category === 'pembina') || {
+    name: 'Kepala Kelurahan Rawa Arum',
+  };
+  const ketua = list.find((p) => p.category === 'harian' && p.level === 1) || {
+    name: 'Rifki Amrullah',
+  };
+  const wakil1 = list.find(
+    (p) => p.category === 'harian' && p.level === 2 && p.role.includes('I')
+  ) || { name: 'Imamul Hakim, S.AP' };
+  const wakil2 = list.find(
+    (p) => p.category === 'harian' && p.level === 2 && p.role.includes('II')
+  ) || { name: 'Insan Ansori' };
+
+  const sekretaris = list.find(
+    (p) => p.category === 'harian' && p.role.toLowerCase() === 'sekretaris'
+  ) || { name: 'Ibnu Aminudin, S.HI' };
+  const bendahara = list.find(
+    (p) => p.category === 'harian' && p.role.toLowerCase() === 'bendahara'
+  ) || { name: 'Febri Kurniawan, S.E' };
+  const wakilSekr = list.find(
+    (p) =>
+      p.category === 'harian' && p.role.toLowerCase() === 'wakil sekretaris'
+  ) || { name: 'Lendhia Marhani Pramesta, S.AP' };
+  const wakilBend = list.find(
+    (p) => p.category === 'harian' && p.role.toLowerCase() === 'wakil bendahara'
+  ) || { name: 'Cahya Agung Prayoga, S.T' };
 
   // Filter koordinator list
   const dbKoordinatorList = list
-    .filter(p => p.category === 'bidang' && p.isKoordinator)
-    .map(p => ({
-      title: p.bidangTitle ? p.bidangTitle.replace('Pemberdayaan ', '').replace('Kemandirian Organisasi dan ', '') : p.role,
-      koor: p.name
+    .filter((p) => p.category === 'bidang' && p.isKoordinator)
+    .map((p) => ({
+      title: p.bidangTitle
+        ? p.bidangTitle
+            .replace('Pemberdayaan ', '')
+            .replace('Kemandirian Organisasi dan ', '')
+        : p.role,
+      koor: p.name,
     }));
 
-  const displayKoordinatorList = dbKoordinatorList.length > 0 ? dbKoordinatorList : STATIC_FALLBACK_BIDANG;
+  const displayKoordinatorList =
+    dbKoordinatorList.length > 0 ? dbKoordinatorList : STATIC_FALLBACK_BIDANG;
 
   if (loading && list.length === 0) {
     return (
       <section className="org-section" id="struktur">
-        <div className="container" style={{ minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '2rem', color: 'var(--accent)' }} />
+        <div
+          className="container"
+          style={{
+            minHeight: '300px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <i
+            className="fa-solid fa-spinner fa-spin"
+            style={{ fontSize: '2rem', color: 'var(--accent)' }}
+          />
         </div>
       </section>
     );
@@ -139,7 +177,8 @@ const Struktur = () => {
 
         <div className="org-cta">
           <Link to="/struktur" className="btn btn-primary">
-            <i className="fa-solid fa-sitemap"></i> Lihat Struktur Lengkap & Anggota
+            <i className="fa-solid fa-sitemap"></i> Lihat Struktur Lengkap &
+            Anggota
           </Link>
         </div>
       </div>

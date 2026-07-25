@@ -13,8 +13,8 @@ const KemitraanPage = () => {
         setLoading(true);
         const data = await fetchPartners();
         setPartners(data);
-      } catch (err) {
-        console.error(err);
+      } catch (_err) {
+        // Handled
       } finally {
         setLoading(false);
       }
@@ -27,23 +27,23 @@ const KemitraanPage = () => {
     {
       icon: 'fa-solid fa-users-gear',
       title: 'Akses Jaringan Pemuda',
-      desc: 'Hubungkan bisnis Anda secara langsung dengan ribuan pemuda produktif dan masyarakat aktif di Kelurahan Rawa Arum.'
+      desc: 'Hubungkan bisnis Anda secara langsung dengan ribuan pemuda produktif dan masyarakat aktif di Kelurahan Rawa Arum.',
     },
     {
       icon: 'fa-solid fa-bullhorn',
       title: 'Publikasi & Branding',
-      desc: 'Tingkatkan visibilitas brand Anda melalui penempatan logo di media sosial, situs resmi, baliho, dan kaos panitia kegiatan.'
+      desc: 'Tingkatkan visibilitas brand Anda melalui penempatan logo di media sosial, situs resmi, baliho, dan kaos panitia kegiatan.',
     },
     {
       icon: 'fa-solid fa-hand-holding-heart',
       title: 'Kontribusi Sosial (CSR)',
-      desc: 'Wujudkan tanggung jawab sosial perusahaan dengan menyokong program pemberdayaan masyarakat, UMKM lokal, dan kepedulian lingkungan.'
+      desc: 'Wujudkan tanggung jawab sosial perusahaan dengan menyokong program pemberdayaan masyarakat, UMKM lokal, dan kepedulian lingkungan.',
     },
     {
       icon: 'fa-solid fa-handshake-angle',
       title: 'Kolaborasi Strategis',
-      desc: 'Peluang menyelenggarakan program pelatihan kerja, rekrutmen bersama (job fair), atau kompetisi kreatif kepemudaan.'
-    }
+      desc: 'Peluang menyelenggarakan program pelatihan kerja, rekrutmen bersama (job fair), atau kompetisi kreatif kepemudaan.',
+    },
   ];
 
   const packages = [
@@ -55,10 +55,10 @@ const KemitraanPage = () => {
         'Branding eksklusif di situs web & media sosial resmi',
         'Penyebutan nama perusahaan (ad-lips) di setiap pembukaan acara',
         'Slot stand promosi eksklusif di lokasi pusat kegiatan',
-        'Hak memberikan sambutan perwakilan perusahaan saat seremonial'
+        'Hak memberikan sambutan perwakilan perusahaan saat seremonial',
       ],
       featured: true,
-      color: '#0B2545'
+      color: '#0B2545',
     },
     {
       name: 'Gold Sponsor',
@@ -68,10 +68,10 @@ const KemitraanPage = () => {
         'Branding di situs web resmi',
         'Penyebutan nama perusahaan di awal dan akhir acara',
         'Pemberian brosur promosi di tas peserta kegiatan',
-        'Sertifikat penghargaan kemitraan eksklusif'
+        'Sertifikat penghargaan kemitraan eksklusif',
       ],
       featured: false,
-      color: '#f97316'
+      color: '#f97316',
     },
     {
       name: 'Silver Sponsor',
@@ -80,11 +80,11 @@ const KemitraanPage = () => {
         'Penempatan logo ukuran Sedang di banner pendukung kegiatan',
         'Penyebutan nama perusahaan di akhir acara',
         'Penayangan logo pada kompilasi dokumentasi kegiatan',
-        'Sertifikat penghargaan kemitraan'
+        'Sertifikat penghargaan kemitraan',
       ],
       featured: false,
-      color: '#6b7280'
-    }
+      color: '#6b7280',
+    },
   ];
 
   return (
@@ -101,7 +101,9 @@ const KemitraanPage = () => {
             <div className="title-underline"></div>
           </div>
           <p className="subpage-intro">
-            Kami membuka pintu kolaborasi bagi sektor industri, swasta, akademisi, dan lembaga pemerintahan untuk bersinergi membangun potensi pemuda Kelurahan Rawa Arum.
+            Kami membuka pintu kolaborasi bagi sektor industri, swasta,
+            akademisi, dan lembaga pemerintahan untuk bersinergi membangun
+            potensi pemuda Kelurahan Rawa Arum.
           </p>
         </div>
 
@@ -110,24 +112,45 @@ const KemitraanPage = () => {
           <h2 className="org-block-title">Mitra Resmi Kami</h2>
           {loading ? (
             <div style={{ textAlign: 'center', padding: '2rem' }}>
-              <i className="fa-solid fa-spinner fa-spin" style={{ color: 'var(--accent)', fontSize: '1.5rem' }} />
+              <i
+                className="fa-solid fa-spinner fa-spin"
+                style={{ color: 'var(--accent)', fontSize: '1.5rem' }}
+              />
             </div>
           ) : (
             <div className="current-partners-grid">
               {partners.map((partner) => (
-                <div key={partner._id} className="partner-detail-card" title={partner.name}>
+                <div
+                  key={partner._id}
+                  className="partner-detail-card"
+                  title={partner.name}
+                >
                   <div className="partner-logo-box">
                     {partner.logoUrl ? (
-                      <img src={partner.logoUrl} alt={partner.name} className="partner-logo-img" />
+                      <img
+                        src={partner.logoUrl}
+                        alt={partner.name}
+                        className="partner-logo-img"
+                      />
                     ) : (
-                      <div style={{ fontWeight: '700', color: 'var(--primary-deep)', fontSize: '0.9rem', textAlign: 'center' }}>
+                      <div
+                        style={{
+                          fontWeight: '700',
+                          color: 'var(--primary-deep)',
+                          fontSize: '0.9rem',
+                          textAlign: 'center',
+                        }}
+                      >
                         {partner.name}
                       </div>
                     )}
                   </div>
                   <div className="partner-text-box">
                     <h3 className="partner-company-name">{partner.name}</h3>
-                    <span className="partner-type-tag"><i className="fa-solid fa-award"></i> {partner.category || 'Mitra Industri'}</span>
+                    <span className="partner-type-tag">
+                      <i className="fa-solid fa-award"></i>{' '}
+                      {partner.category || 'Mitra Industri'}
+                    </span>
                   </div>
                 </div>
               ))}
@@ -156,10 +179,27 @@ const KemitraanPage = () => {
           <h2 className="org-block-title">Paket Sponsorship Program</h2>
           <div className="packages-grid">
             {packages.map((pkg, idx) => (
-              <div key={idx} className={`package-card ${pkg.featured ? 'featured' : ''}`}>
-                {pkg.featured && <div className="featured-badge">Terpopuler</div>}
-                <div className="package-header" style={{ borderBottomColor: pkg.color }}>
-                  <span className="package-tag-level" style={{ color: pkg.featured ? 'var(--accent)' : 'var(--text-muted)' }}>{pkg.tag}</span>
+              <div
+                key={idx}
+                className={`package-card ${pkg.featured ? 'featured' : ''}`}
+              >
+                {pkg.featured && (
+                  <div className="featured-badge">Terpopuler</div>
+                )}
+                <div
+                  className="package-header"
+                  style={{ borderBottomColor: pkg.color }}
+                >
+                  <span
+                    className="package-tag-level"
+                    style={{
+                      color: pkg.featured
+                        ? 'var(--accent)'
+                        : 'var(--text-muted)',
+                    }}
+                  >
+                    {pkg.tag}
+                  </span>
                   <h3 className="package-name">{pkg.name}</h3>
                 </div>
                 <ul className="package-benefits-list">
@@ -178,15 +218,30 @@ const KemitraanPage = () => {
         {/* Section 4: Call to Action */}
         <div className="partner-final-cta">
           <div className="cta-box-content">
-            <h2 className="cta-box-title">Siap Berkolaborasi Membangun Pemuda?</h2>
+            <h2 className="cta-box-title">
+              Siap Berkolaborasi Membangun Pemuda?
+            </h2>
             <p className="cta-box-desc">
-              Unduh Proposal Kemitraan kami atau diskusikan model kerja sama yang paling sesuai dengan kebutuhan strategis perusahaan Anda.
+              Unduh Proposal Kemitraan kami atau diskusikan model kerja sama
+              yang paling sesuai dengan kebutuhan strategis perusahaan Anda.
             </p>
             <div className="cta-buttons-row">
-              <a href="https://wa.me/6281234567890" target="_blank" rel="noopener noreferrer" className="btn btn-primary">
+              <a
+                href="https://wa.me/6281234567890"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary"
+              >
                 <i className="fa-brands fa-whatsapp"></i> Hubungi via WhatsApp
               </a>
-              <a href="#kontak" className="btn btn-outline" style={{ borderColor: 'rgba(255, 255, 255, 0.3)', color: '#ffffff' }}>
+              <a
+                href="#kontak"
+                className="btn btn-outline"
+                style={{
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                  color: '#ffffff',
+                }}
+              >
                 <i className="fa-solid fa-file-pdf"></i> Unduh Proposal (PDF)
               </a>
             </div>
