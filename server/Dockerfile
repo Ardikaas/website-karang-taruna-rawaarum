@@ -6,7 +6,7 @@ ENV NODE_ENV=production
 # Install dependencies using root monorepo lockfile
 COPY package*.json ./
 COPY server/package*.json ./server/
-RUN npm ci --omit=dev --workspace=server
+RUN npm ci --omit=dev --workspace=server --ignore-scripts
 
 # Copy server code
 COPY server/ ./server/
