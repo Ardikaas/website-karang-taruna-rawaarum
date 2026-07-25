@@ -203,9 +203,11 @@ const updatePengurus = async (req, res) => {
       isKoordinator,
     };
 
+    const User = require('../models/User');
+
     // Auto-link userId if not present yet
-    if (!existingMember.userId && name) {
-      const User = require('../models/User');
+    let targetUserId = existingMember.userId;
+    if (!targetUserId && name) {
       const matchedUser = await User.findOne({
         $or: [
           {
@@ -223,6 +225,7 @@ const updatePengurus = async (req, res) => {
         ],
       });
       if (matchedUser) {
+        targetUserId = matchedUser._id;
         updateData.userId = matchedUser._id;
       }
     }
@@ -236,6 +239,25 @@ const updatePengurus = async (req, res) => {
       updateData,
       { new: true, runValidators: true }
     );
+
+    // 2-Way Sync: If linked to a User account, sync Name, Image, & Socials back to User model
+    if (targetUserId) {
+      try {
+        const userUpdate = {};
+        if (name) userUpdate.name = name;
+        if (imageUrl !== undefined) userUpdate.imageUrl = imageUrl;
+        if (socials !== undefined) {
+          userUpdate.socials = filterValidSocials(socials).map((s) => ({
+            platform: s.platform || 'Instagram',
+            username: s.handle || '',
+            url: s.url || '#',
+          }));
+        }
+        await User.findByIdAndUpdate(targetUserId, userUpdate);
+      } catch (_userSyncErr) {
+        // Ignore user sync error if user account deletion or invalid ID
+      }
+    }
 
     res.json(updated);
   } catch (err) {

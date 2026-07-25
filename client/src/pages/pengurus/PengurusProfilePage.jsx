@@ -15,7 +15,7 @@ const PLATFORM_OPTIONS = [
 ];
 
 const PengurusProfilePage = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { showSuccess, showError } = useToast();
   const roleConfig = getRoleConfig(user?.role);
 
@@ -136,6 +136,9 @@ const PengurusProfilePage = () => {
         socials,
       };
       const res = await updateUserProfile(payload);
+      if (res.user && updateUser) {
+        updateUser(res.user);
+      }
       showSuccess(
         res.message || 'Profil berhasil diperbarui!',
         'Berhasil Disimpan'
