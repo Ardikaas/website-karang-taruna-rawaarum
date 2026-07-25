@@ -217,11 +217,11 @@ const StrukturPage = () => {
 
           {/* Ketua */}
           <div className="portrait-grid center-row">
-            {structure.harian
-              .filter((h) => h.level === 1)
+            {(structure.harian || [])
+              .filter((h) => h && h.level === 1)
               .map((member) => (
                 <MemberPortraitCard
-                  key={member._id}
+                  key={member._id || member.id}
                   member={member}
                   cardClass="primary"
                 />
@@ -230,20 +230,23 @@ const StrukturPage = () => {
 
           {/* Wakil Ketua */}
           <div className="portrait-grid grid-2">
-            {structure.harian
-              .filter((h) => h.level === 2)
+            {(structure.harian || [])
+              .filter((h) => h && h.level === 2)
               .map((member) => (
-                <MemberPortraitCard key={member._id} member={member} />
+                <MemberPortraitCard
+                  key={member._id || member.id}
+                  member={member}
+                />
               ))}
           </div>
 
           {/* Sekretaris & Bendahara */}
           <div className="portrait-grid grid-4">
-            {structure.harian
-              .filter((h) => h.level === 3)
+            {(structure.harian || [])
+              .filter((h) => h && h.level === 3)
               .map((member) => (
                 <MemberPortraitCard
-                  key={member._id}
+                  key={member._id || member.id}
                   member={member}
                   cardClass="compact"
                 />
@@ -253,10 +256,10 @@ const StrukturPage = () => {
 
         {/* 3. BIDANG-BIDANG KERJA */}
         <div className="org-block">
-          <h2 className="org-block-title">Bidang Kerja & Anggota</h2>
+          <h2 className="org-block-title">Bidang Kerja &amp; Anggota</h2>
 
           <div className="bidang-sections-list">
-            {structure.bidang.map((b) => (
+            {(structure.bidang || []).map((b) => (
               <div key={b.id} id={b.id} className="bidang-section-card">
                 <div className="bidang-header-bar">
                   <i className="fa-solid fa-shield-halved bidang-header-icon"></i>
@@ -289,11 +292,11 @@ const StrukturPage = () => {
                   {/* Anggota Column */}
                   <div className="anggota-column">
                     <span className="badge-anggota">Anggota Bidang</span>
-                    {b.anggotaDocs.length > 0 ? (
+                    {(b.anggotaDocs || []).length > 0 ? (
                       <div className="anggota-portrait-grid">
-                        {b.anggotaDocs.map((member) => (
+                        {(b.anggotaDocs || []).map((member) => (
                           <MemberPortraitCard
-                            key={member._id}
+                            key={member._id || member.id}
                             member={member}
                             cardClass="anggota"
                           />

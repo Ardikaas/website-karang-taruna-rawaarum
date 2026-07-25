@@ -24,16 +24,19 @@ const authMiddleware = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET);
-    req.user = decoded;
+    const userId = decoded.id || decoded._id;
+    req.user = {
+      ...decoded,
+      id: userId,
+      _id: userId,
+    };
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
-      return res
-        .status(401)
-        .json({
-          error: 'TokenExpired',
-          message: 'Access token sudah kadaluarsa.',
-        });
+      return res.status(401).json({
+        error: 'TokenExpired',
+        message: 'Access token sudah kadaluarsa.',
+      });
     }
     return res
       .status(401)
@@ -54,12 +57,10 @@ const requireRole = (...allowedRoles) => {
     }
     const userRole = req.user.role || 'user';
     if (!allowedRoles.includes(userRole)) {
-      return res
-        .status(403)
-        .json({
-          error:
-            'Akses ditolak. Anda tidak memiliki izin untuk melakukan aksi ini.',
-        });
+      return res.status(403).json({
+        error:
+          'Akses ditolak. Anda tidak memiliki izin untuk melakukan aksi ini.',
+      });
     }
     next();
   };
@@ -70,6 +71,7 @@ const requireAdmin = requireRole('admin', 'superadmin');
 
 module.exports = {
   authMiddleware,
+  verifyToken: authMiddleware,
   requireRole,
   requireAdmin,
   ACCESS_TOKEN_SECRET,

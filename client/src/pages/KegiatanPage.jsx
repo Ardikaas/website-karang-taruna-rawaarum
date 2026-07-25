@@ -1,16 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
-import { fetchInfoItems } from "../services/api";
+import { fetchInfoItems } from '../services/api';
+import InfoCard from '../components/InfoCard';
 
 const KegiatanPage = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      const data = await fetchInfoItems("kegiatan");
+      const data = await fetchInfoItems('kegiatan');
       setItems(data);
       setLoading(false);
     };
@@ -22,13 +23,13 @@ const KegiatanPage = () => {
   const filteredItems = items.filter(
     (item) =>
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchQuery.toLowerCase()),
+      item.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <section
       className="informasi-section"
-      style={{ paddingTop: "140px", minHeight: "80vh" }}
+      style={{ paddingTop: '140px', minHeight: '80vh' }}
     >
       <div className="container">
         <div className="section-header" data-watermark="ACTIVITIES">
@@ -55,17 +56,17 @@ const KegiatanPage = () => {
         {loading ? (
           <div
             style={{
-              textAlign: "center",
-              padding: "3rem",
-              color: "var(--text-secondary)",
+              textAlign: 'center',
+              padding: '3rem',
+              color: 'var(--text-secondary)',
             }}
           >
             <i
               className="fa-solid fa-circle-notch fa-spin"
               style={{
-                fontSize: "2rem",
-                marginBottom: "1rem",
-                color: "var(--accent)",
+                fontSize: '2rem',
+                marginBottom: '1rem',
+                color: 'var(--accent)',
               }}
             ></i>
             <p>Memuat berita kegiatan...</p>
@@ -74,33 +75,7 @@ const KegiatanPage = () => {
           <div className="grid-informasi">
             {filteredItems.length > 0 ? (
               filteredItems.map((item) => (
-                <article key={item._id} className="info-card">
-                  <div className="info-image-wrapper">
-                    <img
-                      src={item.imageUrl}
-                      alt={item.title}
-                      className="info-image"
-                    />
-                    <div className="info-tag-badge">{item.badge}</div>
-                  </div>
-                  <div className="info-content">
-                    <div className="info-meta">
-                      <span>
-                        <i
-                          className="fa-regular fa-calendar"
-                          style={{ marginRight: "6px" }}
-                        ></i>{" "}
-                        {item.date}
-                      </span>
-                    </div>
-                    <h3 className="info-title">{item.title}</h3>
-                    <p className="info-desc" dangerouslySetInnerHTML={{ __html: item.description }}></p>
-                    <a href="#kontak" className="info-btn">
-                      {item.linkText}{" "}
-                      <i className="fa-solid fa-arrow-right-long"></i>
-                    </a>
-                  </div>
-                </article>
+                <InfoCard key={item._id} item={item} linkTo="/kontak" />
               ))
             ) : (
               <div className="info-empty">

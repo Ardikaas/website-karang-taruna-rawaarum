@@ -66,6 +66,110 @@ export const fetchInfoItems = async (type = null) => {
 };
 
 /**
+ * Fetch a single info item by ID.
+ * Falls back to local search in mock data if the server is unreachable.
+ *
+ * @param {string} id - The ID of the info item.
+ * @returns {Promise<Object|null>} Info item or null if not found.
+ */
+export const fetchInfoItemById = async (id) => {
+  try {
+    const res = await fetch(`${API_BASE}/info/${id}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (_err) {
+    const all = await fetchInfoItems();
+    return all.find((item) => String(item._id) === String(id)) || null;
+  }
+};
+
+// --------------- Dedicated UMKM API Service ---------------
+
+export const fetchUmkms = async (
+  categoryType = null,
+  search = '',
+  subCategory = null
+) => {
+  try {
+    const params = new URLSearchParams();
+    if (categoryType && categoryType !== 'all')
+      params.append('categoryType', categoryType);
+    if (subCategory && subCategory !== 'all')
+      params.append('subCategory', subCategory);
+    if (search) params.append('search', search);
+
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(`${API_BASE}/umkm${query}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (_err) {
+    console.warn('API offline (fetchUmkms). Using fallback data.');
+    return [];
+  }
+};
+
+export const fetchUmkmById = async (id) => {
+  try {
+    const res = await fetch(`${API_BASE}/umkm/${id}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (_err) {
+    console.warn('API offline (fetchUmkmById).');
+    return null;
+  }
+};
+
+export const createUmkm = async (payload) => {
+  const res = await fetch(`${API_BASE}/umkm`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Gagal menambahkan data UMKM baru.');
+  }
+  return await res.json();
+};
+
+export const updateUmkm = async (id, payload) => {
+  const res = await fetch(`${API_BASE}/umkm/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Gagal merubah data UMKM.');
+  }
+  return await res.json();
+};
+
+export const deleteUmkm = async (id) => {
+  const res = await fetch(`${API_BASE}/umkm/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Gagal menghapus data UMKM.');
+  }
+  return await res.json();
+};
+
+export const toggleVerifyUmkm = async (id) => {
+  const res = await fetch(`${API_BASE}/umkm/${id}/verify`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Gagal mengubah status verifikasi UMKM.');
+  }
+  return await res.json();
+};
+
+/**
  * Fetch the latest info items for the Home page preview (limited to 2).
  *
  * @returns {Promise<Array>} Top 2 recent items.

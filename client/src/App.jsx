@@ -15,16 +15,19 @@ import LokerPage from './pages/LokerPage';
 import KegiatanPage from './pages/KegiatanPage';
 import PengumumanPage from './pages/PengumumanPage';
 import UmkmPage from './pages/UmkmPage';
+import UmkmDetailPage from './pages/UmkmDetailPage';
 import StrukturPage from './pages/StrukturPage';
 import KemitraanPage from './pages/KemitraanPage';
 import KontakPage from './pages/KontakPage';
 import ProgramPage from './pages/ProgramPage';
 import LoginPage from './pages/LoginPage';
+import InfoDetailPage from './pages/InfoDetailPage';
 import PengurusProfilePage from './pages/pengurus/PengurusProfilePage';
 
 // Admin Pages & Layout
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminKontenPage from './pages/admin/AdminKontenPage';
+import AdminUmkmPage from './pages/admin/AdminUmkmPage';
 import AdminAnggotaPage from './pages/admin/AdminAnggotaPage';
 import AdminSubscriberPage from './pages/admin/AdminSubscriberPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
@@ -161,6 +164,9 @@ const App = () => {
           <Route path="/kegiatan" element={<KegiatanPage />} />
           <Route path="/pengumuman" element={<PengumumanPage />} />
           <Route path="/umkm" element={<UmkmPage />} />
+          <Route path="/umkm/:id" element={<UmkmDetailPage />} />
+          <Route path="/informasi/:id" element={<InfoDetailPage />} />
+          <Route path="/info/:id" element={<InfoDetailPage />} />
           <Route path="/struktur" element={<StrukturPage />} />
           <Route path="/kemitraan" element={<KemitraanPage />} />
           <Route path="/kontak" element={<KontakPage />} />
@@ -200,6 +206,18 @@ const App = () => {
             }
           />
           <Route
+            path="/pengurus/umkm"
+            element={
+              <ProtectedRoute
+                allowedRoles={['superadmin', 'admin', 'pengurus']}
+              >
+                <AdminLayout>
+                  <AdminUmkmPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin"
             element={<Navigate to="/admin/dashboard" replace />}
           />
@@ -221,6 +239,18 @@ const App = () => {
               >
                 <AdminLayout>
                   <AdminKontenPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/umkm"
+            element={
+              <ProtectedRoute
+                allowedRoles={['superadmin', 'admin', 'pengurus']}
+              >
+                <AdminLayout>
+                  <AdminUmkmPage />
                 </AdminLayout>
               </ProtectedRoute>
             }
