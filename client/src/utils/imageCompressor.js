@@ -1,42 +1,37 @@
 /**
- * Client-Side Image Compressor & Resizer Utility.
- *
- * Automatically resizes & compresses large image files down to under target KB (default 500KB)
- * and optimal square dimensions (default max 800x800px) using HTML5 Canvas.
- *
- * @param {File} file - Original file input from user
- * @param {number} maxSizeKB - Target maximum size in KB (default 500)
- * @param {number} maxDimension - Maximum width/height in px (default 800)
- * @returns {Promise<File>} Compressed File object ready for upload
+ * Utility helper to auto-compress image files on the client-side
+ * if the file size exceeds maxSizeMB (default: 1.5 MB).
  */
-export const compressImage = (file, maxSizeKB = 500, maxDimension = 800) => {
-  return new Promise((resolve, reject) => {
-    if (!file || !file.type.startsWith('image/')) {
-      resolve(file);
-      return;
-    }
+export const compressImageIfNeeded = async (file, maxSizeMB = 1.5) => {
+  if (!file || !file.type.startsWith('image/')) {
+    return file;
+  }
 
+  const maxSizeBytes = maxSizeMB * 1024 * 1024;
+  if (file.size <= maxSizeBytes) {
+    return file;
+  }
+
+  return new Promise((resolve) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-
     reader.onload = (event) => {
       const img = new Image();
       img.src = event.target.result;
-
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        let { width, height } = img;
+        let width = img.width;
+        let height = img.height;
 
-        // Resize proportionally to maxDimension (800px)
-        if (width > height) {
-          if (width > maxDimension) {
-            height = Math.round((height * maxDimension) / width);
-            width = maxDimension;
-          }
-        } else {
-          if (height > maxDimension) {
-            width = Math.round((width * maxDimension) / height);
-            height = maxDimension;
+        // Downscale max dimension if image is huge (e.g. 4K / 20MP photos)
+        const MAX_DIMENSION = 1920;
+        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+          if (width > height) {
+            height = Math.round((height * MAX_DIMENSION) / width);
+            width = MAX_DIMENSION;
+          } else {
+            width = Math.round((width * MAX_DIMENSION) / height);
+            height = MAX_DIMENSION;
           }
         }
 
@@ -44,44 +39,44 @@ export const compressImage = (file, maxSizeKB = 500, maxDimension = 800) => {
         canvas.height = height;
 
         const ctx = canvas.getContext('2d');
+        // Fill white background for transparent PNGs converted to JPEG
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Quality compression loop
         let quality = 0.85;
-        let dataUrl = canvas.toDataURL('image/jpeg', quality);
 
-        const dataURItoBlob = (dataURI) => {
-          const byteString = atob(dataURI.split(',')[1]);
-          const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
-          const ab = new ArrayBuffer(byteString.length);
-          const ia = new Uint8Array(ab);
-          for (let i = 0; i < byteString.length; i++) {
-            ia[i] = byteString.charCodeAt(i);
-          }
-          return new Blob([ab], { type: mimeString });
+        const attemptCompress = () => {
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                resolve(file);
+                return;
+              }
+              if (blob.size <= maxSizeBytes || quality <= 0.35) {
+                const cleanName = file.name.replace(/\.[^/.]+$/, '') + '.jpg';
+                const compressedFile = new File([blob], cleanName, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              } else {
+                quality -= 0.15;
+                attemptCompress();
+              }
+            },
+            'image/jpeg',
+            quality
+          );
         };
 
-        let blob = dataURItoBlob(dataUrl);
-
-        // Iteratively reduce quality if size still exceeds target KB
-        while (blob.size > maxSizeKB * 1024 && quality > 0.2) {
-          quality -= 0.1;
-          dataUrl = canvas.toDataURL('image/jpeg', quality);
-          blob = dataURItoBlob(dataUrl);
-        }
-
-        const fileName = file.name.replace(/\.[^/.]+$/, '') + '_compressed.jpg';
-        const compressedFile = new File([blob], fileName, {
-          type: 'image/jpeg',
-          lastModified: Date.now(),
-        });
-
-        resolve(compressedFile);
+        attemptCompress();
       };
-
-      img.onerror = (err) => reject(err);
+      img.onerror = () => resolve(file);
     };
-
-    reader.onerror = (err) => reject(err);
+    reader.onerror = () => resolve(file);
   });
 };
+
+export const compressImage = compressImageIfNeeded;
+export default compressImageIfNeeded;

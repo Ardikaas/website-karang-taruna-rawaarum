@@ -91,6 +91,10 @@ const AdminPengurusPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [_formError, setFormError] = useState('');
 
+  // Delete State
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
   // Image Uploading States
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showManualUrl, setShowManualUrl] = useState(false);
@@ -329,20 +333,28 @@ const AdminPengurusPage = () => {
     }
   };
 
-  const filteredList = list
+  const filteredList = (list || [])
     .filter((item) => {
+      if (!item) return false;
       const matchesCategory =
         filterCategory === 'all' || item.category === filterCategory;
       const matchesDivision =
         filterDivision === 'all' || item.bidangId === filterDivision;
       const query = searchQuery.toLowerCase().trim();
+      const nameStr = (item.name || '').toLowerCase();
+      const roleStr = (item.role || '').toLowerCase();
+      const bidangStr = (item.bidangTitle || '').toLowerCase();
+
       const matchesSearch =
-        item.name.toLowerCase().includes(query) ||
-        item.role.toLowerCase().includes(query) ||
-        (item.bidangTitle && item.bidangTitle.toLowerCase().includes(query));
+        !query ||
+        nameStr.includes(query) ||
+        roleStr.includes(query) ||
+        bidangStr.includes(query);
+
       return matchesCategory && matchesDivision && matchesSearch;
     })
     .sort((a, b) => {
+      if (!a || !b) return 0;
       if (sortBy === 'level') {
         const catOrder = { pembina: 1, harian: 2, bidang: 3 };
         const catA = catOrder[a.category] || 99;
@@ -354,9 +366,9 @@ const AdminPengurusPage = () => {
         if (a.isKoordinator !== b.isKoordinator) {
           return a.isKoordinator ? -1 : 1;
         }
-        return a.name.localeCompare(b.name);
+        return (a.name || '').localeCompare(b.name || '');
       } else if (sortBy === 'alphabetical') {
-        return a.name.localeCompare(b.name);
+        return (a.name || '').localeCompare(b.name || '');
       } else if (sortBy === 'newest') {
         return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
       } else if (sortBy === 'oldest') {
@@ -626,14 +638,16 @@ const AdminPengurusPage = () => {
                 </thead>
                 <tbody>
                   {filteredList.map((item) => {
-                    const fallbackAvatar = getAvatarPhoto(item.name);
+                    const fallbackAvatar = getAvatarPhoto(
+                      item.name || 'Pengurus'
+                    );
                     const photoSrc = item.imageUrl || fallbackAvatar;
                     return (
-                      <tr key={item._id}>
+                      <tr key={item._id || item.id}>
                         <td style={{ width: '70px' }}>
                           <img
                             src={photoSrc}
-                            alt={item.name}
+                            alt={item.name || 'Pengurus'}
                             style={{
                               width: '45px',
                               height: '45px',

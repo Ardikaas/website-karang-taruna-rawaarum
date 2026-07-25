@@ -7,7 +7,6 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 const connectDB = require('./config/db');
-const seedDatabase = require('./utils/seed');
 
 // Route modules
 const infoRoutes = require('./routes/info.routes');
@@ -19,6 +18,7 @@ const pengurusRoutes = require('./routes/pengurus.routes');
 const settingsRoutes = require('./routes/settings.routes');
 const programRoutes = require('./routes/program.routes');
 const partnerRoutes = require('./routes/partner.routes');
+const umkmRoutes = require('./routes/umkm.routes');
 const path = require('path');
 
 const app = express();
@@ -31,6 +31,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 // --------------- API Routes ---------------
 app.use('/api/auth', authRoutes);
 app.use('/api/info', infoRoutes);
+app.use('/api/umkm', umkmRoutes);
 app.use('/api/register', registerRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/upload', uploadRoutes);
@@ -58,7 +59,6 @@ const PORT = process.env.PORT || 5555;
 const startServer = async () => {
   try {
     await connectDB();
-    await seedDatabase();
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

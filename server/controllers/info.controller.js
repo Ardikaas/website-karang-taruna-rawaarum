@@ -9,9 +9,32 @@ const getInfoItems = async (req, res) => {
   try {
     const { type } = req.query;
     const query = type && type !== 'all' ? { type } : {};
-    const items = await InfoItem.find(query).sort({ createdAt: -1 });
+    const items = await InfoItem.find(query)
+      .populate('createdBy', 'name email role')
+      .sort({ createdAt: -1 });
 
     res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * @desc    Get a single info item by ID
+ * @route   GET /api/info/:id
+ */
+const getInfoItemById = async (req, res) => {
+  try {
+    const item = await InfoItem.findById(req.params.id).populate(
+      'createdBy',
+      'name email role'
+    );
+    if (!item) {
+      return res
+        .status(404)
+        .json({ error: 'Konten informasi tidak ditemukan.' });
+    }
+    res.json(item);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -24,8 +47,22 @@ const getInfoItems = async (req, res) => {
  */
 const createInfoItem = async (req, res) => {
   try {
-    const { title, description, type, date, imageUrl, badge, linkText } =
-      req.body;
+    const {
+      title,
+      description,
+      type,
+      date,
+      imageUrl,
+      badge,
+      linkText,
+      categoryType,
+      address,
+      whatsapp,
+      images,
+      certifications,
+      priceRange,
+      itemsList,
+    } = req.body;
 
     if (!title || !description || !type || !date || !imageUrl || !badge) {
       return res
@@ -37,12 +74,10 @@ const createInfoItem = async (req, res) => {
     if (req.user && req.user.role === 'pengurus') {
       const allowedTypes = ['kegiatan', 'umkm'];
       if (!allowedTypes.includes(type.toLowerCase())) {
-        return res
-          .status(403)
-          .json({
-            error:
-              'Akses ditolak. Pengurus hanya diperbolehkan menerbitkan konten UMKM dan Kegiatan.',
-          });
+        return res.status(403).json({
+          error:
+            'Akses ditolak. Pengurus hanya diperbolehkan menerbitkan konten UMKM dan Kegiatan.',
+        });
       }
     }
 
@@ -54,6 +89,14 @@ const createInfoItem = async (req, res) => {
       imageUrl,
       badge,
       linkText,
+      createdBy: req.user ? req.user.id : null,
+      categoryType: categoryType || 'produk',
+      address: address || '',
+      whatsapp: whatsapp || '',
+      images: Array.isArray(images) ? images : [],
+      certifications: Array.isArray(certifications) ? certifications : [],
+      priceRange: priceRange || '',
+      itemsList: Array.isArray(itemsList) ? itemsList : [],
     });
     const savedItem = await newItem.save();
 
@@ -70,8 +113,22 @@ const createInfoItem = async (req, res) => {
  */
 const updateInfoItem = async (req, res) => {
   try {
-    const { title, description, type, date, imageUrl, badge, linkText } =
-      req.body;
+    const {
+      title,
+      description,
+      type,
+      date,
+      imageUrl,
+      badge,
+      linkText,
+      categoryType,
+      address,
+      whatsapp,
+      images,
+      certifications,
+      priceRange,
+      itemsList,
+    } = req.body;
 
     const existing = await InfoItem.findById(req.params.id);
     if (!existing) {
@@ -85,18 +142,46 @@ const updateInfoItem = async (req, res) => {
         !allowedTypes.includes(existing.type.toLowerCase()) ||
         !allowedTypes.includes(type.toLowerCase())
       ) {
-        return res
-          .status(403)
-          .json({
-            error:
-              'Akses ditolak. Pengurus hanya diperbolehkan mengedit konten UMKM dan Kegiatan.',
-          });
+        return res.status(403).json({
+          error:
+            'Akses ditolak. Pengurus hanya diperbolehkan mengedit konten UMKM dan Kegiatan.',
+        });
+      }
+
+      // Restrict edit to author only
+      if (
+        existing.createdBy &&
+        existing.createdBy.toString() !== req.user._id.toString()
+      ) {
+        return res.status(403).json({
+          error:
+            'Akses ditolak. Anda hanya diperbolehkan mengedit konten yang Anda buat sendiri.',
+        });
       }
     }
 
+    const updatePayload = {
+      title,
+      description,
+      type,
+      date,
+      imageUrl,
+      badge,
+      linkText,
+    };
+
+    if (categoryType !== undefined) updatePayload.categoryType = categoryType;
+    if (address !== undefined) updatePayload.address = address;
+    if (whatsapp !== undefined) updatePayload.whatsapp = whatsapp;
+    if (images !== undefined) updatePayload.images = images;
+    if (certifications !== undefined)
+      updatePayload.certifications = certifications;
+    if (priceRange !== undefined) updatePayload.priceRange = priceRange;
+    if (itemsList !== undefined) updatePayload.itemsList = itemsList;
+
     const updated = await InfoItem.findByIdAndUpdate(
       req.params.id,
-      { title, description, type, date, imageUrl, badge, linkText },
+      updatePayload,
       { new: true, runValidators: true }
     );
 
@@ -122,12 +207,21 @@ const deleteInfoItem = async (req, res) => {
     if (req.user && req.user.role === 'pengurus') {
       const allowedTypes = ['kegiatan', 'umkm'];
       if (!allowedTypes.includes(existing.type.toLowerCase())) {
-        return res
-          .status(403)
-          .json({
-            error:
-              'Akses ditolak. Pengurus hanya diperbolehkan menghapus konten UMKM dan Kegiatan.',
-          });
+        return res.status(403).json({
+          error:
+            'Akses ditolak. Pengurus hanya diperbolehkan menghapus konten UMKM dan Kegiatan.',
+        });
+      }
+
+      // Restrict delete to author only
+      if (
+        existing.createdBy &&
+        existing.createdBy.toString() !== req.user._id.toString()
+      ) {
+        return res.status(403).json({
+          error:
+            'Akses ditolak. Anda hanya diperbolehkan menghapus konten yang Anda buat sendiri.',
+        });
       }
     }
 
@@ -141,6 +235,7 @@ const deleteInfoItem = async (req, res) => {
 
 module.exports = {
   getInfoItems,
+  getInfoItemById,
   createInfoItem,
   updateInfoItem,
   deleteInfoItem,

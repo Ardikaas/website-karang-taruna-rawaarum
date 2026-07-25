@@ -22,6 +22,12 @@ const ALL_NAV_ITEMS = [
     roles: ['superadmin', 'admin', 'pengurus'],
   },
   {
+    to: '/admin/umkm',
+    icon: 'fa-store',
+    label: 'UMKM Binaan',
+    roles: ['superadmin', 'admin', 'pengurus'],
+  },
+  {
     to: '/admin/program',
     icon: 'fa-briefcase',
     label: 'Program',
