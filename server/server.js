@@ -1,5 +1,7 @@
 /* eslint-disable no-console */
+/* eslint-disable no-console */
 const express = require('express');
+
 const cors = require('cors');
 const mongoose = require('mongoose');
 require('dotenv').config();
