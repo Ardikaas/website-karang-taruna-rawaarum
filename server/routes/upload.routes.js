@@ -32,13 +32,17 @@ const fileFilter = (req, file, cb) => {
   if (ext && mime) {
     return cb(null, true);
   } else {
-    cb(new Error('Hanya file gambar (jpg, jpeg, png, webp, gif) yang diperbolehkan!'));
+    cb(
+      new Error(
+        'Hanya file gambar (jpg, jpeg, png, webp, gif) yang diperbolehkan!'
+      )
+    );
   }
 };
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Max 5MB
+  limits: { fileSize: 15 * 1024 * 1024 }, // Max 15MB
   fileFilter,
 });
 
@@ -47,25 +51,40 @@ const upload = multer({
  * @route   POST /api/upload
  * @access  Protected (admin)
  */
-router.post('/', authMiddleware, upload.single('image'), (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'Silakan pilih file gambar untuk di-upload.' });
-    }
+router.post(
+  '/',
+  authMiddleware,
+  upload.single('image'),
+  (req, res) => {
+    try {
+      if (!req.file) {
+        return res
+          .status(400)
+          .json({ error: 'Silakan pilih file gambar untuk di-upload.' });
+      }
 
-    // Return the relative URL path of the uploaded file
-    const imageUrl = `/uploads/${req.file.filename}`;
-    res.json({
-      success: true,
-      message: 'Gambar berhasil di-upload.',
-      imageUrl,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+      // Return the relative URL path of the uploaded file
+      const imageUrl = `/uploads/${req.file.filename}`;
+      res.json({
+        success: true,
+        message: 'Gambar berhasil di-upload.',
+        imageUrl,
+        url: imageUrl,
+      });
+    } catch (err) {
+      res
+        .status(500)
+        .json({
+          error: err.message || 'Terjadi kesalahan saat mengunggah gambar.',
+        });
+    }
+  },
+  (error, _req, res, _next) => {
+    // Handle multer error (e.g. file size exceeded)
+    res
+      .status(400)
+      .json({ error: error.message || 'Gagal mengunggah file gambar.' });
   }
-}, (error, req, res, next) => {
-  // Handle multer error (e.g. file size exceeded)
-  res.status(400).json({ error: error.message });
-});
+);
 
 module.exports = router;

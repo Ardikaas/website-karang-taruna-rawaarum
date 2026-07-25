@@ -14,6 +14,7 @@ import {
   MOCK_RECENT_ITEMS,
 } from '../constants/mockData';
 import { structureData } from '../constants/structureData';
+import { compressImageIfNeeded } from '../utils/imageCompressor';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5555/api';
 
@@ -477,14 +478,49 @@ export const generatePengurusAccounts = async () => {
 };
 
 /**
+ * Helper to normalize image URLs.
+ * Ensures relative upload filenames (e.g. 'info-xxx.jpg') start with '/uploads/'.
+ *
+ * @param {string} url
+ * @returns {string} Normalized image URL path.
+ */
+export const formatImageUrl = (url) => {
+  if (!url) return '';
+  if (
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    url.startsWith('data:')
+  ) {
+    return url;
+  }
+  if (!url.startsWith('/uploads/') && !url.startsWith('/assets/')) {
+    if (url.startsWith('uploads/')) return `/${url}`;
+    if (url.startsWith('/')) return url;
+    return `/uploads/${url}`;
+  }
+  return url;
+};
+
+/**
  * Upload an image file to the server.
+ * Automatically compresses large image files on the client-side before upload.
  *
  * @param {File} file
- * @returns {Promise<Object>}
+ * @returns {Promise<Object>} Object containing { imageUrl, url, success }
  */
 export const uploadImage = async (file) => {
+  if (!file) throw new Error('File gambar tidak valid.');
+
+  // Auto-compress large image files (< 1.5MB) before upload
+  let fileToUpload = file;
+  try {
+    fileToUpload = await compressImageIfNeeded(file, 1.5);
+  } catch (_e) {
+    // Fallback to original file if compression fails
+  }
+
   const formData = new FormData();
-  formData.append('image', file);
+  formData.append('image', fileToUpload);
 
   const token =
     localStorage.getItem('access_token') || localStorage.getItem('admin_token');
@@ -499,12 +535,31 @@ export const uploadImage = async (file) => {
     body: formData,
   });
 
-  const data = await res.json();
+  const contentType = res.headers.get('content-type') || '';
+  let data = {};
+
+  if (contentType.includes('application/json')) {
+    data = await res.json();
+  } else {
+    // Handle non-JSON response (Express/proxy HTML error pages like 413, 404, 500)
+    if (res.status === 413) {
+      throw new Error(
+        'Ukuran file gambar terlalu besar (Melewati batas server 15MB).'
+      );
+    }
+    throw new Error(`Terjadi kesalahan server (HTTP Status ${res.status}).`);
+  }
+
   if (!res.ok) {
     throw new Error(data.error || 'Gagal mengunggah gambar.');
   }
 
-  return data.imageUrl || data.url || data;
+  const path = formatImageUrl(data.imageUrl || data.url || '');
+  return {
+    imageUrl: path,
+    url: path,
+    success: true,
+  };
 };
 
 /**
