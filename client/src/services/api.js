@@ -27,7 +27,8 @@ const FALLBACK_MAP = {
 
 // --------------- Helper: get auth headers ---------------
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('admin_token');
+  const token =
+    localStorage.getItem('access_token') || localStorage.getItem('admin_token');
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -277,46 +278,6 @@ export const deleteSubscriber = async (id) => {
 
 // --------------- Auth ---------------
 
-/**
- * Admin login — returns token and admin info.
- *
- * @param {string} username
- * @param {string} password
- * @returns {Promise<Object>} { token, admin }
- */
-export const adminLogin = async (username, password) => {
-  const res = await fetch(`${API_BASE}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
-  });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    throw new Error(data.error || 'Login gagal.');
-  }
-
-  return data;
-};
-
-/**
- * Verify current token and return admin info.
- *
- * @returns {Promise<Object>} Admin user info.
- */
-export const verifyAdminToken = async () => {
-  const res = await fetch(`${API_BASE}/auth/me`, {
-    headers: getAuthHeaders(),
-  });
-
-  if (!res.ok) {
-    throw new Error('Token tidak valid.');
-  }
-
-  return await res.json();
-};
-
 // --------------- Stats (dashboard) ---------------
 
 /**
@@ -393,6 +354,25 @@ export const updateRegistrationStatus = async (id, status) => {
 };
 
 /**
+ * Generate user accounts for all pengurus members automatically
+ */
+export const generatePengurusAccounts = async () => {
+  const token =
+    localStorage.getItem('access_token') || localStorage.getItem('admin_token');
+  const res = await fetch(`${API_BASE}/pengurus/generate-accounts`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Gagal memproses pembuatan akun.');
+  return data;
+};
+
+/**
  * Upload an image file to the server.
  *
  * @param {File} file
@@ -402,7 +382,8 @@ export const uploadImage = async (file) => {
   const formData = new FormData();
   formData.append('image', file);
 
-  const token = localStorage.getItem('admin_token');
+  const token =
+    localStorage.getItem('access_token') || localStorage.getItem('admin_token');
   const headers = {};
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -415,8 +396,11 @@ export const uploadImage = async (file) => {
   });
 
   const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Gagal mengunggah gambar.');
+  }
 
-  return data;
+  return data.imageUrl || data.url || data;
 };
 
 /**
@@ -678,7 +662,7 @@ export const fetchSiteSettings = async () => {
       'API offline (fetchSiteSettings). Using mock default settings.'
     );
     return {
-      heroTitle: 'KARANG TARUNA KELURAHAN RAWA ARUM',
+      heroTitle: '',
       heroSubtitle: 'Muda, Beda, Berkarya untuk Kemajuan Rawa Arum',
       heroDescription:
         'Wadah pengembangan generasi muda Kelurahan Rawa Arum yang berkesadaran sosial, kreatif, inovatif, dan berdaya saing.',
@@ -882,4 +866,175 @@ export const deletePartner = async (id) => {
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Gagal menghapus mitra.');
   return data;
+};
+
+// --------------- Auth & JWT Helper Services ---------------
+
+/**
+ * Login user — receives accessToken and refreshToken
+ */
+export const adminLogin = async (username, password) => {
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Login gagal.');
+
+  if (data.accessToken) localStorage.setItem('access_token', data.accessToken);
+  if (data.token) localStorage.setItem('admin_token', data.token); // backward compatibility
+  if (data.refreshToken)
+    localStorage.setItem('refresh_token', data.refreshToken);
+
+  return data;
+};
+
+/**
+ * Refresh expired access token silently
+ */
+export const refreshAuthToken = async () => {
+  const refreshToken = localStorage.getItem('refresh_token');
+  if (!refreshToken) throw new Error('No refresh token available');
+
+  const res = await fetch(`${API_BASE}/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    // Refresh token expired or revoked -> clear storage
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('refresh_token');
+    throw new Error(data.error || 'Sesi telah berakhir.');
+  }
+
+  if (data.accessToken) {
+    localStorage.setItem('access_token', data.accessToken);
+    localStorage.setItem('admin_token', data.accessToken);
+  }
+  if (data.refreshToken) {
+    localStorage.setItem('refresh_token', data.refreshToken);
+  }
+
+  return data;
+};
+
+/**
+ * Logout user — revokes refresh token on backend
+ */
+export const apiLogout = async () => {
+  const refreshToken = localStorage.getItem('refresh_token');
+  try {
+    if (refreshToken) {
+      await fetch(`${API_BASE}/auth/logout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+    }
+  } catch (_err) {
+    // Ignore logout network errors
+  } finally {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('refresh_token');
+  }
+};
+
+/**
+ * Verify current user session from access token
+ */
+export const verifyAdminToken = async () => {
+  const token =
+    localStorage.getItem('access_token') || localStorage.getItem('admin_token');
+  if (!token) throw new Error('Token tidak ditemukan');
+
+  let res = await fetch(`${API_BASE}/auth/me`, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  // If access token expired, try to refresh automatically!
+  if (res.status === 401) {
+    try {
+      const refreshed = await refreshAuthToken();
+      res = await fetch(`${API_BASE}/auth/me`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${refreshed.accessToken}`,
+        },
+      });
+    } catch (_refreshErr) {
+      throw new Error('Sesi telah berakhir, silakan login kembali.');
+    }
+  }
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Token tidak valid');
+  return data;
+};
+
+/**
+ * Smart fetch wrapper that handles Authorization headers & automatic token refresh on 401
+ */
+export const fetchWithAuth = async (url, options = {}) => {
+  let token =
+    localStorage.getItem('access_token') || localStorage.getItem('admin_token');
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
+  let res = await fetch(url, { ...options, headers });
+
+  // If 401 Unauthorized (Access token expired), attempt auto-refresh
+  if (res.status === 401 && localStorage.getItem('refresh_token')) {
+    try {
+      const refreshed = await refreshAuthToken();
+      const newHeaders = {
+        ...headers,
+        Authorization: `Bearer ${refreshed.accessToken}`,
+      };
+      res = await fetch(url, { ...options, headers: newHeaders });
+    } catch (_err) {
+      // Refresh failed
+    }
+  }
+
+  return res;
+};
+
+/**
+ * Update user profile (Name, Username, Email, Phone, Social Media)
+ */
+export const updateUserProfile = async (profileData) => {
+  const res = await fetchWithAuth(`${API_BASE}/auth/profile`, {
+    method: 'PUT',
+    body: JSON.stringify(profileData),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Gagal mengupdate profil');
+  return data;
+};
+
+/**
+ * Fetch activity logs for the logged-in user
+ */
+export const fetchUserActivityLogs = async () => {
+  try {
+    const res = await fetchWithAuth(`${API_BASE}/auth/logs`);
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (_err) {
+    return [];
+  }
 };

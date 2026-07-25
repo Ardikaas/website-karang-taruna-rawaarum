@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { fetchInfoItems, createInfoItem, updateInfoItem, deleteInfoItem, uploadImage } from '../../services/api';
+import {
+  fetchInfoItems,
+  createInfoItem,
+  updateInfoItem,
+  deleteInfoItem,
+  uploadImage,
+} from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 const INITIAL_FORM = {
   title: '',
@@ -48,7 +55,14 @@ const RichTextEditor = ({ value, onChange, placeholder }) => {
   };
 
   return (
-    <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden', background: '#fff' }}>
+    <div
+      style={{
+        border: '1px solid #cbd5e1',
+        borderRadius: '8px',
+        overflow: 'hidden',
+        background: '#fff',
+      }}
+    >
       <style>{`
         .custom-rich-editor[contenteditable]:empty:before {
           content: attr(placeholder);
@@ -57,19 +71,26 @@ const RichTextEditor = ({ value, onChange, placeholder }) => {
         }
       `}</style>
       {/* Toolbar */}
-      <div style={{ 
-        display: 'flex', 
-        gap: '0.25rem', 
-        padding: '0.5rem', 
-        borderBottom: '1px solid #e2e8f0', 
-        background: '#f8fafc',
-        flexWrap: 'wrap'
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: '0.25rem',
+          padding: '0.5rem',
+          borderBottom: '1px solid #e2e8f0',
+          background: '#f8fafc',
+          flexWrap: 'wrap',
+        }}
+      >
         <button
           type="button"
           onClick={() => executeCommand('bold')}
           className="admin-btn admin-btn--outline admin-btn--sm"
-          style={{ padding: '0.4rem 0.6rem', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}
+          style={{
+            padding: '0.4rem 0.6rem',
+            border: '1px solid #e2e8f0',
+            background: '#fff',
+            cursor: 'pointer',
+          }}
           title="Tebal (Bold)"
         >
           <i className="fa-solid fa-bold" />
@@ -78,7 +99,12 @@ const RichTextEditor = ({ value, onChange, placeholder }) => {
           type="button"
           onClick={() => executeCommand('italic')}
           className="admin-btn admin-btn--outline admin-btn--sm"
-          style={{ padding: '0.4rem 0.6rem', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}
+          style={{
+            padding: '0.4rem 0.6rem',
+            border: '1px solid #e2e8f0',
+            background: '#fff',
+            cursor: 'pointer',
+          }}
           title="Miring (Italic)"
         >
           <i className="fa-solid fa-italic" />
@@ -87,17 +113,29 @@ const RichTextEditor = ({ value, onChange, placeholder }) => {
           type="button"
           onClick={() => executeCommand('underline')}
           className="admin-btn admin-btn--outline admin-btn--sm"
-          style={{ padding: '0.4rem 0.6rem', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}
+          style={{
+            padding: '0.4rem 0.6rem',
+            border: '1px solid #e2e8f0',
+            background: '#fff',
+            cursor: 'pointer',
+          }}
           title="Garis Bawah (Underline)"
         >
           <i className="fa-solid fa-underline" />
         </button>
-        <div style={{ width: '1px', background: '#e2e8f0', margin: '0 0.25rem' }} />
+        <div
+          style={{ width: '1px', background: '#e2e8f0', margin: '0 0.25rem' }}
+        />
         <button
           type="button"
           onClick={addLink}
           className="admin-btn admin-btn--outline admin-btn--sm"
-          style={{ padding: '0.4rem 0.6rem', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}
+          style={{
+            padding: '0.4rem 0.6rem',
+            border: '1px solid #e2e8f0',
+            background: '#fff',
+            cursor: 'pointer',
+          }}
           title="Sisipkan Link"
         >
           <i className="fa-solid fa-link" />
@@ -106,7 +144,12 @@ const RichTextEditor = ({ value, onChange, placeholder }) => {
           type="button"
           onClick={() => executeCommand('insertUnorderedList')}
           className="admin-btn admin-btn--outline admin-btn--sm"
-          style={{ padding: '0.4rem 0.6rem', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}
+          style={{
+            padding: '0.4rem 0.6rem',
+            border: '1px solid #e2e8f0',
+            background: '#fff',
+            cursor: 'pointer',
+          }}
           title="Daftar Poin (List)"
         >
           <i className="fa-solid fa-list-ul" />
@@ -115,7 +158,12 @@ const RichTextEditor = ({ value, onChange, placeholder }) => {
           type="button"
           onClick={() => executeCommand('removeFormat')}
           className="admin-btn admin-btn--outline admin-btn--sm"
-          style={{ padding: '0.4rem 0.6rem', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}
+          style={{
+            padding: '0.4rem 0.6rem',
+            border: '1px solid #e2e8f0',
+            background: '#fff',
+            cursor: 'pointer',
+          }}
           title="Hapus Format"
         >
           <i className="fa-solid fa-text-slash" />
@@ -136,7 +184,7 @@ const RichTextEditor = ({ value, onChange, placeholder }) => {
           outline: 'none',
           fontSize: '0.9rem',
           lineHeight: '1.6',
-          color: '#334155'
+          color: '#334155',
         }}
         placeholder={placeholder}
       />
@@ -145,6 +193,9 @@ const RichTextEditor = ({ value, onChange, placeholder }) => {
 };
 
 const AdminKontenPage = () => {
+  const { user } = useAuth();
+  const isPengurus = user?.role === 'pengurus';
+
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -175,7 +226,6 @@ const AdminKontenPage = () => {
       setItems(data);
     } catch (err) {
       setError('Gagal mengambil data konten.');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -194,7 +244,9 @@ const AdminKontenPage = () => {
   };
 
   const handleOpenEdit = (item) => {
-    const isStandardType = ['kegiatan', 'loker', 'umkm', 'pengumuman'].includes(item.type);
+    const isStandardType = ['kegiatan', 'loker', 'umkm', 'pengumuman'].includes(
+      item.type
+    );
     setForm({
       title: item.title,
       description: item.description,
@@ -232,7 +284,8 @@ const AdminKontenPage = () => {
     e.preventDefault();
     setFormError('');
 
-    const finalType = form.type === 'kustom' ? form.customType.trim() : form.type;
+    const finalType =
+      form.type === 'kustom' ? form.customType.trim() : form.type;
     if (!finalType) {
       setFormError('Kategori kustom wajib diisi.');
       return;
@@ -240,21 +293,23 @@ const AdminKontenPage = () => {
 
     setSubmitting(true);
 
-    const payload = { 
+    const payload = {
       ...form,
-      type: finalType.toLowerCase()
+      type: finalType.toLowerCase(),
     };
-    
+
     // Set default illustration if custom image url is empty
     if (!payload.imageUrl) {
-      payload.imageUrl = TYPE_IMAGE_MAP[payload.type] || TYPE_IMAGE_MAP.kegiatan;
+      payload.imageUrl =
+        TYPE_IMAGE_MAP[payload.type] || TYPE_IMAGE_MAP.kegiatan;
     }
 
     // Set badge automatically if left empty
     if (!payload.badge) {
-      payload.badge = payload.type === 'pengumuman' 
-        ? 'Penting' 
-        : payload.type.charAt(0).toUpperCase() + payload.type.slice(1);
+      payload.badge =
+        payload.type === 'pengumuman'
+          ? 'Penting'
+          : payload.type.charAt(0).toUpperCase() + payload.type.slice(1);
     }
 
     // Set formatting for date
@@ -292,16 +347,26 @@ const AdminKontenPage = () => {
     }
   };
 
-  // Get dynamic unique categories for filter tabs
-  const categoryTabs = ['all', ...new Set(items.map(item => item.type))];
+  // Get dynamic unique categories for filter tabs (Restricted for Pengurus)
+  const allUniqueTypes = [...new Set(items.map((item) => item.type))];
+  const categoryTabs = isPengurus
+    ? ['all', 'kegiatan', 'umkm']
+    : ['all', ...allUniqueTypes];
 
   const filteredItems = items
     .filter((item) => {
+      // If pengurus, restrict access ONLY to 'kegiatan' and 'umkm'
+      if (
+        isPengurus &&
+        !['kegiatan', 'umkm'].includes(item.type.toLowerCase())
+      ) {
+        return false;
+      }
       const matchesCategory = filterType === 'all' || item.type === filterType;
       const query = searchQuery.toLowerCase().trim();
-      const matchesSearch = 
-        item.title.toLowerCase().includes(query) || 
-        item.description.toLowerCase().includes(query) || 
+      const matchesSearch =
+        item.title.toLowerCase().includes(query) ||
+        item.description.toLowerCase().includes(query) ||
         (item.badge && item.badge.toLowerCase().includes(query)) ||
         item.type.toLowerCase().includes(query);
       return matchesCategory && matchesSearch;
@@ -337,15 +402,24 @@ const AdminKontenPage = () => {
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Manajemen Konten</h1>
-          <p className="admin-page-subtitle">Terbitkan dan kelola informasi Kegiatan, Loker, UMKM, Pengumuman, atau Kategori Kustom.</p>
+          <p className="admin-page-subtitle">
+            Terbitkan dan kelola informasi Kegiatan, Loker, UMKM, Pengumuman,
+            atau Kategori Kustom.
+          </p>
         </div>
-        <button className="admin-btn admin-btn--primary" onClick={handleOpenCreate}>
+        <button
+          className="admin-btn admin-btn--primary"
+          onClick={handleOpenCreate}
+        >
           <i className="fa-solid fa-plus" /> Terbitkan Konten
         </button>
       </div>
 
       {error && (
-        <div className="admin-alert admin-alert--error" style={{ marginBottom: '1.5rem' }}>
+        <div
+          className="admin-alert admin-alert--error"
+          style={{ marginBottom: '1.5rem' }}
+        >
           <i className="fa-solid fa-circle-exclamation" />
           <span>{error}</span>
         </div>
@@ -353,79 +427,127 @@ const AdminKontenPage = () => {
 
       {/* Filter and Content Card */}
       <div className="admin-card">
-        <div className="admin-card__header" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid #edf2f7' }}>
-          <div className="admin-tabs" style={{ marginBottom: 0, borderBottom: 'none' }}>
+        <div
+          className="admin-card__header"
+          style={{
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            borderBottom: '1px solid #edf2f7',
+          }}
+        >
+          <div
+            className="admin-tabs"
+            style={{ marginBottom: 0, borderBottom: 'none' }}
+          >
             {categoryTabs.map((type) => (
               <button
                 key={type}
                 className={`admin-tab-btn ${filterType === type ? 'active' : ''}`}
                 onClick={() => setFilterType(type)}
               >
-                {type === 'all' ? 'Semua' : type.charAt(0).toUpperCase() + type.slice(1)}
+                {type === 'all'
+                  ? 'Semua'
+                  : type.charAt(0).toUpperCase() + type.slice(1)}
               </button>
             ))}
           </div>
-          <div className="admin-text-muted" style={{ fontSize: '0.85rem', fontWeight: '500' }}>
+          <div
+            className="admin-text-muted"
+            style={{ fontSize: '0.85rem', fontWeight: '500' }}
+          >
             Menampilkan {filteredItems.length} dari {items.length} konten
           </div>
         </div>
 
         {/* Filter & Search Toolbar */}
-        <div style={{ 
-          padding: '1rem 1.5rem', 
-          borderBottom: '1px solid #edf2f7', 
-          display: 'flex', 
-          gap: '1rem', 
-          alignItems: 'center', 
-          justifyContent: 'space-between', 
-          flexWrap: 'wrap',
-          backgroundColor: '#f8fafc'
-        }}>
-          <div style={{ position: 'relative', flex: '1', minWidth: '250px', maxWidth: '400px' }}>
-            <i className="fa-solid fa-magnifying-glass" style={{ 
-              position: 'absolute', 
-              left: '1rem', 
-              top: '50%', 
-              transform: 'translateY(-50%)', 
-              color: '#94a3b8' 
-            }} />
+        <div
+          style={{
+            padding: '1rem 1.5rem',
+            borderBottom: '1px solid #edf2f7',
+            display: 'flex',
+            gap: '1rem',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            backgroundColor: '#f8fafc',
+          }}
+        >
+          <div
+            style={{
+              position: 'relative',
+              flex: '1',
+              minWidth: '250px',
+              maxWidth: '400px',
+            }}
+          >
+            <i
+              className="fa-solid fa-magnifying-glass"
+              style={{
+                position: 'absolute',
+                left: '1rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: '#94a3b8',
+              }}
+            />
             <input
               type="text"
               className="admin-form-control"
               placeholder="Cari judul, rincian, atau badge..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ paddingLeft: '2.5rem', height: '40px', fontSize: '0.85rem' }}
+              style={{
+                paddingLeft: '2.5rem',
+                height: '40px',
+                fontSize: '0.85rem',
+              }}
             />
             {searchQuery && (
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setSearchQuery('')}
-                style={{ 
-                  position: 'absolute', 
-                  right: '1rem', 
-                  top: '50%', 
-                  transform: 'translateY(-50%)', 
-                  background: 'none', 
-                  border: 'none', 
-                  color: '#94a3b8', 
-                  cursor: 'pointer' 
+                style={{
+                  position: 'absolute',
+                  right: '1rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
                 }}
               >
-                <i className="fa-solid fa-circle-xmark" style={{ fontSize: '1rem' }} />
+                <i
+                  className="fa-solid fa-circle-xmark"
+                  style={{ fontSize: '1rem' }}
+                />
               </button>
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>
+          <div
+            style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}
+          >
+            <span
+              style={{
+                fontSize: '0.85rem',
+                color: '#64748b',
+                fontWeight: '500',
+              }}
+            >
               <i className="fa-solid fa-arrow-down-wide-short" /> Urutkan:
             </span>
             <select
               className="admin-form-control"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              style={{ width: '160px', height: '40px', padding: '0 0.75rem', fontSize: '0.85rem' }}
+              style={{
+                width: '160px',
+                height: '40px',
+                padding: '0 0.75rem',
+                fontSize: '0.85rem',
+              }}
             >
               <option value="newest">Terbaru</option>
               <option value="oldest">Terlama</option>
@@ -451,43 +573,77 @@ const AdminKontenPage = () => {
                   {filteredItems.map((item) => (
                     <tr key={item._id}>
                       <td style={{ width: '80px' }}>
-                        <img 
-                          src={item.imageUrl} 
-                          alt={item.title} 
-                          style={{ width: '60px', height: '40px', objectFit: 'cover', borderRadius: '4px', border: '1px solid rgba(0,0,0,0.1)' }}
-                          onError={(e) => { e.target.src = '/assets/info_kegiatan.png' }}
+                        <img
+                          src={item.imageUrl}
+                          alt={item.title}
+                          style={{
+                            width: '60px',
+                            height: '40px',
+                            objectFit: 'cover',
+                            borderRadius: '4px',
+                            border: '1px solid rgba(0,0,0,0.1)',
+                          }}
+                          onError={(e) => {
+                            e.target.src = '/assets/info_kegiatan.png';
+                          }}
                         />
                       </td>
                       <td>
-                        <div style={{ fontWeight: '600', color: 'var(--text-main)' }}>{item.title}</div>
-                        <div className="admin-text-muted" style={{ fontSize: '0.8rem', maxWidth: '350px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                        <div
+                          style={{
+                            fontWeight: '600',
+                            color: 'var(--text-main)',
+                          }}
+                        >
+                          {item.title}
+                        </div>
+                        <div
+                          className="admin-text-muted"
+                          style={{
+                            fontSize: '0.8rem',
+                            maxWidth: '350px',
+                            textOverflow: 'ellipsis',
+                            overflow: 'hidden',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
                           {item.description}
                         </div>
                       </td>
                       <td>
-                        <span className={`admin-badge admin-badge--${
-                          item.type === 'pengumuman' ? 'error' :
-                          item.type === 'loker' ? 'warning' :
-                          item.type === 'umkm' ? 'success' :
-                          'primary'
-                        }`}>
+                        <span
+                          className={`admin-badge admin-badge--${
+                            item.type === 'pengumuman'
+                              ? 'error'
+                              : item.type === 'loker'
+                                ? 'warning'
+                                : item.type === 'umkm'
+                                  ? 'success'
+                                  : 'primary'
+                          }`}
+                        >
                           {item.badge || item.type}
                         </span>
                       </td>
-                      <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      <td
+                        style={{
+                          fontSize: '0.85rem',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
                         {item.date}
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                          <button 
-                            className="admin-action-btn admin-action-btn--edit" 
+                          <button
+                            className="admin-action-btn admin-action-btn--edit"
                             title="Edit"
                             onClick={() => handleOpenEdit(item)}
                           >
                             <i className="fa-solid fa-pen-to-square" />
                           </button>
-                          <button 
-                            className="admin-action-btn admin-action-btn--delete" 
+                          <button
+                            className="admin-action-btn admin-action-btn--delete"
                             title="Hapus"
                             onClick={() => setDeleteConfirmId(item._id)}
                           >
@@ -500,18 +656,36 @@ const AdminKontenPage = () => {
                 </tbody>
               </table>
             ) : (
-              <div className="admin-empty-state" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
-                <i className="fa-solid fa-magnifying-glass" style={{ fontSize: '3rem', color: 'var(--text-muted)', marginBottom: '1rem' }} />
+              <div
+                className="admin-empty-state"
+                style={{ padding: '4rem 2rem', textAlign: 'center' }}
+              >
+                <i
+                  className="fa-solid fa-magnifying-glass"
+                  style={{
+                    fontSize: '3rem',
+                    color: 'var(--text-muted)',
+                    marginBottom: '1rem',
+                  }}
+                />
                 <p style={{ fontWeight: '500', color: 'var(--text-main)' }}>
-                  {searchQuery ? 'Tidak ada hasil pencarian yang cocok' : 'Tidak ada konten ditemukan'}
+                  {searchQuery
+                    ? 'Tidak ada hasil pencarian yang cocok'
+                    : 'Tidak ada konten ditemukan'}
                 </p>
-                <p className="admin-text-muted" style={{ fontSize: '0.9rem', marginBottom: searchQuery ? '1rem' : '0' }}>
-                  {searchQuery 
-                    ? `Tidak ada konten yang cocok dengan kata kunci "${searchQuery}"` 
+                <p
+                  className="admin-text-muted"
+                  style={{
+                    fontSize: '0.9rem',
+                    marginBottom: searchQuery ? '1rem' : '0',
+                  }}
+                >
+                  {searchQuery
+                    ? `Tidak ada konten yang cocok dengan kata kunci "${searchQuery}"`
                     : 'Silakan terbitkan konten baru untuk menambah informasi.'}
                 </p>
                 {searchQuery && (
-                  <button 
+                  <button
                     className="admin-btn admin-btn--outline admin-btn--sm"
                     onClick={() => setSearchQuery('')}
                     style={{ marginTop: '0.5rem' }}
@@ -531,23 +705,33 @@ const AdminKontenPage = () => {
           <div className="admin-modal">
             <div className="admin-modal__header">
               <h2 className="admin-modal__title">
-                {modalMode === 'create' ? 'Terbitkan Konten Baru' : 'Edit Konten'}
+                {modalMode === 'create'
+                  ? 'Terbitkan Konten Baru'
+                  : 'Edit Konten'}
               </h2>
-              <button className="admin-modal__close" onClick={() => setShowModal(false)}>
+              <button
+                className="admin-modal__close"
+                onClick={() => setShowModal(false)}
+              >
                 <i className="fa-solid fa-xmark" />
               </button>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="admin-modal__body">
               {formError && (
-                <div className="admin-alert admin-alert--error" style={{ marginBottom: '1.25rem' }}>
+                <div
+                  className="admin-alert admin-alert--error"
+                  style={{ marginBottom: '1.25rem' }}
+                >
                   <i className="fa-solid fa-circle-exclamation" />
                   <span>{formError}</span>
                 </div>
               )}
 
               <div className="admin-form-group">
-                <label className="admin-form-label">Judul Informasi / Kegiatan</label>
+                <label className="admin-form-label">
+                  Judul Informasi / Kegiatan
+                </label>
                 <input
                   type="text"
                   className="admin-form-control"
@@ -567,10 +751,16 @@ const AdminKontenPage = () => {
                     onChange={(e) => setForm({ ...form, type: e.target.value })}
                   >
                     <option value="kegiatan">Kegiatan</option>
-                    <option value="loker">Loker</option>
                     <option value="umkm">UMKM</option>
-                    <option value="pengumuman">Pengumuman (Penting)</option>
-                    <option value="kustom">+ Tambah Kategori Kustom...</option>
+                    {!isPengurus && <option value="loker">Loker</option>}
+                    {!isPengurus && (
+                      <option value="pengumuman">Pengumuman (Penting)</option>
+                    )}
+                    {!isPengurus && (
+                      <option value="kustom">
+                        + Tambah Kategori Kustom...
+                      </option>
+                    )}
                   </select>
                 </div>
 
@@ -581,10 +771,20 @@ const AdminKontenPage = () => {
                     className="admin-form-control"
                     placeholder="Lihat Detail / Lamar Loker / Hubungi Penjual"
                     value={form.linkText}
-                    onChange={(e) => setForm({ ...form, linkText: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, linkText: e.target.value })
+                    }
                   />
-                  <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
-                    Teks tombol di beranda (misal: "Lihat Detail", "Lamar Loker", "Hubungi Penjual").
+                  <small
+                    style={{
+                      color: '#64748b',
+                      fontSize: '0.75rem',
+                      marginTop: '4px',
+                      display: 'block',
+                    }}
+                  >
+                    Teks tombol di beranda (misal: "Lihat Detail", "Lamar
+                    Loker", "Hubungi Penjual").
                   </small>
                 </div>
               </div>
@@ -592,23 +792,37 @@ const AdminKontenPage = () => {
               {/* Dynamic Input for Custom Category */}
               {form.type === 'kustom' && (
                 <div className="admin-form-group">
-                  <label className="admin-form-label">Nama Kategori Kustom Baru</label>
+                  <label className="admin-form-label">
+                    Nama Kategori Kustom Baru
+                  </label>
                   <input
                     type="text"
                     className="admin-form-control"
                     required
                     placeholder="Contoh: Beasiswa / Donasi / Olahraga"
                     value={form.customType}
-                    onChange={(e) => setForm({ ...form, customType: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, customType: e.target.value })
+                    }
                   />
-                  <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
-                    Kategori baru ini akan otomatis tersimpan dan muncul sebagai tab filter baru.
+                  <small
+                    style={{
+                      color: '#64748b',
+                      fontSize: '0.75rem',
+                      marginTop: '4px',
+                      display: 'block',
+                    }}
+                  >
+                    Kategori baru ini akan otomatis tersimpan dan muncul sebagai
+                    tab filter baru.
                   </small>
                 </div>
               )}
 
               <div className="admin-form-group">
-                <label className="admin-form-label">Deskripsi Lengkap / Rincian</label>
+                <label className="admin-form-label">
+                  Deskripsi Lengkap / Rincian
+                </label>
                 <RichTextEditor
                   value={form.description}
                   onChange={(val) => setForm({ ...form, description: val })}
@@ -618,16 +832,28 @@ const AdminKontenPage = () => {
 
               <div className="admin-grid-2">
                 <div className="admin-form-group">
-                  <label className="admin-form-label">Custom Badge (Opsional)</label>
+                  <label className="admin-form-label">
+                    Custom Badge (Opsional)
+                  </label>
                   <input
                     type="text"
                     className="admin-form-control"
                     placeholder="Biarkan kosong untuk default kategori"
                     value={form.badge}
-                    onChange={(e) => setForm({ ...form, badge: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, badge: e.target.value })
+                    }
                   />
-                  <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
-                    Label pita gambar (misal: "PENTING!", "Hot Loker", "Promo"). Kosongkan untuk default.
+                  <small
+                    style={{
+                      color: '#64748b',
+                      fontSize: '0.75rem',
+                      marginTop: '4px',
+                      display: 'block',
+                    }}
+                  >
+                    Label pita gambar (misal: "PENTING!", "Hot Loker", "Promo").
+                    Kosongkan untuk default.
                   </small>
                 </div>
               </div>
@@ -635,7 +861,15 @@ const AdminKontenPage = () => {
               {/* Styled Image Uploader Component */}
               <div className="admin-form-group">
                 <label className="admin-form-label">Gambar Konten</label>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '1rem',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    marginTop: '0.25rem',
+                  }}
+                >
                   <div style={{ flex: 1, minWidth: '220px' }}>
                     <input
                       type="file"
@@ -663,27 +897,81 @@ const AdminKontenPage = () => {
                       }}
                     >
                       {uploadingImage ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-                          <i className="fa-solid fa-spinner fa-spin" style={{ color: 'var(--accent)', fontSize: '1.25rem' }} />
-                          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Mengupload file...</span>
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                          }}
+                        >
+                          <i
+                            className="fa-solid fa-spinner fa-spin"
+                            style={{
+                              color: 'var(--accent)',
+                              fontSize: '1.25rem',
+                            }}
+                          />
+                          <span
+                            style={{ fontSize: '0.8rem', color: '#64748b' }}
+                          >
+                            Mengupload file...
+                          </span>
                         </div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem' }}>
-                          <i className="fa-solid fa-cloud-arrow-up" style={{ color: '#94a3b8', fontSize: '1.35rem' }} />
-                          <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#475569' }}>Pilih File Gambar</span>
-                          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>JPG, PNG, WEBP (Maksimal 5MB)</span>
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                          }}
+                        >
+                          <i
+                            className="fa-solid fa-cloud-arrow-up"
+                            style={{ color: '#94a3b8', fontSize: '1.35rem' }}
+                          />
+                          <span
+                            style={{
+                              fontSize: '0.8rem',
+                              fontWeight: '700',
+                              color: '#475569',
+                            }}
+                          >
+                            Pilih File Gambar
+                          </span>
+                          <span
+                            style={{ fontSize: '0.7rem', color: '#94a3b8' }}
+                          >
+                            JPG, PNG, WEBP (Maksimal 5MB)
+                          </span>
                         </div>
                       )}
                     </label>
                   </div>
 
                   {form.imageUrl && (
-                    <div style={{ position: 'relative', width: '100px', height: '70px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+                    <div
+                      style={{
+                        position: 'relative',
+                        width: '100px',
+                        height: '70px',
+                        borderRadius: '6px',
+                        overflow: 'hidden',
+                        border: '1px solid #cbd5e1',
+                      }}
+                    >
                       <img
                         src={form.imageUrl}
                         alt="Pratinjau"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={(e) => { e.target.src = '/assets/info_kegiatan.png' }}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                        onError={(e) => {
+                          e.target.src = '/assets/info_kegiatan.png';
+                        }}
                       />
                       <button
                         type="button"
@@ -701,7 +989,7 @@ const AdminKontenPage = () => {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '0.7rem'
+                          fontSize: '0.7rem',
                         }}
                         onClick={() => setForm({ ...form, imageUrl: '' })}
                         title="Hapus Gambar"
@@ -716,10 +1004,19 @@ const AdminKontenPage = () => {
                   <button
                     type="button"
                     className="admin-btn admin-btn--sm"
-                    style={{ background: 'transparent', border: 'none', color: 'var(--accent)', padding: 0, fontWeight: '600', textDecoration: 'underline' }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--accent)',
+                      padding: 0,
+                      fontWeight: '600',
+                      textDecoration: 'underline',
+                    }}
                     onClick={() => setShowManualUrl(!showManualUrl)}
                   >
-                    {showManualUrl ? 'Gunakan Uploader File' : 'Atau Masukkan URL Gambar Manual'}
+                    {showManualUrl
+                      ? 'Gunakan Uploader File'
+                      : 'Atau Masukkan URL Gambar Manual'}
                   </button>
 
                   {showManualUrl && (
@@ -729,7 +1026,9 @@ const AdminKontenPage = () => {
                         className="admin-form-control"
                         placeholder="Contoh: /assets/gambar-kustom.jpg"
                         value={form.imageUrl}
-                        onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+                        onChange={(e) =>
+                          setForm({ ...form, imageUrl: e.target.value })
+                        }
                       />
                     </div>
                   )}
@@ -737,21 +1036,23 @@ const AdminKontenPage = () => {
               </div>
 
               <div className="admin-modal__footer">
-                <button 
-                  type="button" 
-                  className="admin-btn admin-btn--outline" 
+                <button
+                  type="button"
+                  className="admin-btn admin-btn--outline"
                   onClick={() => setShowModal(false)}
                   disabled={submitting}
                 >
                   Batal
                 </button>
-                <button 
-                  type="submit" 
-                  className="admin-btn admin-btn--primary" 
+                <button
+                  type="submit"
+                  className="admin-btn admin-btn--primary"
                   disabled={submitting}
                 >
                   {submitting ? (
-                    <><i className="fa-solid fa-spinner fa-spin" /> Menyimpan...</>
+                    <>
+                      <i className="fa-solid fa-spinner fa-spin" /> Menyimpan...
+                    </>
                   ) : (
                     'Simpan Konten'
                   )}
@@ -768,27 +1069,38 @@ const AdminKontenPage = () => {
           <div className="admin-modal admin-modal--sm">
             <div className="admin-modal__header">
               <h2 className="admin-modal__title">Konfirmasi Hapus</h2>
-              <button className="admin-modal__close" onClick={() => setDeleteConfirmId(null)}>
+              <button
+                className="admin-modal__close"
+                onClick={() => setDeleteConfirmId(null)}
+              >
                 <i className="fa-solid fa-xmark" />
               </button>
             </div>
             <div className="admin-modal__body" style={{ padding: '1.5rem' }}>
-              <p>Apakah Anda yakin ingin menghapus konten ini secara permanen dari database?</p>
-              <div className="admin-modal__footer" style={{ marginTop: '1.5rem', padding: 0, border: 'none' }}>
-                <button 
-                  className="admin-btn admin-btn--outline" 
+              <p>
+                Apakah Anda yakin ingin menghapus konten ini secara permanen
+                dari database?
+              </p>
+              <div
+                className="admin-modal__footer"
+                style={{ marginTop: '1.5rem', padding: 0, border: 'none' }}
+              >
+                <button
+                  className="admin-btn admin-btn--outline"
                   onClick={() => setDeleteConfirmId(null)}
                   disabled={deleting}
                 >
                   Batal
                 </button>
-                <button 
-                  className="admin-btn admin-btn--danger" 
+                <button
+                  className="admin-btn admin-btn--danger"
                   onClick={() => handleDelete(deleteConfirmId)}
                   disabled={deleting}
                 >
                   {deleting ? (
-                    <><i className="fa-solid fa-spinner fa-spin" /> Menghapus...</>
+                    <>
+                      <i className="fa-solid fa-spinner fa-spin" /> Menghapus...
+                    </>
                   ) : (
                     'Ya, Hapus'
                   )}

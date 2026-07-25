@@ -19,9 +19,10 @@ import StrukturPage from './pages/StrukturPage';
 import KemitraanPage from './pages/KemitraanPage';
 import KontakPage from './pages/KontakPage';
 import ProgramPage from './pages/ProgramPage';
+import LoginPage from './pages/LoginPage';
+import PengurusProfilePage from './pages/pengurus/PengurusProfilePage';
 
 // Admin Pages & Layout
-import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminKontenPage from './pages/admin/AdminKontenPage';
 import AdminAnggotaPage from './pages/admin/AdminAnggotaPage';
@@ -134,11 +135,14 @@ const App = () => {
 
   // --------------- Render ---------------
   const location = useLocation();
-  const isAdminPath = location.pathname.startsWith('/admin');
+  const isDashboardOrAuthPath =
+    location.pathname.startsWith('/admin') ||
+    location.pathname.startsWith('/pengurus') ||
+    location.pathname.startsWith('/login');
 
   return (
     <AuthProvider>
-      {!isAdminPath && (
+      {!isDashboardOrAuthPath && (
         <Navbar
           activeSection={activeSection}
           scrolled={scrolled}
@@ -148,7 +152,7 @@ const App = () => {
         />
       )}
 
-      <main style={{ minHeight: isAdminPath ? '100vh' : '80vh' }}>
+      <main style={{ minHeight: isDashboardOrAuthPath ? '100vh' : '80vh' }}>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
@@ -161,16 +165,48 @@ const App = () => {
           <Route path="/kemitraan" element={<KemitraanPage />} />
           <Route path="/kontak" element={<KontakPage />} />
 
-          {/* Admin Routes */}
+          {/* Auth & Pengurus Routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/pengurus"
+            element={<Navigate to="/pengurus/profile" replace />}
+          />
+          <Route
+            path="/pengurus/dashboard"
+            element={<Navigate to="/pengurus/profile" replace />}
+          />
+          <Route
+            path="/pengurus/profile"
+            element={
+              <ProtectedRoute
+                allowedRoles={['superadmin', 'admin', 'pengurus']}
+              >
+                <AdminLayout>
+                  <PengurusProfilePage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pengurus/konten"
+            element={
+              <ProtectedRoute
+                allowedRoles={['superadmin', 'admin', 'pengurus']}
+              >
+                <AdminLayout>
+                  <AdminKontenPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/admin"
             element={<Navigate to="/admin/dashboard" replace />}
           />
-          <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route
             path="/admin/dashboard"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <AdminLayout>
                   <AdminDashboardPage />
                 </AdminLayout>
@@ -180,7 +216,9 @@ const App = () => {
           <Route
             path="/admin/konten"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute
+                allowedRoles={['superadmin', 'admin', 'pengurus']}
+              >
                 <AdminLayout>
                   <AdminKontenPage />
                 </AdminLayout>
@@ -190,7 +228,7 @@ const App = () => {
           <Route
             path="/admin/anggota"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <AdminLayout>
                   <AdminAnggotaPage />
                 </AdminLayout>
@@ -200,7 +238,7 @@ const App = () => {
           <Route
             path="/admin/subscriber"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <AdminLayout>
                   <AdminSubscriberPage />
                 </AdminLayout>
@@ -210,7 +248,7 @@ const App = () => {
           <Route
             path="/admin/settings"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <AdminLayout>
                   <AdminSettingsPage />
                 </AdminLayout>
@@ -220,7 +258,7 @@ const App = () => {
           <Route
             path="/admin/pengurus"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <AdminLayout>
                   <AdminPengurusPage />
                 </AdminLayout>
@@ -230,7 +268,7 @@ const App = () => {
           <Route
             path="/admin/program"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <AdminLayout>
                   <AdminProgramPage />
                 </AdminLayout>
@@ -240,7 +278,7 @@ const App = () => {
           <Route
             path="/admin/kemitraan"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <AdminLayout>
                   <AdminPartnerPage />
                 </AdminLayout>
@@ -250,7 +288,7 @@ const App = () => {
         </Routes>
       </main>
 
-      {!isAdminPath && (
+      {!isDashboardOrAuthPath && (
         <Footer
           newsletterEmail={newsletterEmail}
           setNewsletterEmail={setNewsletterEmail}

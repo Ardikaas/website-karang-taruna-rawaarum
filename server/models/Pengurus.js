@@ -3,6 +3,7 @@ const Schema = mongoose.Schema;
 
 const PengurusSchema = new Schema(
   {
+    userId: { type: Schema.Types.ObjectId, ref: 'User' },
     name: { type: String, required: true },
     role: { type: String, required: true }, // e.g. "Ketua", "Wakil Ketua I", "Koordinator Bidang", "Anggota"
     category: {

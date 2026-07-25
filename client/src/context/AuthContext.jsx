@@ -1,26 +1,40 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { verifyAdminToken, adminLogin as apiAdminLogin } from '../services/api';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react';
+import {
+  verifyAdminToken,
+  adminLogin as apiAdminLogin,
+  apiLogout,
+} from '../services/api';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [admin, setAdmin] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // On mount, verify if there's a stored token
   useEffect(() => {
     const checkToken = async () => {
-      const token = localStorage.getItem('admin_token');
+      const token =
+        localStorage.getItem('access_token') ||
+        localStorage.getItem('admin_token');
       if (!token) {
         setLoading(false);
         return;
       }
       try {
-        const adminData = await verifyAdminToken();
-        setAdmin(adminData);
+        const userData = await verifyAdminToken();
+        setUser(userData);
       } catch {
+        localStorage.removeItem('access_token');
         localStorage.removeItem('admin_token');
-        setAdmin(null);
+        localStorage.removeItem('refresh_token');
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -29,18 +43,26 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = useCallback(async (username, password) => {
-    const { token, admin: adminData } = await apiAdminLogin(username, password);
-    localStorage.setItem('admin_token', token);
-    setAdmin(adminData);
+    const {
+      accessToken,
+      token,
+      user: userData,
+    } = await apiAdminLogin(username, password);
+    if (accessToken) localStorage.setItem('access_token', accessToken);
+    if (token) localStorage.setItem('admin_token', token);
+    setUser(userData);
+    return userData;
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('admin_token');
-    setAdmin(null);
+  const logout = useCallback(async () => {
+    await apiLogout();
+    setUser(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ admin, loading, login, logout, isAuthenticated: !!admin }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, logout, isAuthenticated: !!user }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -1,47 +1,109 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getRoleConfig } from '../constants/roles';
 
-const NAV_ITEMS = [
-  { to: '/admin/dashboard', icon: 'fa-gauge-high', label: 'Dashboard' },
-  { to: '/admin/konten', icon: 'fa-newspaper', label: 'Konten' },
-  { to: '/admin/program', icon: 'fa-briefcase', label: 'Program' },
-  { to: '/admin/kemitraan', icon: 'fa-handshake', label: 'Kemitraan' },
-  { to: '/admin/anggota', icon: 'fa-users', label: 'Anggota' },
+const ALL_NAV_ITEMS = [
+  {
+    to: '/admin/dashboard',
+    icon: 'fa-gauge-high',
+    label: 'Dashboard',
+    roles: ['superadmin', 'admin'],
+  },
+  {
+    to: '/admin/profile',
+    icon: 'fa-user-gear',
+    label: 'Profile',
+    roles: ['pengurus'],
+  },
+  {
+    to: '/admin/konten',
+    icon: 'fa-newspaper',
+    label: 'Konten',
+    roles: ['superadmin', 'admin', 'pengurus'],
+  },
+  {
+    to: '/admin/program',
+    icon: 'fa-briefcase',
+    label: 'Program',
+    roles: ['superadmin', 'admin'],
+  },
+  {
+    to: '/admin/kemitraan',
+    icon: 'fa-handshake',
+    label: 'Kemitraan',
+    roles: ['superadmin', 'admin'],
+  },
+  {
+    to: '/admin/anggota',
+    icon: 'fa-users',
+    label: 'Anggota',
+    roles: ['superadmin', 'admin'],
+  },
   {
     to: '/admin/subscriber',
     icon: 'fa-envelope-open-text',
     label: 'Subscriber',
+    roles: ['superadmin', 'admin'],
   },
-  { to: '/admin/pengurus', icon: 'fa-sitemap', label: 'Pengurus' },
-  { to: '/admin/settings', icon: 'fa-gear', label: 'Pengaturan' },
+  {
+    to: '/admin/pengurus',
+    icon: 'fa-sitemap',
+    label: 'Pengurus',
+    roles: ['superadmin', 'admin'],
+  },
+  {
+    to: '/admin/settings',
+    icon: 'fa-gear',
+    label: 'Pengaturan',
+    roles: ['superadmin', 'admin'],
+  },
 ];
 
 const AdminLayout = ({ children }) => {
-  const { admin, logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const roleConfig = getRoleConfig(user?.role);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/admin/login');
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
   };
+
+  // Filter sidebar items based on role & replace prefix if pengurus
+  const userRole = user?.role || 'admin';
+  const prefix = userRole === 'pengurus' ? '/pengurus' : '/admin';
+
+  const navItems = ALL_NAV_ITEMS.filter((item) =>
+    item.roles.includes(userRole)
+  ).map((item) => ({
+    ...item,
+    to: item.to.replace('/admin', prefix),
+  }));
 
   return (
     <div className="admin-shell">
       {/* ── Sidebar ── */}
       <aside className="admin-sidebar">
         <div className="admin-sidebar__brand">
-          <div className="admin-sidebar__logo">
+          <Link
+            to="/"
+            className="admin-sidebar__logo"
+            title="Kembali ke Beranda Utama"
+            style={{ textDecoration: 'none' }}
+          >
             <i className="fa-solid fa-shield-halved" />
-          </div>
+          </Link>
           <div>
-            <div className="admin-sidebar__brand-name">Admin Panel</div>
+            <div className="admin-sidebar__brand-name">
+              {user?.role === 'pengurus' ? 'Portal Pengurus' : 'Admin Panel'}
+            </div>
             <div className="admin-sidebar__brand-sub">Karang Taruna</div>
           </div>
         </div>
 
         <nav className="admin-sidebar__nav">
           <p className="admin-sidebar__section-label">Menu Utama</p>
-          {NAV_ITEMS.map(({ to, icon, label }) => (
+          {navItems.map(({ to, icon, label }) => (
             <NavLink
               key={to}
               to={to}
@@ -53,18 +115,49 @@ const AdminLayout = ({ children }) => {
               <span>{label}</span>
             </NavLink>
           ))}
+
+          <p
+            className="admin-sidebar__section-label"
+            style={{ marginTop: '1.5rem' }}
+          >
+            Akses Website
+          </p>
+          <Link
+            to="/"
+            className="admin-sidebar__link"
+            style={{ color: 'var(--accent)' }}
+          >
+            <i
+              className="fa-solid fa-house admin-sidebar__link-icon"
+              style={{ color: 'var(--accent)' }}
+            />
+            <span>Ke Beranda Utama</span>
+          </Link>
         </nav>
 
         <div className="admin-sidebar__footer">
           <div className="admin-sidebar__user">
-            <div className="admin-sidebar__avatar">
-              {admin?.username?.[0]?.toUpperCase() ?? 'A'}
+            <div
+              className="admin-sidebar__avatar"
+              style={{ overflow: 'hidden' }}
+            >
+              {user?.imageUrl ? (
+                <img
+                  src={user.imageUrl}
+                  alt={user.name || 'User'}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                user?.name?.[0]?.toUpperCase() ||
+                user?.username?.[0]?.toUpperCase() ||
+                'A'
+              )}
             </div>
             <div className="admin-sidebar__user-info">
               <div className="admin-sidebar__user-name">
-                {admin?.username ?? 'Admin'}
+                {user?.name || user?.username || 'Admin'}
               </div>
-              <div className="admin-sidebar__user-role">Administrator</div>
+              <div className="admin-sidebar__user-role">{roleConfig.label}</div>
             </div>
           </div>
           <button

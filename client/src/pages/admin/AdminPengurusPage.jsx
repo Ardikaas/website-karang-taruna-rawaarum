@@ -5,6 +5,7 @@ import {
   updatePengurus,
   deletePengurus,
   uploadImage,
+  generatePengurusAccounts,
 } from '../../services/api';
 import { getAvatarPhoto } from '../../constants/structureData';
 import { useToast } from '../../context/ToastContext';
@@ -94,9 +95,26 @@ const AdminPengurusPage = () => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showManualUrl, setShowManualUrl] = useState(false);
 
-  // Delete State
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
-  const [deleting, setDeleting] = useState(false);
+  const [generatingAccounts, setGeneratingAccounts] = useState(false);
+  const [generatedAccountsModal, setGeneratedAccountsModal] = useState(null);
+
+  const handleGenerateAccounts = async () => {
+    try {
+      setGeneratingAccounts(true);
+      const res = await generatePengurusAccounts();
+      setGeneratedAccountsModal(res.accounts || []);
+      showSuccess(
+        res.message || 'Akun pengurus berhasil dibuat & disinkronkan!'
+      );
+    } catch (err) {
+      showError(
+        err.message || 'Gagal memproses pembuatan akun.',
+        'Terjadi Kesalahan'
+      );
+    } finally {
+      setGeneratingAccounts(false);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -311,9 +329,6 @@ const AdminPengurusPage = () => {
     }
   };
 
-  // Get dynamic unique categories from pengurus list
-  const categories = ['all', ...new Set(list.map((item) => item.category))];
-
   const filteredList = list
     .filter((item) => {
       const matchesCategory =
@@ -370,12 +385,35 @@ const AdminPengurusPage = () => {
             kerja Karang Taruna.
           </p>
         </div>
-        <button
-          className="admin-btn admin-btn--primary"
-          onClick={handleOpenCreate}
-        >
-          <i className="fa-solid fa-plus" /> Tambah Pengurus
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            className="admin-btn admin-btn--outline"
+            onClick={handleGenerateAccounts}
+            disabled={generatingAccounts}
+            style={{
+              color: 'var(--accent)',
+              borderColor: 'var(--accent)',
+              fontWeight: 700,
+            }}
+            title="Otomatis buatkan akun login untuk seluruh pengurus"
+          >
+            {generatingAccounts ? (
+              <>
+                <i className="fa-solid fa-spinner fa-spin" /> Memproses Akun...
+              </>
+            ) : (
+              <>
+                <i className="fa-solid fa-key" /> Generate Akun Pengurus
+              </>
+            )}
+          </button>
+          <button
+            className="admin-btn admin-btn--primary"
+            onClick={handleOpenCreate}
+          >
+            <i className="fa-solid fa-plus" /> Tambah Pengurus
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -1348,6 +1386,228 @@ const AdminPengurusPage = () => {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Generated Accounts Modal ── */}
+      {generatedAccountsModal && (
+        <div className="admin-modal-overlay">
+          <div
+            className="admin-modal"
+            style={{ maxWidth: '800px', width: '95%' }}
+          >
+            <div
+              className="admin-modal__header"
+              style={{ borderBottom: '1px solid #e2e8f0' }}
+            >
+              <div>
+                <h2
+                  className="admin-modal__title"
+                  style={{ fontSize: '1.25rem', fontWeight: 800 }}
+                >
+                  <i
+                    className="fa-solid fa-key"
+                    style={{ color: 'var(--accent)', marginRight: '0.5rem' }}
+                  />
+                  Hasil Generate Akun Pengurus ({generatedAccountsModal.length}{' '}
+                  Akun)
+                </h2>
+                <p
+                  style={{
+                    fontSize: '0.85rem',
+                    color: '#64748b',
+                    margin: '0.25rem 0 0',
+                  }}
+                >
+                  Berikut adalah daftar username dan password sementara
+                  pengurus. Silakan bagikan ke pengurus masing-masing.
+                </p>
+              </div>
+              <button
+                className="admin-modal__close"
+                onClick={() => setGeneratedAccountsModal(null)}
+              >
+                <i className="fa-solid fa-xmark" />
+              </button>
+            </div>
+
+            <div
+              className="admin-modal__body"
+              style={{
+                maxHeight: '450px',
+                overflowY: 'auto',
+                padding: '1rem 1.5rem',
+              }}
+            >
+              <table className="admin-table" style={{ fontSize: '0.85rem' }}>
+                <thead>
+                  <tr>
+                    <th>Nama Pengurus</th>
+                    <th>Jabatan</th>
+                    <th>Username</th>
+                    <th>Password Sementara</th>
+                    <th>Status Akun</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {generatedAccountsModal.map((acc, i) => (
+                    <tr key={i}>
+                      <td
+                        style={{
+                          fontWeight: 700,
+                          color: 'var(--primary-deep)',
+                        }}
+                      >
+                        {acc.name}
+                      </td>
+                      <td>{acc.role}</td>
+                      <td
+                        style={{
+                          fontFamily: 'monospace',
+                          color: '#0284c7',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {acc.username}
+                      </td>
+                      <td
+                        style={{
+                          fontFamily: 'monospace',
+                          color:
+                            acc.status === 'BARU DIBUAT'
+                              ? '#16a34a'
+                              : '#64748b',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {acc.password}
+                      </td>
+                      <td>
+                        <span
+                          className={`admin-badge admin-badge--${acc.status === 'BARU DIBUAT' ? 'success' : 'primary'}`}
+                        >
+                          {acc.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div
+              className="admin-modal__footer"
+              style={{
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.75rem',
+                padding: '1rem 1.5rem',
+              }}
+            >
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  className="admin-btn admin-btn--outline"
+                  onClick={() => {
+                    const tableRows = generatedAccountsModal
+                      .map(
+                        (a, idx) => `
+                        <tr style="height: 28px; background-color: ${idx % 2 === 1 ? '#f8fafc' : '#ffffff'};">
+                          <td style="text-align: center; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px;">${idx + 1}</td>
+                          <td style="border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px; font-weight: bold; padding-left: 8px;">${a.name}</td>
+                          <td style="border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px; padding-left: 8px;">${a.role}</td>
+                          <td style="text-align: center; border: 1px solid #cbd5e1; font-family: Consolas, monospace; font-size: 11px; font-weight: bold; color: #0284c7;">${a.username}</td>
+                          <td style="text-align: center; border: 1px solid #cbd5e1; font-family: Consolas, monospace; font-size: 11px; font-weight: bold; color: ${a.status === 'BARU DIBUAT' ? '#16a34a' : '#64748b'};">${a.password}</td>
+                          <td style="text-align: center; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px; font-weight: bold; color: ${a.status === 'BARU DIBUAT' ? '#15803d' : '#475569'};">${a.status}</td>
+                        </tr>`
+                      )
+                      .join('');
+
+                    const excelTemplate = `
+                      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+                      <head>
+                        <!--[if gte mso 9]>
+                        <xml>
+                          <x:ExcelWorkbook>
+                            <x:ExcelWorksheets>
+                              <x:ExcelWorksheet>
+                                <x:Name>Daftar Akun Pengurus</x:Name>
+                                <x:WorksheetOptions>
+                                  <x:DisplayGridlines/>
+                                </x:WorksheetOptions>
+                              </x:ExcelWorksheet>
+                            </x:ExcelWorksheets>
+                          </x:ExcelWorkbook>
+                        </xml>
+                        <![endif]-->
+                        <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
+                      </head>
+                      <body>
+                        <table style="border-collapse: collapse; width: 100%;">
+                          <tr style="height: 40px; background-color: #1e3a8a; color: #ffffff;">
+                            <th colspan="6" style="font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; text-align: center; border: 1px solid #1e3a8a;">
+                              DAFTAR AKUN PORTAL PENGURUS KARANG TARUNA RAWA ARUM
+                            </th>
+                          </tr>
+                          <tr style="height: 32px; background-color: #1e3a8a; color: #ffffff;">
+                            <th style="width: 50px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px;">No</th>
+                            <th style="width: 250px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px;">Nama Pengurus</th>
+                            <th style="width: 220px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px;">Jabatan Organisasi</th>
+                            <th style="width: 180px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px;">Username Login</th>
+                            <th style="width: 180px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px;">Password Sementara</th>
+                            <th style="width: 140px; border: 1px solid #cbd5e1; font-family: Arial, sans-serif; font-size: 11px;">Status Akun</th>
+                          </tr>
+                          ${tableRows}
+                        </table>
+                      </body>
+                      </html>
+                    `;
+
+                    const blob = new Blob(['\uFEFF' + excelTemplate], {
+                      type: 'application/vnd.ms-excel;charset=utf-8',
+                    });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute(
+                      'download',
+                      'akun_pengurus_karangtaruna.xls'
+                    );
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showSuccess('Berkas Excel (.xls) rapih berhasil diunduh!');
+                  }}
+                  style={{ color: '#16a34a', borderColor: '#86efac' }}
+                >
+                  <i className="fa-solid fa-file-excel" /> Download Berkas Excel
+                  (.xls)
+                </button>
+                <button
+                  className="admin-btn admin-btn--outline"
+                  onClick={() => {
+                    const txt = generatedAccountsModal
+                      .map(
+                        (a) =>
+                          `• ${a.name} (${a.role})\n  Username: ${a.username}\n  Password: ${a.password}`
+                      )
+                      .join('\n\n');
+                    navigator.clipboard.writeText(
+                      `Daftar Akun Pengurus Karang Taruna Rawa Arum:\n\n${txt}\n\n*Harap segera login ke portal dan ganti password Anda!*`
+                    );
+                    showSuccess('Daftar akun berhasil disalin ke clipboard!');
+                  }}
+                >
+                  <i className="fa-solid fa-copy" /> Salin Teks WA
+                </button>
+              </div>
+              <button
+                className="admin-btn admin-btn--primary"
+                onClick={() => setGeneratedAccountsModal(null)}
+              >
+                Selesai
+              </button>
             </div>
           </div>
         </div>
