@@ -4,8 +4,10 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 // Layout Components
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import Toast from './components/Toast';
 import RegistrationModal from './components/RegistrationModal';
+
+// Context
+import { useToast } from './context/ToastContext';
 
 // Pages
 import Home from './pages/Home';
@@ -36,7 +38,6 @@ import { AuthProvider } from './context/AuthContext';
 import { submitRegistration, subscribeNewsletter } from './services/api';
 
 const SCROLL_THRESHOLD = 50;
-const TOAST_DURATION_MS = 4000;
 const HOME_SECTIONS = ['home', 'pilar', 'program', 'kemitraan', 'kontak'];
 
 const App = () => {
@@ -56,19 +57,8 @@ const App = () => {
   });
   const [regSubmitting, setRegSubmitting] = useState(false);
 
-  // --------------- Toast ---------------
-  const [toast, setToast] = useState({
-    open: false,
-    message: '',
-    type: 'success',
-  });
-
-  const showToastMessage = (message, type = 'success') => {
-    setToast({ open: true, message, type });
-    setTimeout(() => {
-      setToast({ open: false, message: '', type: 'success' });
-    }, TOAST_DURATION_MS);
-  };
+  // --------------- Toast Context ---------------
+  const { showSuccess, showError } = useToast();
 
   // --------------- Newsletter ---------------
   const [newsletterEmail, setNewsletterEmail] = useState('');
@@ -108,7 +98,7 @@ const App = () => {
 
     try {
       await submitRegistration(regForm);
-      showToastMessage(
+      showSuccess(
         'Pendaftaran Anda berhasil dikirim! Kami akan menghubungi Anda segera.'
       );
       setRegForm({
@@ -120,11 +110,7 @@ const App = () => {
       });
       setRegModalOpen(false);
     } catch (err) {
-      showToastMessage(
-        err.message ||
-          'Gagal mengirim pendaftaran. Server kemungkinan offline.',
-        'error'
-      );
+      showError(err, 'Gagal Mengirim Pendaftaran');
     } finally {
       setRegSubmitting(false);
     }
@@ -137,10 +123,10 @@ const App = () => {
 
     try {
       await subscribeNewsletter(newsletterEmail);
-      showToastMessage('Email Anda berhasil didaftarkan di newsletter!');
+      showSuccess('Email Anda berhasil didaftarkan di newsletter!');
       setNewsletterEmail('');
     } catch (err) {
-      showToastMessage(err.message || 'Gagal mendaftar newsletter.', 'error');
+      showError(err, 'Gagal Langganan Newsletter');
     } finally {
       setNewsletterSubmitting(false);
     }
@@ -280,8 +266,6 @@ const App = () => {
         onSubmit={handleRegisterSubmit}
         submitting={regSubmitting}
       />
-
-      <Toast open={toast.open} message={toast.message} type={toast.type} />
     </AuthProvider>
   );
 };

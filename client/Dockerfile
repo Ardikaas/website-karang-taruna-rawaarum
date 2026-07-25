@@ -7,7 +7,7 @@ COPY package*.json ./
 COPY client/package*.json ./client/
 
 # Install client dependencies including devDependencies (since we need Vite to build)
-RUN npm ci --workspace=client
+RUN npm ci --workspace=client --ignore-scripts
 
 # Copy client code
 COPY client/ ./client/

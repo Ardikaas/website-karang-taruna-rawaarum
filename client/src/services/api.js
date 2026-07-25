@@ -457,7 +457,9 @@ const getMockPengurusFlat = () => {
     level: 1,
     imageUrl: '',
     isKoordinator: false,
+    socials: [],
   });
+
   structureData.harian.forEach((h, index) => {
     list.push({
       _id: `mock-harian-${index}`,
@@ -467,8 +469,10 @@ const getMockPengurusFlat = () => {
       level: h.level,
       imageUrl: '',
       isKoordinator: false,
+      socials: [],
     });
   });
+
   structureData.bidang.forEach((b) => {
     list.push({
       _id: `mock-koor-${b.id}`,
@@ -480,7 +484,9 @@ const getMockPengurusFlat = () => {
       bidangTitle: b.title,
       isKoordinator: true,
       imageUrl: '',
+      socials: [],
     });
+
     b.anggota.forEach((name, index) => {
       list.push({
         _id: `mock-ang-${b.id}-${index}`,
@@ -492,6 +498,7 @@ const getMockPengurusFlat = () => {
         bidangTitle: b.title,
         isKoordinator: false,
         imageUrl: '',
+        socials: [],
       });
     });
   });
@@ -581,6 +588,7 @@ export const groupPengurusData = (flatList) => {
       name: 'Kepala Kelurahan Rawa Arum',
       role: 'Pelindung / Pembina',
       imageUrl: '',
+      socials: [],
     },
     harian: [],
     bidang: [],
@@ -592,6 +600,7 @@ export const groupPengurusData = (flatList) => {
       name: pembinaDoc.name,
       role: pembinaDoc.role,
       imageUrl: pembinaDoc.imageUrl,
+      socials: pembinaDoc.socials || [],
       _id: pembinaDoc._id,
     };
   }

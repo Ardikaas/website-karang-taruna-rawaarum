@@ -1,6 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
-import { fetchPengurus, createPengurus, updatePengurus, deletePengurus, uploadImage } from '../../services/api';
+import { useState, useEffect } from 'react';
+import {
+  fetchPengurus,
+  createPengurus,
+  updatePengurus,
+  deletePengurus,
+  uploadImage,
+} from '../../services/api';
 import { getAvatarPhoto } from '../../constants/structureData';
+import { useToast } from '../../context/ToastContext';
 
 const INITIAL_FORM = {
   name: '',
@@ -11,7 +18,21 @@ const INITIAL_FORM = {
   bidangId: 'kaderisasi',
   bidangTitle: 'Pemberdayaan Aparatur Organisasi & Kaderisasi',
   imageUrl: '',
+  socials: [],
 };
+
+const SOCIAL_PLATFORMS = [
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'tiktok', label: 'TikTok' },
+  { value: 'linkedin', label: 'LinkedIn' },
+  { value: 'website', label: 'Website / Portofolio' },
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'youtube', label: 'YouTube' },
+  { value: 'x', label: 'X (Twitter)' },
+  { value: 'github', label: 'GitHub' },
+  { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'lainnya', label: 'Lainnya' },
+];
 
 const DIVISION_MAP = [
   { id: 'kaderisasi', title: 'Pemberdayaan Aparatur Organisasi & Kaderisasi' },
@@ -23,7 +44,7 @@ const DIVISION_MAP = [
   { id: 'ekonomi', title: 'Kemandirian Organisasi dan Ekonomi Kreatif' },
   { id: 'pendidikan', title: 'Pendidikan dan Keagamaan' },
   { id: 'sosial', title: 'Sosial, Kemanusiaan, dan Mitigasi Bencana' },
-  { id: 'kustom', title: 'Bidang Kustom...' }
+  { id: 'kustom', title: 'Bidang Kustom...' },
 ];
 
 const STANDARD_ROLES = [
@@ -31,12 +52,28 @@ const STANDARD_ROLES = [
   { label: 'Wakil Ketua', category: 'harian', level: 2, isKoordinator: false },
   { label: 'Sekretaris', category: 'harian', level: 3, isKoordinator: false },
   { label: 'Bendahara', category: 'harian', level: 3, isKoordinator: false },
-  { label: 'Koordinator Bidang', category: 'bidang', level: 3, isKoordinator: true },
-  { label: 'Anggota Bidang', category: 'bidang', level: 3, isKoordinator: false },
-  { label: 'Pelindung / Pembina Kelurahan', category: 'pembina', level: 1, isKoordinator: false }
+  {
+    label: 'Koordinator Bidang',
+    category: 'bidang',
+    level: 3,
+    isKoordinator: true,
+  },
+  {
+    label: 'Anggota Bidang',
+    category: 'bidang',
+    level: 3,
+    isKoordinator: false,
+  },
+  {
+    label: 'Pelindung / Pembina Kelurahan',
+    category: 'pembina',
+    level: 1,
+    isKoordinator: false,
+  },
 ];
 
 const AdminPengurusPage = () => {
+  const { showError, showSuccess } = useToast();
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -51,7 +88,7 @@ const AdminPengurusPage = () => {
   const [activeId, setActiveId] = useState(null);
   const [form, setForm] = useState({ ...INITIAL_FORM });
   const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState('');
+  const [_formError, setFormError] = useState('');
 
   // Image Uploading States
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -66,9 +103,8 @@ const AdminPengurusPage = () => {
       setLoading(true);
       const data = await fetchPengurus();
       setList(data);
-    } catch (err) {
+    } catch (_err) {
       setError('Gagal mengambil data pengurus.');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -79,7 +115,7 @@ const AdminPengurusPage = () => {
   }, []);
 
   const handleOpenCreate = () => {
-    setForm({ ...INITIAL_FORM });
+    setForm({ ...INITIAL_FORM, socials: [] });
     setModalMode('create');
     setFormError('');
     setShowManualUrl(false);
@@ -87,7 +123,7 @@ const AdminPengurusPage = () => {
   };
 
   const handleOpenEdit = (item) => {
-    const isStandard = STANDARD_ROLES.some(r => r.label === item.role);
+    const isStandard = STANDARD_ROLES.some((r) => r.label === item.role);
     setForm({
       name: item.name,
       role: isStandard ? item.role : 'kustom',
@@ -97,12 +133,42 @@ const AdminPengurusPage = () => {
       bidangId: item.bidangId || 'kaderisasi',
       bidangTitle: item.bidangTitle || '',
       imageUrl: item.imageUrl || '',
+      socials:
+        item.socials && Array.isArray(item.socials)
+          ? item.socials.slice(0, 3)
+          : [],
     });
     setActiveId(item._id);
     setModalMode('edit');
     setFormError('');
     setShowManualUrl(false);
     setShowModal(true);
+  };
+
+  const handleAddSocial = () => {
+    if ((form.socials || []).length >= 3) return;
+    setForm((prev) => ({
+      ...prev,
+      socials: [
+        ...(prev.socials || []),
+        { platform: 'instagram', handle: '', url: '' },
+      ],
+    }));
+  };
+
+  const handleRemoveSocial = (index) => {
+    setForm((prev) => ({
+      ...prev,
+      socials: (prev.socials || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleSocialChange = (index, field, value) => {
+    setForm((prev) => {
+      const updated = [...(prev.socials || [])];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, socials: updated };
+    });
   };
 
   const handleImageUpload = async (e) => {
@@ -115,8 +181,11 @@ const AdminPengurusPage = () => {
     try {
       const res = await uploadImage(file);
       setForm((prev) => ({ ...prev, imageUrl: res.imageUrl }));
+      showSuccess('Foto profil berhasil diupload!');
     } catch (err) {
-      setFormError(err.message || 'Gagal mengupload foto.');
+      const msg = err.message || 'Gagal mengupload foto.';
+      setFormError(msg);
+      showError(err, 'Gagal Upload Foto');
     } finally {
       setUploadingImage(false);
     }
@@ -126,9 +195,12 @@ const AdminPengurusPage = () => {
     e.preventDefault();
     setFormError('');
 
-    const finalRole = form.role === 'kustom' ? form.customRole.trim() : form.role;
+    const finalRole =
+      form.role === 'kustom' ? form.customRole.trim() : form.role;
     if (!finalRole) {
-      setFormError('Nama jabatan wajib diisi.');
+      const msg = 'Nama jabatan wajib diisi.';
+      setFormError(msg);
+      showError(msg, 'Form Tidak Lengkap');
       return;
     }
 
@@ -137,7 +209,7 @@ const AdminPengurusPage = () => {
     let isKoordinator = false;
 
     if (form.role !== 'kustom') {
-      const standardObj = STANDARD_ROLES.find(r => r.label === form.role);
+      const standardObj = STANDARD_ROLES.find((r) => r.label === form.role);
       if (standardObj) {
         category = standardObj.category;
         level = standardObj.level;
@@ -146,7 +218,33 @@ const AdminPengurusPage = () => {
     } else {
       category = form.customCategoryType;
       level = category === 'pembina' ? 1 : form.customRoleLevel;
-      isKoordinator = category === 'bidang' && (finalRole.toLowerCase().includes('koordinator') || finalRole.toLowerCase().includes('kabid') || finalRole.toLowerCase().includes('ketua bidang'));
+      isKoordinator =
+        category === 'bidang' &&
+        (finalRole.toLowerCase().includes('koordinator') ||
+          finalRole.toLowerCase().includes('kabid') ||
+          finalRole.toLowerCase().includes('ketua bidang'));
+    }
+
+    // Validate social media rows if added
+    const currentSocials = form.socials || [];
+    for (let i = 0; i < currentSocials.length; i++) {
+      const soc = currentSocials[i];
+      const handleVal = (soc.handle || '').trim();
+      const urlVal = (soc.url || '').trim();
+
+      if (!handleVal || handleVal === '@') {
+        const msg = `Mohon isi Username / Handle untuk media sosial baris ke-${i + 1} (${soc.platform || 'Sosmed'}) atau hapus baris tersebut.`;
+        setFormError(msg);
+        showError(msg, 'Validasi Sosmed Gagal');
+        return;
+      }
+
+      if (!urlVal || urlVal === '#') {
+        const msg = `Mohon isi Link URL untuk media sosial baris ke-${i + 1} (${soc.platform || 'Sosmed'}) atau hapus baris tersebut.`;
+        setFormError(msg);
+        showError(msg, 'Validasi Sosmed Gagal');
+        return;
+      }
     }
 
     const payload = {
@@ -157,11 +255,24 @@ const AdminPengurusPage = () => {
       bidangId: category === 'bidang' ? form.bidangId : '',
       bidangTitle: category === 'bidang' ? form.bidangTitle : '',
       imageUrl: form.imageUrl,
-      isKoordinator: category === 'bidang' ? isKoordinator : false
+      isKoordinator: category === 'bidang' ? isKoordinator : false,
+      socials: currentSocials
+        .map((s) => ({
+          platform: s.platform || 'instagram',
+          handle: (s.handle || '').trim(),
+          url: (s.url || '').trim(),
+        }))
+        .slice(0, 3),
     };
 
-    if (category === 'bidang' && payload.bidangId === 'kustom' && !payload.bidangTitle) {
-      setFormError('Nama bidang kustom wajib diisi.');
+    if (
+      category === 'bidang' &&
+      payload.bidangId === 'kustom' &&
+      !payload.bidangTitle
+    ) {
+      const msg = 'Nama bidang kustom wajib diisi.';
+      setFormError(msg);
+      showError(msg, 'Form Tidak Lengkap');
       return;
     }
 
@@ -170,13 +281,17 @@ const AdminPengurusPage = () => {
     try {
       if (modalMode === 'create') {
         await createPengurus(payload);
+        showSuccess('Data pengurus baru berhasil ditambahkan!');
       } else {
         await updatePengurus(activeId, payload);
+        showSuccess('Data pengurus berhasil diperbarui!');
       }
       setShowModal(false);
       loadData();
     } catch (err) {
-      setFormError(err.message || 'Gagal menyimpan data pengurus.');
+      const msg = err.message || 'Gagal menyimpan data pengurus.';
+      setFormError(msg);
+      showError(err, 'Gagal Menyimpan Data');
     } finally {
       setSubmitting(false);
     }
@@ -187,23 +302,26 @@ const AdminPengurusPage = () => {
     try {
       await deletePengurus(id);
       setDeleteConfirmId(null);
+      showSuccess('Data pengurus berhasil dihapus.');
       loadData();
     } catch (err) {
-      alert(err.message || 'Gagal menghapus data.');
+      showError(err, 'Gagal Menghapus Data');
     } finally {
       setDeleting(false);
     }
   };
 
   // Get dynamic unique categories from pengurus list
-  const categories = ['all', ...new Set(list.map(item => item.category))];
+  const categories = ['all', ...new Set(list.map((item) => item.category))];
 
   const filteredList = list
     .filter((item) => {
-      const matchesCategory = filterCategory === 'all' || item.category === filterCategory;
-      const matchesDivision = filterDivision === 'all' || item.bidangId === filterDivision;
+      const matchesCategory =
+        filterCategory === 'all' || item.category === filterCategory;
+      const matchesDivision =
+        filterDivision === 'all' || item.bidangId === filterDivision;
       const query = searchQuery.toLowerCase().trim();
-      const matchesSearch = 
+      const matchesSearch =
         item.name.toLowerCase().includes(query) ||
         item.role.toLowerCase().includes(query) ||
         (item.bidangTitle && item.bidangTitle.toLowerCase().includes(query));
@@ -247,15 +365,24 @@ const AdminPengurusPage = () => {
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Manajemen Struktur Organisasi</h1>
-          <p className="admin-page-subtitle">Kelola daftar pengurus, jabatan, foto profil, dan divisi bidang kerja Karang Taruna.</p>
+          <p className="admin-page-subtitle">
+            Kelola daftar pengurus, jabatan, foto profil, dan divisi bidang
+            kerja Karang Taruna.
+          </p>
         </div>
-        <button className="admin-btn admin-btn--primary" onClick={handleOpenCreate}>
+        <button
+          className="admin-btn admin-btn--primary"
+          onClick={handleOpenCreate}
+        >
           <i className="fa-solid fa-plus" /> Tambah Pengurus
         </button>
       </div>
 
       {error && (
-        <div className="admin-alert admin-alert--error" style={{ marginBottom: '1.5rem' }}>
+        <div
+          className="admin-alert admin-alert--error"
+          style={{ marginBottom: '1.5rem' }}
+        >
           <i className="fa-solid fa-circle-exclamation" />
           <span>{error}</span>
         </div>
@@ -263,8 +390,19 @@ const AdminPengurusPage = () => {
 
       {/* Tabs Filter */}
       <div className="admin-card">
-        <div className="admin-card__header" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid #edf2f7' }}>
-          <div className="admin-tabs" style={{ marginBottom: 0, borderBottom: 'none' }}>
+        <div
+          className="admin-card__header"
+          style={{
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            borderBottom: '1px solid #edf2f7',
+          }}
+        >
+          <div
+            className="admin-tabs"
+            style={{ marginBottom: 0, borderBottom: 'none' }}
+          >
             {['all', 'pembina', 'harian', 'bidang'].map((cat) => (
               <button
                 key={cat}
@@ -274,93 +412,156 @@ const AdminPengurusPage = () => {
                   setFilterDivision('all');
                 }}
               >
-                {cat === 'all' ? 'Semua' : cat === 'pembina' ? 'Pembina/Pelindung' : cat === 'harian' ? 'Pengurus Harian' : 'Bidang Kerja'}
+                {cat === 'all'
+                  ? 'Semua'
+                  : cat === 'pembina'
+                    ? 'Pembina/Pelindung'
+                    : cat === 'harian'
+                      ? 'Pengurus Harian'
+                      : 'Bidang Kerja'}
               </button>
             ))}
           </div>
-          <div className="admin-text-muted" style={{ fontSize: '0.85rem', fontWeight: '500' }}>
+          <div
+            className="admin-text-muted"
+            style={{ fontSize: '0.85rem', fontWeight: '500' }}
+          >
             Menampilkan {filteredList.length} dari {list.length} pengurus
           </div>
         </div>
 
         {/* Filter & Search Toolbar */}
-        <div style={{ 
-          padding: '1rem 1.5rem', 
-          borderBottom: '1px solid #edf2f7', 
-          display: 'flex', 
-          gap: '1rem', 
-          alignItems: 'center', 
-          justifyContent: 'space-between', 
-          flexWrap: 'wrap',
-          backgroundColor: '#f8fafc'
-        }}>
+        <div
+          style={{
+            padding: '1rem 1.5rem',
+            borderBottom: '1px solid #edf2f7',
+            display: 'flex',
+            gap: '1rem',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            backgroundColor: '#f8fafc',
+          }}
+        >
           {/* Search Bar */}
-          <div style={{ position: 'relative', flex: '1', minWidth: '250px', maxWidth: '400px' }}>
-            <i className="fa-solid fa-magnifying-glass" style={{ 
-              position: 'absolute', 
-              left: '1rem', 
-              top: '50%', 
-              transform: 'translateY(-50%)', 
-              color: '#94a3b8' 
-            }} />
+          <div
+            style={{
+              position: 'relative',
+              flex: '1',
+              minWidth: '250px',
+              maxWidth: '400px',
+            }}
+          >
+            <i
+              className="fa-solid fa-magnifying-glass"
+              style={{
+                position: 'absolute',
+                left: '1rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: '#94a3b8',
+              }}
+            />
             <input
               type="text"
               className="admin-form-control"
               placeholder="Cari nama pengurus, jabatan, atau divisi..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ paddingLeft: '2.5rem', height: '40px', fontSize: '0.85rem' }}
+              style={{
+                paddingLeft: '2.5rem',
+                height: '40px',
+                fontSize: '0.85rem',
+              }}
             />
             {searchQuery && (
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setSearchQuery('')}
-                style={{ 
-                  position: 'absolute', 
-                  right: '1rem', 
-                  top: '50%', 
-                  transform: 'translateY(-50%)', 
-                  background: 'none', 
-                  border: 'none', 
-                  color: '#94a3b8', 
-                  cursor: 'pointer' 
+                style={{
+                  position: 'absolute',
+                  right: '1rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
                 }}
               >
-                <i className="fa-solid fa-circle-xmark" style={{ fontSize: '1rem' }} />
+                <i
+                  className="fa-solid fa-circle-xmark"
+                  style={{ fontSize: '1rem' }}
+                />
               </button>
             )}
           </div>
 
           {/* Right Selectors: Division & Sort */}
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '1rem',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+            }}
+          >
             {filterCategory === 'bidang' && (
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>
+              <div
+                style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}
+              >
+                <span
+                  style={{
+                    fontSize: '0.85rem',
+                    color: '#64748b',
+                    fontWeight: '500',
+                  }}
+                >
                   <i className="fa-solid fa-sitemap" /> Divisi:
                 </span>
                 <select
                   className="admin-form-control"
                   value={filterDivision}
                   onChange={(e) => setFilterDivision(e.target.value)}
-                  style={{ width: '180px', height: '40px', padding: '0 0.5rem', fontSize: '0.85rem' }}
+                  style={{
+                    width: '180px',
+                    height: '40px',
+                    padding: '0 0.5rem',
+                    fontSize: '0.85rem',
+                  }}
                 >
                   <option value="all">Semua Divisi</option>
-                  {DIVISION_MAP.filter(d => d.id !== 'kustom').map((d) => (
-                    <option key={d.id} value={d.id}>{d.title}</option>
+                  {DIVISION_MAP.filter((d) => d.id !== 'kustom').map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.title}
+                    </option>
                   ))}
                 </select>
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '500' }}>
+            <div
+              style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}
+            >
+              <span
+                style={{
+                  fontSize: '0.85rem',
+                  color: '#64748b',
+                  fontWeight: '500',
+                }}
+              >
                 <i className="fa-solid fa-arrow-down-wide-short" /> Urutkan:
               </span>
               <select
                 className="admin-form-control"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                style={{ width: '150px', height: '40px', padding: '0 0.5rem', fontSize: '0.85rem' }}
+                style={{
+                  width: '150px',
+                  height: '40px',
+                  padding: '0 0.5rem',
+                  fontSize: '0.85rem',
+                }}
               >
                 <option value="level">Hirarki (Level)</option>
                 <option value="alphabetical">Nama (A - Z)</option>
@@ -392,44 +593,77 @@ const AdminPengurusPage = () => {
                     return (
                       <tr key={item._id}>
                         <td style={{ width: '70px' }}>
-                          <img 
-                            src={photoSrc} 
-                            alt={item.name} 
-                            style={{ width: '45px', height: '45px', objectFit: 'cover', borderRadius: '50%', border: '2px solid rgba(0,0,0,0.05)' }}
-                            onError={(e) => { e.target.src = fallbackAvatar }}
+                          <img
+                            src={photoSrc}
+                            alt={item.name}
+                            style={{
+                              width: '45px',
+                              height: '45px',
+                              objectFit: 'cover',
+                              borderRadius: '50%',
+                              border: '2px solid rgba(0,0,0,0.05)',
+                            }}
+                            onError={(e) => {
+                              e.target.src = fallbackAvatar;
+                            }}
                           />
                         </td>
                         <td>
-                          <strong style={{ color: 'var(--text-main)' }}>{item.name}</strong>
+                          <strong style={{ color: 'var(--text-main)' }}>
+                            {item.name}
+                          </strong>
                         </td>
                         <td>
-                          <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>
+                          <span
+                            style={{ fontSize: '0.9rem', fontWeight: '500' }}
+                          >
                             {item.role}
                           </span>
                         </td>
                         <td>
-                          <span className={`admin-badge admin-badge--${
-                            item.category === 'pembina' ? 'success' :
-                            item.category === 'harian' ? 'primary' :
-                            'accent-light'
-                          }`}>
-                            {item.category === 'pembina' ? 'Pembina' : item.category === 'harian' ? 'Harian' : 'Bidang'}
+                          <span
+                            className={`admin-badge admin-badge--${
+                              item.category === 'pembina'
+                                ? 'success'
+                                : item.category === 'harian'
+                                  ? 'primary'
+                                  : 'accent-light'
+                            }`}
+                          >
+                            {item.category === 'pembina'
+                              ? 'Pembina'
+                              : item.category === 'harian'
+                                ? 'Harian'
+                                : 'Bidang'}
                           </span>
                         </td>
-                        <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', maxWidth: '250px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                          {item.category === 'bidang' ? (item.bidangTitle || item.bidangId) : '-'}
+                        <td
+                          style={{
+                            fontSize: '0.85rem',
+                            color: 'var(--text-secondary)',
+                            maxWidth: '250px',
+                            textOverflow: 'ellipsis',
+                            overflow: 'hidden',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {item.category === 'bidang'
+                            ? item.bidangTitle || item.bidangId
+                            : '-'}
                         </td>
                         <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                            <button 
-                              className="admin-action-btn admin-action-btn--edit" 
+                          <div
+                            style={{ display: 'inline-flex', gap: '0.5rem' }}
+                          >
+                            <button
+                              className="admin-action-btn admin-action-btn--edit"
                               title="Edit"
                               onClick={() => handleOpenEdit(item)}
                             >
                               <i className="fa-solid fa-pen-to-square" />
                             </button>
-                            <button 
-                              className="admin-action-btn admin-action-btn--delete" 
+                            <button
+                              className="admin-action-btn admin-action-btn--delete"
                               title="Hapus"
                               onClick={() => setDeleteConfirmId(item._id)}
                             >
@@ -443,18 +677,36 @@ const AdminPengurusPage = () => {
                 </tbody>
               </table>
             ) : (
-              <div className="admin-empty-state" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
-                <i className="fa-solid fa-magnifying-glass" style={{ fontSize: '3rem', color: 'var(--text-muted)', marginBottom: '1rem' }} />
+              <div
+                className="admin-empty-state"
+                style={{ padding: '4rem 2rem', textAlign: 'center' }}
+              >
+                <i
+                  className="fa-solid fa-magnifying-glass"
+                  style={{
+                    fontSize: '3rem',
+                    color: 'var(--text-muted)',
+                    marginBottom: '1rem',
+                  }}
+                />
                 <p style={{ fontWeight: '500', color: 'var(--text-main)' }}>
-                  {searchQuery ? 'Tidak ada hasil pencarian yang cocok' : 'Tidak ada data pengurus ditemukan'}
+                  {searchQuery
+                    ? 'Tidak ada hasil pencarian yang cocok'
+                    : 'Tidak ada data pengurus ditemukan'}
                 </p>
-                <p className="admin-text-muted" style={{ fontSize: '0.9rem', marginBottom: searchQuery ? '1rem' : '0' }}>
-                  {searchQuery 
-                    ? `Tidak ada pengurus yang cocok dengan kata kunci "${searchQuery}"` 
+                <p
+                  className="admin-text-muted"
+                  style={{
+                    fontSize: '0.9rem',
+                    marginBottom: searchQuery ? '1rem' : '0',
+                  }}
+                >
+                  {searchQuery
+                    ? `Tidak ada pengurus yang cocok dengan kata kunci "${searchQuery}"`
                     : 'Silakan klik "Tambah Pengurus" untuk menambahkan anggota baru.'}
                 </p>
                 {searchQuery && (
-                  <button 
+                  <button
                     className="admin-btn admin-btn--outline admin-btn--sm"
                     onClick={() => setSearchQuery('')}
                     style={{ marginTop: '0.5rem' }}
@@ -474,21 +726,19 @@ const AdminPengurusPage = () => {
           <div className="admin-modal">
             <div className="admin-modal__header">
               <h2 className="admin-modal__title">
-                {modalMode === 'create' ? 'Tambah Pengurus Baru' : 'Edit Data Pengurus'}
+                {modalMode === 'create'
+                  ? 'Tambah Pengurus Baru'
+                  : 'Edit Data Pengurus'}
               </h2>
-              <button className="admin-modal__close" onClick={() => setShowModal(false)}>
+              <button
+                className="admin-modal__close"
+                onClick={() => setShowModal(false)}
+              >
                 <i className="fa-solid fa-xmark" />
               </button>
             </div>
-            
-            <form onSubmit={handleSubmit} className="admin-modal__body">
-              {formError && (
-                <div className="admin-alert admin-alert--error" style={{ marginBottom: '1.25rem' }}>
-                  <i className="fa-solid fa-circle-exclamation" />
-                  <span>{formError}</span>
-                </div>
-              )}
 
+            <form onSubmit={handleSubmit} className="admin-modal__body">
               <div className="admin-grid-2">
                 <div className="admin-form-group">
                   <label className="admin-form-label">Nama Lengkap</label>
@@ -513,9 +763,13 @@ const AdminPengurusPage = () => {
                     <option value="Wakil Ketua">Wakil Ketua</option>
                     <option value="Sekretaris">Sekretaris</option>
                     <option value="Bendahara">Bendahara</option>
-                    <option value="Koordinator Bidang">Koordinator Bidang</option>
+                    <option value="Koordinator Bidang">
+                      Koordinator Bidang
+                    </option>
                     <option value="Anggota Bidang">Anggota Bidang</option>
-                    <option value="Pelindung / Pembina Kelurahan">Pelindung / Pembina Kelurahan</option>
+                    <option value="Pelindung / Pembina Kelurahan">
+                      Pelindung / Pembina Kelurahan
+                    </option>
                     <option value="kustom">+ Tambah Jabatan Kustom...</option>
                   </select>
                 </div>
@@ -525,67 +779,98 @@ const AdminPengurusPage = () => {
               {form.role === 'kustom' && (
                 <div className="admin-grid-2">
                   <div className="admin-form-group">
-                    <label className="admin-form-label">Nama Jabatan Kustom</label>
+                    <label className="admin-form-label">
+                      Nama Jabatan Kustom
+                    </label>
                     <input
                       type="text"
                       className="admin-form-control"
                       required
                       placeholder="Contoh: Wakil Sekretaris I, Humas"
                       value={form.customRole}
-                      onChange={(e) => setForm({ ...form, customRole: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, customRole: e.target.value })
+                      }
                     />
                   </div>
 
                   <div className="admin-form-group">
-                    <label className="admin-form-label">Penempatan Struktur / Kategori</label>
+                    <label className="admin-form-label">
+                      Penempatan Struktur / Kategori
+                    </label>
                     <select
                       className="admin-form-control"
                       value={form.customCategoryType}
-                      onChange={(e) => setForm({ ...form, customCategoryType: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, customCategoryType: e.target.value })
+                      }
                     >
-                      <option value="harian">Pengurus Harian (Ketua, Sekr, Bend, dll)</option>
-                      <option value="bidang">Pengurus Divisi Bidang Kerja</option>
-                      <option value="pembina">Pelindung / Pembina Kelurahan</option>
+                      <option value="harian">
+                        Pengurus Harian (Ketua, Sekr, Bend, dll)
+                      </option>
+                      <option value="bidang">
+                        Pengurus Divisi Bidang Kerja
+                      </option>
+                      <option value="pembina">
+                        Pelindung / Pembina Kelurahan
+                      </option>
                     </select>
                   </div>
                 </div>
               )}
 
               {/* Show Division Selector if category is 'bidang' */}
-              {((form.role !== 'kustom' && ['Koordinator Bidang', 'Anggota Bidang'].includes(form.role)) || 
-                (form.role === 'kustom' && form.customCategoryType === 'bidang')) && (
+              {((form.role !== 'kustom' &&
+                ['Koordinator Bidang', 'Anggota Bidang'].includes(form.role)) ||
+                (form.role === 'kustom' &&
+                  form.customCategoryType === 'bidang')) && (
                 <>
                   <div className="admin-grid-2">
                     <div className="admin-form-group">
-                      <label className="admin-form-label">Divisi Bidang Kerja</label>
+                      <label className="admin-form-label">
+                        Divisi Bidang Kerja
+                      </label>
                       <select
                         className="admin-form-control"
                         value={form.bidangId}
                         onChange={(e) => {
                           const divId = e.target.value;
-                          const divObj = DIVISION_MAP.find(d => d.id === divId);
+                          const divObj = DIVISION_MAP.find(
+                            (d) => d.id === divId
+                          );
                           setForm({
                             ...form,
                             bidangId: divId,
-                            bidangTitle: divObj ? divObj.title : ''
+                            bidangTitle: divObj ? divObj.title : '',
                           });
                         }}
                       >
                         {DIVISION_MAP.map((d) => (
-                          <option key={d.id} value={d.id}>{d.title}</option>
+                          <option key={d.id} value={d.id}>
+                            {d.title}
+                          </option>
                         ))}
                       </select>
                     </div>
 
                     {form.role === 'kustom' && (
                       <div className="admin-form-group">
-                        <label className="admin-form-label">Tingkat Hirarki Kustom</label>
+                        <label className="admin-form-label">
+                          Tingkat Hirarki Kustom
+                        </label>
                         <select
                           className="admin-form-control"
                           value={form.customRoleLevel}
-                          onChange={(e) => setForm({ ...form, customRoleLevel: parseInt(e.target.value) })}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              customRoleLevel: parseInt(e.target.value),
+                            })
+                          }
                         >
-                          <option value={3}>Anggota / Koordinator Biasa (Level 3)</option>
+                          <option value={3}>
+                            Anggota / Koordinator Biasa (Level 3)
+                          </option>
                           <option value={2}>Pimpinan Bidang (Level 2)</option>
                         </select>
                       </div>
@@ -594,14 +879,18 @@ const AdminPengurusPage = () => {
 
                   {form.bidangId === 'kustom' && (
                     <div className="admin-form-group">
-                      <label className="admin-form-label">Nama Bidang Kustom</label>
+                      <label className="admin-form-label">
+                        Nama Bidang Kustom
+                      </label>
                       <input
                         type="text"
                         className="admin-form-control"
                         required
                         placeholder="Contoh: Pemberdayaan Minat Bakat Kustom"
                         value={form.bidangTitle}
-                        onChange={(e) => setForm({ ...form, bidangTitle: e.target.value })}
+                        onChange={(e) =>
+                          setForm({ ...form, bidangTitle: e.target.value })
+                        }
                       />
                     </div>
                   )}
@@ -610,8 +899,18 @@ const AdminPengurusPage = () => {
 
               {/* Styled Image Uploader Component */}
               <div className="admin-form-group">
-                <label className="admin-form-label">Foto Profil Pengurus (Opsional)</label>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                <label className="admin-form-label">
+                  Foto Profil Pengurus (Opsional)
+                </label>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '1rem',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    marginTop: '0.25rem',
+                  }}
+                >
                   <div style={{ flex: 1, minWidth: '220px' }}>
                     <input
                       type="file"
@@ -639,26 +938,81 @@ const AdminPengurusPage = () => {
                       }}
                     >
                       {uploadingImage ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-                          <i className="fa-solid fa-spinner fa-spin" style={{ color: 'var(--accent)', fontSize: '1.25rem' }} />
-                          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Mengupload file...</span>
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                          }}
+                        >
+                          <i
+                            className="fa-solid fa-spinner fa-spin"
+                            style={{
+                              color: 'var(--accent)',
+                              fontSize: '1.25rem',
+                            }}
+                          />
+                          <span
+                            style={{ fontSize: '0.8rem', color: '#64748b' }}
+                          >
+                            Mengupload file...
+                          </span>
                         </div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem' }}>
-                          <i className="fa-solid fa-cloud-arrow-up" style={{ color: '#94a3b8', fontSize: '1.35rem' }} />
-                          <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#475569' }}>Pilih File Foto</span>
-                          <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>JPG, PNG, WEBP (Maksimal 5MB)</span>
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                          }}
+                        >
+                          <i
+                            className="fa-solid fa-cloud-arrow-up"
+                            style={{ color: '#94a3b8', fontSize: '1.35rem' }}
+                          />
+                          <span
+                            style={{
+                              fontSize: '0.8rem',
+                              fontWeight: '700',
+                              color: '#475569',
+                            }}
+                          >
+                            Pilih File Foto
+                          </span>
+                          <span
+                            style={{ fontSize: '0.7rem', color: '#94a3b8' }}
+                          >
+                            JPG, PNG, WEBP (Maksimal 5MB)
+                          </span>
                         </div>
                       )}
                     </label>
                   </div>
 
                   {(form.imageUrl || form.name) && (
-                    <div style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', border: '2px solid #cbd5e1' }}>
+                    <div
+                      style={{
+                        position: 'relative',
+                        width: '80px',
+                        height: '80px',
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        border: '2px solid #cbd5e1',
+                      }}
+                    >
                       <img
-                        src={form.imageUrl || getAvatarPhoto(form.name || 'Anonymous')}
+                        src={
+                          form.imageUrl ||
+                          getAvatarPhoto(form.name || 'Anonymous')
+                        }
                         alt="Pratinjau"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
                       />
                       {form.imageUrl && (
                         <button
@@ -677,7 +1031,7 @@ const AdminPengurusPage = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '0.7rem'
+                            fontSize: '0.7rem',
                           }}
                           onClick={() => setForm({ ...form, imageUrl: '' })}
                           title="Hapus Gambar kustom"
@@ -693,10 +1047,19 @@ const AdminPengurusPage = () => {
                   <button
                     type="button"
                     className="admin-btn admin-btn--sm"
-                    style={{ background: 'transparent', border: 'none', color: 'var(--accent)', padding: 0, fontWeight: '600', textDecoration: 'underline' }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--accent)',
+                      padding: 0,
+                      fontWeight: '600',
+                      textDecoration: 'underline',
+                    }}
                     onClick={() => setShowManualUrl(!showManualUrl)}
                   >
-                    {showManualUrl ? 'Gunakan Uploader File' : 'Atau Masukkan URL Foto Manual'}
+                    {showManualUrl
+                      ? 'Gunakan Uploader File'
+                      : 'Atau Masukkan URL Foto Manual'}
                   </button>
 
                   {showManualUrl && (
@@ -706,29 +1069,232 @@ const AdminPengurusPage = () => {
                         className="admin-form-control"
                         placeholder="Contoh: /assets/foto-pengurus.jpg"
                         value={form.imageUrl}
-                        onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+                        onChange={(e) =>
+                          setForm({ ...form, imageUrl: e.target.value })
+                        }
                       />
                     </div>
                   )}
                 </div>
               </div>
 
+              {/* Social Media Links Section (Max 3) */}
+              <div
+                className="admin-form-group"
+                style={{
+                  marginTop: '1.25rem',
+                  paddingTop: '1.25rem',
+                  borderTop: '1px solid #e2e8f0',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '0.75rem',
+                    flexWrap: 'wrap',
+                    gap: '0.5rem',
+                  }}
+                >
+                  <div>
+                    <label
+                      className="admin-form-label"
+                      style={{
+                        marginBottom: '0.1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                      }}
+                    >
+                      <i
+                        className="fa-solid fa-share-nodes"
+                        style={{ color: 'var(--accent)' }}
+                      />
+                      Tautan Media Sosial (Maksimal 3)
+                    </label>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      Media sosial ini akan muncul saat foto pengurus di-hover
+                      pengunjung.
+                    </div>
+                  </div>
+                  {(!form.socials || form.socials.length < 3) && (
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn--outline admin-btn--sm"
+                      onClick={handleAddSocial}
+                      style={{
+                        fontSize: '0.78rem',
+                        padding: '0.35rem 0.65rem',
+                      }}
+                    >
+                      <i className="fa-solid fa-plus" /> Tambah Sosmed
+                    </button>
+                  )}
+                </div>
+
+                {form.socials && form.socials.length > 0 ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.75rem',
+                    }}
+                  >
+                    {form.socials.map((soc, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          gap: '0.5rem',
+                          alignItems: 'center',
+                          backgroundColor: '#f8fafc',
+                          padding: '0.75rem',
+                          borderRadius: '8px',
+                          border: '1px solid #e2e8f0',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        {/* Platform Selector */}
+                        <div style={{ flex: '1', minWidth: '120px' }}>
+                          <span
+                            style={{
+                              fontSize: '0.7rem',
+                              fontWeight: '700',
+                              color: '#64748b',
+                              display: 'block',
+                              marginBottom: '0.2rem',
+                            }}
+                          >
+                            Platform
+                          </span>
+                          <select
+                            className="admin-form-control"
+                            value={soc.platform || 'instagram'}
+                            onChange={(e) =>
+                              handleSocialChange(
+                                idx,
+                                'platform',
+                                e.target.value
+                              )
+                            }
+                            style={{
+                              fontSize: '0.82rem',
+                              height: '36px',
+                              padding: '0 0.5rem',
+                            }}
+                          >
+                            {SOCIAL_PLATFORMS.map((p) => (
+                              <option key={p.value} value={p.value}>
+                                {p.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Username / Handle Input */}
+                        <div style={{ flex: '1.2', minWidth: '130px' }}>
+                          <span
+                            style={{
+                              fontSize: '0.7rem',
+                              fontWeight: '700',
+                              color: '#64748b',
+                              display: 'block',
+                              marginBottom: '0.2rem',
+                            }}
+                          >
+                            Username / Handle
+                          </span>
+                          <input
+                            type="text"
+                            className="admin-form-control"
+                            placeholder="Contoh: @rifki.amrullah"
+                            value={soc.handle || ''}
+                            onChange={(e) =>
+                              handleSocialChange(idx, 'handle', e.target.value)
+                            }
+                            style={{ fontSize: '0.82rem', height: '36px' }}
+                          />
+                        </div>
+
+                        {/* URL Input */}
+                        <div style={{ flex: '1.8', minWidth: '170px' }}>
+                          <span
+                            style={{
+                              fontSize: '0.7rem',
+                              fontWeight: '700',
+                              color: '#64748b',
+                              display: 'block',
+                              marginBottom: '0.2rem',
+                            }}
+                          >
+                            Link URL
+                          </span>
+                          <input
+                            type="text"
+                            className="admin-form-control"
+                            placeholder="Contoh: https://instagram.com/rifki.amrullah"
+                            value={soc.url || ''}
+                            onChange={(e) =>
+                              handleSocialChange(idx, 'url', e.target.value)
+                            }
+                            style={{ fontSize: '0.82rem', height: '36px' }}
+                          />
+                        </div>
+
+                        {/* Delete Row Button */}
+                        <div
+                          style={{
+                            alignSelf: 'flex-end',
+                            paddingBottom: '2px',
+                          }}
+                        >
+                          <button
+                            type="button"
+                            className="admin-action-btn admin-action-btn--delete"
+                            title="Hapus Sosmed ini"
+                            onClick={() => handleRemoveSocial(idx)}
+                            style={{ width: '36px', height: '36px' }}
+                          >
+                            <i className="fa-solid fa-trash" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      fontSize: '0.82rem',
+                      color: '#94a3b8',
+                      fontStyle: 'italic',
+                      padding: '0.5rem 0',
+                    }}
+                  >
+                    Belum ada tautan media sosial. Klik &quot;+ Tambah
+                    Sosmed&quot; untuk menambahkan.
+                  </div>
+                )}
+              </div>
+
               <div className="admin-modal__footer">
-                <button 
-                  type="button" 
-                  className="admin-btn admin-btn--outline" 
+                <button
+                  type="button"
+                  className="admin-btn admin-btn--outline"
                   onClick={() => setShowModal(false)}
                   disabled={submitting}
                 >
                   Batal
                 </button>
-                <button 
-                  type="submit" 
-                  className="admin-btn admin-btn--primary" 
+                <button
+                  type="submit"
+                  className="admin-btn admin-btn--primary"
                   disabled={submitting}
                 >
                   {submitting ? (
-                    <><i className="fa-solid fa-spinner fa-spin" /> Menyimpan...</>
+                    <>
+                      <i className="fa-solid fa-spinner fa-spin" /> Menyimpan...
+                    </>
                   ) : (
                     'Simpan Anggota'
                   )}
@@ -745,27 +1311,38 @@ const AdminPengurusPage = () => {
           <div className="admin-modal admin-modal--sm">
             <div className="admin-modal__header">
               <h2 className="admin-modal__title">Konfirmasi Hapus</h2>
-              <button className="admin-modal__close" onClick={() => setDeleteConfirmId(null)}>
+              <button
+                className="admin-modal__close"
+                onClick={() => setDeleteConfirmId(null)}
+              >
                 <i className="fa-solid fa-xmark" />
               </button>
             </div>
             <div className="admin-modal__body" style={{ padding: '1.5rem' }}>
-              <p>Apakah Anda yakin ingin menghapus pengurus ini secara permanen dari database?</p>
-              <div className="admin-modal__footer" style={{ marginTop: '1.5rem', padding: 0, border: 'none' }}>
-                <button 
-                  className="admin-btn admin-btn--outline" 
+              <p>
+                Apakah Anda yakin ingin menghapus pengurus ini secara permanen
+                dari database?
+              </p>
+              <div
+                className="admin-modal__footer"
+                style={{ marginTop: '1.5rem', padding: 0, border: 'none' }}
+              >
+                <button
+                  className="admin-btn admin-btn--outline"
                   onClick={() => setDeleteConfirmId(null)}
                   disabled={deleting}
                 >
                   Batal
                 </button>
-                <button 
-                  className="admin-btn admin-btn--danger" 
+                <button
+                  className="admin-btn admin-btn--danger"
                   onClick={() => handleDelete(deleteConfirmId)}
                   disabled={deleting}
                 >
                   {deleting ? (
-                    <><i className="fa-solid fa-spinner fa-spin" /> Menghapus...</>
+                    <>
+                      <i className="fa-solid fa-spinner fa-spin" /> Menghapus...
+                    </>
                   ) : (
                     'Ya, Hapus'
                   )}
