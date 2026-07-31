@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { fetchUmkms } from '../services/api';
 import InfoCard from '../components/InfoCard';
+import { getUmkmDetailUrl } from '../utils/slugify';
 
 const UmkmPage = () => {
   const [items, setItems] = useState([]);
@@ -97,7 +98,7 @@ const UmkmPage = () => {
                 <InfoCard
                   key={item._id}
                   item={item}
-                  linkTo={`/umkm/${item._id}`}
+                  linkTo={getUmkmDetailUrl(item)}
                   customBtnText={
                     item.categoryType === 'jasa'
                       ? 'Lihat Detail Jasa'

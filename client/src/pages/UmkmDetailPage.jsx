@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { fetchUmkmById, fetchUmkms } from '../services/api';
 import InfoCard from '../components/InfoCard';
 import DocPreviewModal from '../components/DocPreviewModal';
+import { getUmkmDetailUrl } from '../utils/slugify';
 
 const UmkmDetailPage = () => {
   const { id } = useParams();
@@ -394,7 +395,7 @@ const UmkmDetailPage = () => {
                 overflow: 'hidden',
                 boxShadow: 'var(--shadow-md)',
                 marginBottom: '1rem',
-                backgroundColor: '#0f172a',
+                backgroundColor: '#ffffff',
                 border: '1px solid rgba(11, 37, 69, 0.08)',
               }}
             >
@@ -411,19 +412,32 @@ const UmkmDetailPage = () => {
                 {galleryImages.map((imgUrl, idx) => (
                   <div
                     key={idx}
+                    onClick={() =>
+                      setPreviewDoc({ title: item.title, fileUrl: imgUrl })
+                    }
+                    title="Klik untuk memperbesar gambar"
                     style={{
                       width: `${100 / galleryImages.length}%`,
                       height: '100%',
                       flexShrink: 0,
+                      backgroundColor: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0.75rem',
+                      boxSizing: 'border-box',
+                      cursor: 'pointer',
                     }}
                   >
                     <img
                       src={imgUrl}
                       alt={`${item.title} ${idx + 1}`}
                       style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        width: 'auto',
+                        height: 'auto',
+                        objectFit: 'contain',
                         display: 'block',
                       }}
                       onError={(e) => {
@@ -433,6 +447,31 @@ const UmkmDetailPage = () => {
                     />
                   </div>
                 ))}
+              </div>
+
+              {/* Magnify Hint Badge */}
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: '12px',
+                  right: '12px',
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  backdropFilter: 'blur(4px)',
+                  color: '#ffffff',
+                  padding: '4px 10px',
+                  borderRadius: '20px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  zIndex: 4,
+                  pointerEvents: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                }}
+              >
+                <i className="fa-solid fa-magnifying-glass-plus" />
+                <span>Klik untuk memperbesar</span>
               </div>
 
               {/* Prev / Next Controls if multiple photos exist */}
@@ -540,7 +579,7 @@ const UmkmDetailPage = () => {
                       padding: 0,
                       cursor: 'pointer',
                       flexShrink: 0,
-                      background: '#f8fafc',
+                      background: '#ffffff',
                       transition: 'all 0.2s ease',
                     }}
                   >
@@ -550,7 +589,7 @@ const UmkmDetailPage = () => {
                       style={{
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover',
+                        objectFit: 'contain',
                       }}
                       onError={(e) => {
                         e.currentTarget.onerror = null;
@@ -1065,7 +1104,7 @@ const UmkmDetailPage = () => {
                 <InfoCard
                   key={rel._id}
                   item={rel}
-                  linkTo={`/umkm/${rel._id}`}
+                  linkTo={getUmkmDetailUrl(rel)}
                 />
               ))}
             </div>

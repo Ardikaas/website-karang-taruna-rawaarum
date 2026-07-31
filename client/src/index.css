@@ -1372,12 +1372,16 @@ h6 {
   overflow: hidden;
   height: 100%;
   width: 100%;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .info-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   transition: var(--transition-smooth);
 }
 

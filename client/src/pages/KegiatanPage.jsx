@@ -75,7 +75,7 @@ const KegiatanPage = () => {
           <div className="grid-informasi">
             {filteredItems.length > 0 ? (
               filteredItems.map((item) => (
-                <InfoCard key={item._id} item={item} linkTo="/kontak" />
+                <InfoCard key={item._id} item={item} />
               ))
             ) : (
               <div className="info-empty">
