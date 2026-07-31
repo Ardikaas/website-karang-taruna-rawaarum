@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { fetchPartners, formatImageUrl } from '../services/api';
 
 const formatWebsiteUrl = (url = '') => {
