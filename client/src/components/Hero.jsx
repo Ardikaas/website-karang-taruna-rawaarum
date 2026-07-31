@@ -96,13 +96,6 @@ const Hero = ({ currentSlide = 0, slides = HERO_SLIDES }) => {
           {/* Right Floating Highlight Card with Synced Fade-In Text */}
           <div className="human-hero-right">
             <div className="human-floating-card">
-              <div className="hcard-top">
-                <span className="hcard-badge">PROGRAM KERJA</span>
-                <span className="hcard-counter">
-                  0{validSlideIndex + 1} / 0{slideList.length}
-                </span>
-              </div>
-
               {/* Stacked Content Slides for Synchronized Fade-in & Fade-out */}
               <div className="hcard-content-stack">
                 {slideList.map((slide, idx) => (
@@ -116,6 +109,10 @@ const Hero = ({ currentSlide = 0, slides = HERO_SLIDES }) => {
                       {slide.title || 'Program Unggulan'}
                     </h3>
                     <p className="hcard-desc">{slide.subtitle || ''}</p>
+
+                    <div className="hcard-counter-after-desc">
+                      0{validSlideIndex + 1} / 0{slideList.length}
+                    </div>
                   </div>
                 ))}
               </div>
