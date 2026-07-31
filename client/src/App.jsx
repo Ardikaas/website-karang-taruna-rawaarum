@@ -165,6 +165,7 @@ const App = () => {
           <Route path="/pengumuman" element={<PengumumanPage />} />
           <Route path="/umkm" element={<UmkmPage />} />
           <Route path="/umkm/:id" element={<UmkmDetailPage />} />
+          <Route path="/umkm/:slug/:id" element={<UmkmDetailPage />} />
           <Route path="/informasi/:id" element={<InfoDetailPage />} />
           <Route path="/info/:id" element={<InfoDetailPage />} />
           <Route path="/struktur" element={<StrukturPage />} />
