@@ -121,8 +121,8 @@ server/
 1. **Vanilla CSS** -- Tidak menggunakan Tailwind, SASS, atau CSS-in-JS.
 2. **CSS Variables** -- Semua warna, spacing, border-radius, dan shadow harus menggunakan CSS custom properties yang sudah didefinisikan di `index.css`.
 3. **BEM-like naming** -- Gunakan konvensi penamaan yang deskriptif: `.info-card`, `.info-card-title`, `.info-tag-badge`.
-4. **Responsive design** -- Semua layout harus responsive. Gunakan media query yang sudah ada di `index.css`.
-5. **Tidak ada `!important`** -- Kecuali dalam kasus yang benar-benar kritis dan terdokumentasi.
+4. **Fully Responsive Design (STRICT)** -- Seluruh halaman, komponen, modal, form, tabel, dan admin portal WAJIB bersifat _fully responsive_ dan nyaman digunakan dari resolusi terluar/terkecil (HP mini 320px, mobile, tablet) hingga terbesar (desktop ultra-wide, Smart TV 4K). Dilarang keras membuat komponen yang patah, teks terpotong, overflow tidak rapi, atau fungsi UI yang rusak di layar kecil.
+5. **Tidak ada `!important`** -- Kecuali dalam kasus yang benar-benar kritis dan terdokumentasi (misalnya CSS overrides responsif untuk komponen admin).
 
 ---
 
