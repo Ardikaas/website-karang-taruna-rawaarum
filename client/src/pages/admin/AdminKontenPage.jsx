@@ -691,7 +691,7 @@ const AdminKontenPage = () => {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {item.description}
+                          {(item.description || '').replace(/<[^>]*>?/gm, '')}
                         </div>
                       </td>
                       <td>

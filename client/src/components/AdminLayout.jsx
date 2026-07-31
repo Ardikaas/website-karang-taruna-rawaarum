@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getRoleConfig } from '../constants/roles';
@@ -66,6 +67,7 @@ const ALL_NAV_ITEMS = [
 ];
 
 const AdminLayout = ({ children }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const roleConfig = getRoleConfig(user?.role);
@@ -88,8 +90,33 @@ const AdminLayout = ({ children }) => {
 
   return (
     <div className="admin-shell">
+      {/* ── Mobile Header Topbar ── */}
+      <header className="admin-mobile-topbar">
+        <div className="admin-mobile-topbar__brand">
+          <i className="fa-solid fa-shield-halved admin-mobile-topbar__logo" />
+          <span className="admin-mobile-topbar__title">
+            {user?.role === 'pengurus' ? 'Portal Pengurus' : 'Admin Panel'}
+          </span>
+        </div>
+        <button
+          className="admin-mobile-toggle"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label="Toggle Sidebar"
+        >
+          <i className={`fa-solid ${sidebarOpen ? 'fa-xmark' : 'fa-bars'}`} />
+        </button>
+      </header>
+
+      {/* ── Backdrop Overlay ── */}
+      {sidebarOpen && (
+        <div
+          className="admin-sidebar-backdrop"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* ── Sidebar ── */}
-      <aside className="admin-sidebar">
+      <aside className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="admin-sidebar__brand">
           <Link
             to="/"
@@ -113,6 +140,7 @@ const AdminLayout = ({ children }) => {
             <NavLink
               key={to}
               to={to}
+              onClick={() => setSidebarOpen(false)}
               className={({ isActive }) =>
                 `admin-sidebar__link ${isActive ? 'admin-sidebar__link--active' : ''}`
               }
@@ -130,6 +158,7 @@ const AdminLayout = ({ children }) => {
           </p>
           <Link
             to="/"
+            onClick={() => setSidebarOpen(false)}
             className="admin-sidebar__link"
             style={{ color: 'var(--accent)' }}
           >
