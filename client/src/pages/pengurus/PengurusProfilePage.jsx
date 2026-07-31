@@ -3,7 +3,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { getRoleConfig } from '../../constants/roles';
 import { updateUserProfile, uploadImage } from '../../services/api';
-import { compressImage } from '../../utils/imageCompressor';
 
 const PLATFORM_OPTIONS = [
   { value: 'Instagram', icon: 'fa-brands fa-instagram', color: '#e1306c' },
@@ -62,11 +61,10 @@ const PengurusProfilePage = () => {
 
     try {
       setUploadingImage(true);
-      // Auto compress image down to max 500KB & 800x800 resolution
-      const compressedFile = await compressImage(file, 500, 800);
-      const res = await uploadImage(compressedFile);
+      // Auto compress image down to max 500KB (0.5MB)
+      const res = await uploadImage(file);
       const url =
-        typeof res === 'string' ? res : res?.imageUrl || res?.url || '';
+        res?.imageUrl || res?.url || (typeof res === 'string' ? res : '');
       setFormData((prev) => ({ ...prev, imageUrl: url }));
       showSuccess(
         'Foto profil berhasil dikompres & diunggah! Klik simpan profil.',

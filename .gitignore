@@ -32,3 +32,8 @@ npm-debug.log*
 *.xlsx
 ~$*
 
+# User Uploaded Media Files
+server/public/uploads/*
+!server/public/uploads/.gitkeep
+
+

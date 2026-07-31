@@ -1,5 +1,25 @@
 import { useState, useEffect } from 'react';
-import { fetchPartners } from '../services/api';
+import { fetchPartners, formatImageUrl } from '../services/api';
+
+const formatWebsiteUrl = (url = '') => {
+  const trimmed = (url || '').trim();
+  if (!trimmed || trimmed === '#') return null;
+
+  const lower = trimmed.toLowerCase();
+  if (
+    lower.startsWith('javascript:') ||
+    lower.startsWith('data:') ||
+    lower.startsWith('vbscript:')
+  ) {
+    return null;
+  }
+
+  if (!lower.startsWith('http://') && !lower.startsWith('https://')) {
+    return `https://${trimmed}`;
+  }
+
+  return trimmed;
+};
 
 const KemitraanPage = () => {
   const [partners, setPartners] = useState([]);
@@ -119,41 +139,55 @@ const KemitraanPage = () => {
             </div>
           ) : (
             <div className="current-partners-grid">
-              {partners.map((partner) => (
-                <div
-                  key={partner._id}
-                  className="partner-detail-card"
-                  title={partner.name}
-                >
-                  <div className="partner-logo-box">
-                    {partner.logoUrl ? (
-                      <img
-                        src={partner.logoUrl}
-                        alt={partner.name}
-                        className="partner-logo-img"
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          fontWeight: '700',
-                          color: 'var(--primary-deep)',
-                          fontSize: '0.9rem',
-                          textAlign: 'center',
-                        }}
-                      >
-                        {partner.name}
-                      </div>
-                    )}
-                  </div>
-                  <div className="partner-text-box">
-                    <h3 className="partner-company-name">{partner.name}</h3>
-                    <span className="partner-type-tag">
-                      <i className="fa-solid fa-award"></i>{' '}
-                      {partner.category || 'Mitra Industri'}
-                    </span>
-                  </div>
-                </div>
-              ))}
+              {partners.map((partner) => {
+                const webUrl = formatWebsiteUrl(partner.websiteUrl);
+                const CardTag = webUrl ? 'a' : 'div';
+                const linkProps = webUrl
+                  ? {
+                      href: webUrl,
+                      target: '_blank',
+                      rel: 'noopener noreferrer',
+                    }
+                  : {};
+
+                return (
+                  <CardTag
+                    key={partner._id}
+                    className="partner-detail-card"
+                    title={partner.name}
+                    style={{ textDecoration: 'none' }}
+                    {...linkProps}
+                  >
+                    <div className="partner-logo-box">
+                      {partner.logoUrl ? (
+                        <img
+                          src={formatImageUrl(partner.logoUrl)}
+                          alt={partner.name}
+                          className="partner-logo-img"
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            fontWeight: '700',
+                            color: 'var(--primary-deep)',
+                            fontSize: '0.9rem',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {partner.name}
+                        </div>
+                      )}
+                    </div>
+                    <div className="partner-text-box">
+                      <h3 className="partner-company-name">{partner.name}</h3>
+                      <span className="partner-type-tag">
+                        <i className="fa-solid fa-award"></i>{' '}
+                        {partner.category || 'Mitra Industri'}
+                      </span>
+                    </div>
+                  </CardTag>
+                );
+              })}
             </div>
           )}
         </div>

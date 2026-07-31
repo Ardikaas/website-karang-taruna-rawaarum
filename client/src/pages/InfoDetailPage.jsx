@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { fetchInfoItemById, fetchInfoItems } from '../services/api';
+import {
+  fetchInfoItemById,
+  fetchInfoItems,
+  formatImageUrl,
+} from '../services/api';
 import { useToast } from '../context/ToastContext';
 import InfoCard from '../components/InfoCard';
+import DocPreviewModal from '../components/DocPreviewModal';
 
 const InfoDetailPage = () => {
   const { id } = useParams();
@@ -13,6 +18,7 @@ const InfoDetailPage = () => {
   const [relatedItems, setRelatedItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState(null);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -290,27 +296,56 @@ const InfoDetailPage = () => {
           {/* Featured Image */}
           {item.imageUrl && (
             <div
+              onClick={() =>
+                setPreviewDoc({
+                  title: item.title,
+                  fileUrl: formatImageUrl(item.imageUrl),
+                })
+              }
+              title="Klik untuk memperbesar gambar"
               style={{
+                position: 'relative',
                 width: '100%',
-                maxHeight: '460px',
                 borderRadius: 'calc(var(--radius-md) - 4px)',
                 overflow: 'hidden',
                 marginBottom: '2rem',
-                backgroundColor: '#f1f5f9',
+                backgroundColor: '#ffffff',
                 boxShadow: 'var(--shadow-sm)',
+                cursor: 'pointer',
               }}
             >
               <img
-                src={item.imageUrl}
+                src={formatImageUrl(item.imageUrl)}
                 alt={item.title}
                 style={{
                   width: '100%',
-                  height: '100%',
-                  maxHeight: '460px',
-                  objectFit: 'cover',
+                  height: 'auto',
                   display: 'block',
                 }}
               />
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: '12px',
+                  right: '12px',
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  backdropFilter: 'blur(4px)',
+                  color: '#ffffff',
+                  padding: '4px 10px',
+                  borderRadius: '20px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  zIndex: 4,
+                  pointerEvents: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                }}
+              >
+                <i className="fa-solid fa-magnifying-glass-plus" />
+                <span>Klik untuk memperbesar</span>
+              </div>
             </div>
           )}
 
@@ -396,6 +431,9 @@ const InfoDetailPage = () => {
           </div>
         )}
       </div>
+
+      {/* Lightbox Popup Modal */}
+      <DocPreviewModal doc={previewDoc} onClose={() => setPreviewDoc(null)} />
     </div>
   );
 };

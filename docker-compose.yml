@@ -12,6 +12,8 @@ services:
       - PORT=5555
       - MONGO_URI=${MONGO_URI:-mongodb://host.docker.internal:27017/karangtaruna}
       - NODE_ENV=production
+    volumes:
+      - ./server/public/uploads:/app/server/public/uploads
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

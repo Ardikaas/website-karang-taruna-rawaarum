@@ -78,7 +78,6 @@ const PengumumanPage = () => {
                 <InfoCard
                   key={item._id}
                   item={{ ...item, type: 'pengumuman' }}
-                  linkTo="/kontak"
                 />
               ))
             ) : (

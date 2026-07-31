@@ -158,13 +158,17 @@ const App = () => {
       <main style={{ minHeight: isDashboardOrAuthPath ? '100vh' : '80vh' }}>
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={<Home />} />
+          <Route
+            path="/"
+            element={<Home onOpenRegModal={() => setRegModalOpen(true)} />}
+          />
           <Route path="/program" element={<ProgramPage />} />
           <Route path="/loker" element={<LokerPage />} />
           <Route path="/kegiatan" element={<KegiatanPage />} />
           <Route path="/pengumuman" element={<PengumumanPage />} />
           <Route path="/umkm" element={<UmkmPage />} />
           <Route path="/umkm/:id" element={<UmkmDetailPage />} />
+          <Route path="/umkm/:slug/:id" element={<UmkmDetailPage />} />
           <Route path="/informasi/:id" element={<InfoDetailPage />} />
           <Route path="/info/:id" element={<InfoDetailPage />} />
           <Route path="/struktur" element={<StrukturPage />} />

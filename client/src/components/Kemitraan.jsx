@@ -1,6 +1,27 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchPartners, fetchUmkms } from '../services/api';
+import { fetchPartners, fetchUmkms, formatImageUrl } from '../services/api';
+import { getUmkmDetailUrl } from '../utils/slugify';
+
+const formatWebsiteUrl = (url = '') => {
+  const trimmed = (url || '').trim();
+  if (!trimmed || trimmed === '#') return null;
+
+  const lower = trimmed.toLowerCase();
+  if (
+    lower.startsWith('javascript:') ||
+    lower.startsWith('data:') ||
+    lower.startsWith('vbscript:')
+  ) {
+    return null;
+  }
+
+  if (!lower.startsWith('http://') && !lower.startsWith('https://')) {
+    return `https://${trimmed}`;
+  }
+
+  return trimmed;
+};
 
 const Kemitraan = () => {
   const [companyPartners, setCompanyPartners] = useState([]);
@@ -67,33 +88,47 @@ const Kemitraan = () => {
 
           <div className="grid-partners">
             {companyPartners.length > 0 ? (
-              companyPartners.map((partner) => (
-                <div
-                  key={partner._id || partner.id}
-                  className="partner-card"
-                  title={partner.name}
-                >
-                  {partner.logoUrl ? (
-                    <img
-                      src={partner.logoUrl}
-                      alt={partner.name}
-                      className="partner-logo-img"
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        fontWeight: '700',
-                        color: 'var(--primary-deep)',
-                        fontSize: '0.95rem',
-                        padding: '1rem',
-                        textAlign: 'center',
-                      }}
-                    >
-                      {partner.name}
-                    </div>
-                  )}
-                </div>
-              ))
+              companyPartners.map((partner) => {
+                const webUrl = formatWebsiteUrl(partner.websiteUrl);
+                const CardTag = webUrl ? 'a' : 'div';
+                const linkProps = webUrl
+                  ? {
+                      href: webUrl,
+                      target: '_blank',
+                      rel: 'noopener noreferrer',
+                    }
+                  : {};
+
+                return (
+                  <CardTag
+                    key={partner._id || partner.id}
+                    className="partner-card"
+                    title={partner.name}
+                    style={{ textDecoration: 'none' }}
+                    {...linkProps}
+                  >
+                    {partner.logoUrl ? (
+                      <img
+                        src={formatImageUrl(partner.logoUrl)}
+                        alt={partner.name}
+                        className="partner-logo-img"
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          fontWeight: '700',
+                          color: 'var(--primary-deep)',
+                          fontSize: '0.95rem',
+                          padding: '1rem',
+                          textAlign: 'center',
+                        }}
+                      >
+                        {partner.name}
+                      </div>
+                    )}
+                  </CardTag>
+                );
+              })
             ) : (
               <div className="partner-card">
                 <span style={{ color: 'var(--text-muted)' }}>
@@ -130,7 +165,7 @@ const Kemitraan = () => {
               umkmPartners.slice(0, 6).map((item) => (
                 <Link
                   key={item._id || item.id}
-                  to={`/umkm/${item._id}`}
+                  to={getUmkmDetailUrl(item)}
                   className="partner-card"
                   title={item.title || item.name}
                   style={{
