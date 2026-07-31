@@ -1,36 +1,68 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Pilars = () => {
+  const services = [
+    {
+      icon: 'fa-solid fa-briefcase',
+      tag: 'KARIR & KESEMPATAN',
+      title: 'Info Lowongan Kerja',
+      desc: 'Akses info lowongan kerja lokal, kesempatan karir, dan pelatihan keterampilan khusus pemuda Rawa Arum.',
+      linkText: 'Lihat Lowongan Kerja',
+      linkUrl: '/loker',
+    },
+    {
+      icon: 'fa-solid fa-store',
+      tag: 'PEMBERDAYAAN',
+      title: 'Katalog & Pendataan UMKM',
+      desc: 'Daftarkan dan promosikan produk usaha lokal Anda secara gratis di Portal UMKM Kelurahan Rawa Arum.',
+      linkText: 'Jelajahi Portal UMKM',
+      linkUrl: '/umkm',
+    },
+    {
+      icon: 'fa-solid fa-comments',
+      tag: 'PARTISIPASI WARGA',
+      title: 'Kotak Masukan & Aspirasi',
+      desc: 'Punya ide, saran, atau gagasan untuk kemajuan lingkungan? Sampaikan masukan Anda langsung kepada kami.',
+      linkText: 'Kirim Masukan Warga',
+      linkUrl: '/kontak',
+    },
+  ];
+
   return (
-    <section className="pilar-section" id="pilar">
+    <section className="quick-services-section" id="pilar">
       <div className="container">
-        <div className="grid-pilar">
-          <div className="pilar-card">
-            <div className="pilar-icon-wrapper">
-              <i className="fa-solid fa-sitemap pilar-icon"></i>
-            </div>
-            <h3 className="pilar-title">Struktur Organisasi</h3>
-            <p className="pilar-desc">Kenali kepengurusan Karang Taruna Rawa Arum yang solid, kolaboratif, dan siap melayani masyarakat.</p>
-            <a href="#struktur" className="pilar-link">Lihat Bagan Kepengurusan <i className="fa-solid fa-arrow-right-long"></i></a>
-          </div>
+        {/* Section Header */}
+        <div
+          className="section-header text-center"
+          style={{ marginBottom: '2.5rem' }}
+        >
+          <span className="section-tag">Akses Pintar Warga</span>
+          <h2 className="section-title">Layanan Cepat Karang Taruna</h2>
+          <div className="title-underline"></div>
+        </div>
 
-          <div className="pilar-card">
-            <div className="pilar-icon-wrapper">
-              <i className="fa-solid fa-bullseye pilar-icon"></i>
+        {/* 3 Interactive Cards Grid */}
+        <div className="quick-services-grid">
+          {services.map((item, idx) => (
+            <div key={idx} className="quick-service-card">
+              <div className="qs-card-accent-bar"></div>
+              <div className="qs-icon-badge">
+                <i className={item.icon}></i>
+              </div>
+              <div className="qs-body">
+                <span className="qs-tag">{item.tag}</span>
+                <h3 className="qs-title">{item.title}</h3>
+                <p className="qs-desc">{item.desc}</p>
+              </div>
+              <div className="qs-footer">
+                <Link to={item.linkUrl} className="qs-action-btn">
+                  <span>{item.linkText}</span>
+                  <i className="fa-solid fa-arrow-right-long"></i>
+                </Link>
+              </div>
             </div>
-            <h3 className="pilar-title">Visi & Misi</h3>
-            <p className="pilar-desc">Komitmen dan arah perjuangan kami untuk mewujudkan generasi muda Rawa Arum yang mandiri dan berdaya.</p>
-            <a href="#visi-misi" className="pilar-link">Lihat Visi & Misi <i className="fa-solid fa-arrow-right-long"></i></a>
-          </div>
-
-          <div className="pilar-card">
-            <div className="pilar-icon-wrapper">
-              <i className="fa-solid fa-route pilar-icon"></i>
-            </div>
-            <h3 className="pilar-title">Roadmap Program</h3>
-            <p className="pilar-desc">Rencana program kerja strategis jangka panjang terarah untuk kesejahteraan masyarakat sekitar.</p>
-            <a href="#program" className="pilar-link">Lihat Roadmap Kerja <i className="fa-solid fa-arrow-right-long"></i></a>
-          </div>
+          ))}
         </div>
       </div>
     </section>

@@ -1,78 +1,127 @@
 import { useState, useEffect } from 'react';
 import { fetchSiteSettings } from '../services/api';
+import { HERO_SLIDES } from '../constants/mockData';
 
-const Hero = ({ currentSlide, slides, onDotClick }) => {
+const Hero = ({ currentSlide = 0, slides = HERO_SLIDES }) => {
   const [settings, setSettings] = useState(null);
 
   useEffect(() => {
     const loadSettings = async () => {
-      const data = await fetchSiteSettings();
-      setSettings(data);
+      try {
+        const data = await fetchSiteSettings();
+        setSettings(data);
+      } catch (_err) {
+        // Fallback gracefully on API error
+      }
     };
     loadSettings();
   }, []);
 
-  const activeSlide = slides[currentSlide] || slides[0];
+  const slideList =
+    settings?.heroSlides && settings.heroSlides.length > 0
+      ? settings.heroSlides
+      : slides && slides.length > 0
+        ? slides
+        : HERO_SLIDES;
 
-  // Filter out unwanted title header text
-  let rawTitle = (settings?.heroTitle || '')
-    .replace(/KARANG TARUNA KELURAHAN RAWA ARUM/gi, '')
-    .trim();
+  const validSlideIndex =
+    slideList.length > 0 ? (currentSlide || 0) % slideList.length : 0;
+  const activeSlide = slideList[validSlideIndex] || slideList[0] || {};
 
-  const titleHtml = rawTitle
-    ? `${rawTitle} <br/><span class="text-accent">${settings?.heroSubtitle || ''}</span>`
-    : settings?.heroSubtitle
-      ? `<span class="text-accent">${settings.heroSubtitle}</span>`
-      : activeSlide.title;
+  const hasTitle = Boolean(
+    settings?.heroTitle && settings.heroTitle.trim() !== ''
+  );
+  const tagline =
+    settings?.heroSubtitle ||
+    activeSlide.title ||
+    'Muda, Beda, Berkarya untuk Kemajuan Rawa Arum';
 
-  const descText = settings?.heroDescription || activeSlide.desc;
+  const descText =
+    settings?.heroDescription ||
+    activeSlide.subtitle ||
+    activeSlide.desc ||
+    'Wadah pengembangan generasi muda Kelurahan Rawa Arum.';
 
   return (
-    <section
-      className="hero-section"
-      id="home"
-      style={{ backgroundImage: `url(${activeSlide.image})` }}
-    >
-      <div className="hero-overlay-left">
-        <svg
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          className="hero-curve-svg"
-        >
-          <path d="M0,0 L98,0 C103,25 93,65 78,100 L0,100 Z" fill="#0B2545" />
-        </svg>
-        <div className="hero-overlay-dots"></div>
-      </div>
-
-      <div className="container hero-container">
-        <div className="hero-content">
-          <h1
-            className="hero-title"
-            dangerouslySetInnerHTML={{ __html: titleHtml }}
-          />
-          <div className="hero-title-underline"></div>
-
-          <p className="hero-desc">{descText}</p>
-
-          <div className="hero-buttons">
-            <a href="#pilar" className="btn btn-primary">
-              Tentang Kami
-            </a>
-            <a href="#program" className="btn btn-outline-light">
-              Lihat Program Kerja
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <div className="hero-dots">
-        {slides.map((_, idx) => (
-          <span
+    <section className="human-hero-section" id="home">
+      {/* Background Slideshow Layer */}
+      <div className="human-hero-bg">
+        {slideList.map((slide, idx) => (
+          <div
             key={idx}
-            className={`dot ${currentSlide === idx ? 'active' : ''}`}
-            onClick={() => onDotClick(idx)}
+            className={`human-slide-img ${validSlideIndex === idx ? 'active' : ''}`}
+            style={{
+              backgroundImage: `url(${slide.image || '/assets/hero_banner.png'})`,
+            }}
           />
         ))}
+      </div>
+
+      {/* Natural Left Dark Gradient Mask */}
+      <div className="human-hero-mask"></div>
+
+      {/* Container Layout */}
+      <div className="container human-hero-container">
+        <div className="human-hero-layout">
+          {/* Left Column Text */}
+          <div className="human-hero-left">
+            <h1 className="human-title">
+              {hasTitle ? (
+                <>
+                  <span className="hero-main-title-orange">
+                    {settings.heroTitle}
+                  </span>
+                  <br />
+                  <span className="hero-tagline-white">{tagline}</span>
+                </>
+              ) : (
+                <span className="hero-main-title-orange">{tagline}</span>
+              )}
+            </h1>
+
+            <div className="human-title-line"></div>
+
+            <p className="human-desc">{descText}</p>
+
+            <div className="human-actions">
+              <a href="#pilar" className="btn btn-primary btn-hero">
+                Tentang Kami <i className="fa-solid fa-arrow-right"></i>
+              </a>
+              <a href="#program" className="btn btn-outline-light btn-hero">
+                Program Kerja
+              </a>
+            </div>
+          </div>
+
+          {/* Right Floating Highlight Card with Synced Fade-In Text */}
+          <div className="human-hero-right">
+            <div className="human-floating-card">
+              <div className="hcard-top">
+                <span className="hcard-badge">PROGRAM KERJA</span>
+                <span className="hcard-counter">
+                  0{validSlideIndex + 1} / 0{slideList.length}
+                </span>
+              </div>
+
+              {/* Stacked Content Slides for Synchronized Fade-in & Fade-out */}
+              <div className="hcard-content-stack">
+                {slideList.map((slide, idx) => (
+                  <div
+                    key={idx}
+                    className={`hcard-slide-content ${
+                      validSlideIndex === idx ? 'active' : ''
+                    }`}
+                  >
+                    <h3 className="hcard-title">
+                      {slide.title || 'Program Unggulan'}
+                    </h3>
+                    <p className="hcard-desc">{slide.subtitle || ''}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );

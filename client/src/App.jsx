@@ -158,7 +158,10 @@ const App = () => {
       <main style={{ minHeight: isDashboardOrAuthPath ? '100vh' : '80vh' }}>
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={<Home />} />
+          <Route
+            path="/"
+            element={<Home onOpenRegModal={() => setRegModalOpen(true)} />}
+          />
           <Route path="/program" element={<ProgramPage />} />
           <Route path="/loker" element={<LokerPage />} />
           <Route path="/kegiatan" element={<KegiatanPage />} />

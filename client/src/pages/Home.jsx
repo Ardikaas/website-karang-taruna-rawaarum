@@ -15,7 +15,7 @@ import { fetchRecentItems } from '../services/api';
 
 const SLIDE_INTERVAL_MS = 6000;
 
-const Home = () => {
+const Home = ({ onOpenRegModal }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const slideInterval = useRef(null);
   const [recentItems, setRecentItems] = useState([]);
@@ -57,7 +57,7 @@ const Home = () => {
         slides={HERO_SLIDES}
         onDotClick={handleDotClick}
       />
-      <Pilars />
+      <Pilars onOpenRegModal={onOpenRegModal} />
       <VisiMisi />
       <Struktur />
       <Roadmap />

@@ -3,10 +3,11 @@ import {
   changePassword,
   fetchSiteSettings,
   updateSiteSettings,
+  uploadImage,
 } from '../../services/api';
 
 const AdminSettingsPage = () => {
-  const [activeTab, setActiveTab] = useState('security'); // 'security' | 'contact' | 'hero'
+  const [activeTab, setActiveTab] = useState('hero'); // 'hero' | 'security' | 'contact' | 'visimisi'
 
   // ── Password Form State ──
   const [passForm, setPassForm] = useState({
@@ -26,6 +27,7 @@ const AdminSettingsPage = () => {
     heroTitle: '',
     heroSubtitle: '',
     heroDescription: '',
+    heroSlides: [],
     visiText: '',
     misiList: [],
     address: '',
@@ -42,6 +44,7 @@ const AdminSettingsPage = () => {
   const [settingsSubmitting, setSettingsSubmitting] = useState(false);
   const [settingsError, setSettingsError] = useState('');
   const [settingsSuccess, setSettingsSuccess] = useState('');
+  const [uploadingSlideIdx, setUploadingSlideIdx] = useState(null);
 
   // Load site settings on mount
   useEffect(() => {
@@ -53,6 +56,7 @@ const AdminSettingsPage = () => {
           heroTitle: data.heroTitle || '',
           heroSubtitle: data.heroSubtitle || '',
           heroDescription: data.heroDescription || '',
+          heroSlides: data.heroSlides || [],
           visiText: data.visiText || '',
           misiList: data.misiList || [],
           address: data.address || '',
@@ -64,7 +68,7 @@ const AdminSettingsPage = () => {
           socialFacebook: data.socialFacebook || '',
           socialYoutube: data.socialYoutube || '',
         });
-      } catch (err) {
+      } catch (_err) {
         setSettingsError('Gagal memuat pengaturan situs.');
       } finally {
         setSettingsLoading(false);
@@ -114,16 +118,79 @@ const AdminSettingsPage = () => {
     setSettingsSubmitting(true);
 
     try {
-      const updated = await updateSiteSettings(settings);
-      setSettingsSuccess('Pengaturan situs berhasil diperbarui dan disimpan!');
-      setSettings(updated);
+      // Ensure heroSlides image property is a clean string URL, not an object
+      const sanitizedSlides = (settings.heroSlides || []).map((slide) => {
+        let img = slide.image;
+        if (typeof img === 'object' && img !== null) {
+          img = img.imageUrl || img.url || '';
+        }
+        return {
+          ...slide,
+          image: String(img || ''),
+        };
+      });
+
+      const payload = {
+        ...settings,
+        heroSlides: sanitizedSlides,
+      };
+
+      const updated = await updateSiteSettings(payload);
+      setSettingsSuccess('Pengaturan berhasil diperbarui dan disimpan!');
+      setSettings({
+        ...updated,
+        heroSlides: updated.heroSlides || [],
+      });
     } catch (err) {
-      setSettingsError(err.message || 'Gagal menyimpan pengaturan situs.');
+      setSettingsError(err.message || 'Gagal menyimpan pengaturan.');
     } finally {
       setSettingsSubmitting(false);
     }
   };
 
+  // ── Slide Handlers ──
+  const handleSlideChange = (index, field, value) => {
+    const updatedSlides = [...settings.heroSlides];
+    updatedSlides[index] = {
+      ...updatedSlides[index],
+      [field]: value,
+    };
+    setSettings({ ...settings, heroSlides: updatedSlides });
+  };
+
+  const handleSlideImageUpload = async (index, file) => {
+    if (!file) return;
+    try {
+      setUploadingSlideIdx(index);
+      const res = await uploadImage(file);
+      const imageUrl =
+        typeof res === 'string' ? res : res?.imageUrl || res?.url || '';
+      handleSlideChange(index, 'image', imageUrl);
+    } catch (err) {
+      alert(err.message || 'Gagal mengunggah gambar slide.');
+    } finally {
+      setUploadingSlideIdx(null);
+    }
+  };
+
+  const addSlide = () => {
+    const newSlide = {
+      image: '',
+      title: '',
+      subtitle: '',
+    };
+    setSettings({
+      ...settings,
+      heroSlides: [...settings.heroSlides, newSlide],
+    });
+  };
+
+  const removeSlide = (index) => {
+    const updatedSlides = settings.heroSlides.filter((_, i) => i !== index);
+    setSettings({ ...settings, heroSlides: updatedSlides });
+  };
+
+  // ── Misi Handlers ──
   const handleMisiChange = (index, value) => {
     const newList = [...settings.misiList];
     newList[index] = value;
@@ -155,38 +222,768 @@ const AdminSettingsPage = () => {
         <div>
           <h1 className="admin-page-title">Pengaturan Website & Akun</h1>
           <p className="admin-page-subtitle">
-            Kelola keamanan akun admin, informasi kontak, dan konten teks utama
-            situs.
+            Kelola Hero Banner, konten utama beranda, kontak, dan keamanan akun.
           </p>
         </div>
       </div>
 
-      {/* Tabs Bar */}
+      {/* Navigation Tabs Bar */}
       <div
         className="admin-tabs"
         style={{ borderBottom: '1px solid #edf2f7', marginBottom: '1.5rem' }}
       >
+        <button
+          className={`admin-tab-btn ${activeTab === 'hero' ? 'active' : ''}`}
+          onClick={() => setActiveTab('hero')}
+        >
+          <i className="fa-solid fa-images" /> Menu Hero Banner
+        </button>
+        <button
+          className={`admin-tab-btn ${activeTab === 'visimisi' ? 'active' : ''}`}
+          onClick={() => setActiveTab('visimisi')}
+        >
+          <i className="fa-solid fa-bullseye" /> Visi & Misi
+        </button>
+        <button
+          className={`admin-tab-btn ${activeTab === 'contact' ? 'active' : ''}`}
+          onClick={() => setActiveTab('contact')}
+        >
+          <i className="fa-solid fa-address-book" /> Kontak & Footer
+        </button>
         <button
           className={`admin-tab-btn ${activeTab === 'security' ? 'active' : ''}`}
           onClick={() => setActiveTab('security')}
         >
           <i className="fa-solid fa-shield-halved" /> Keamanan Akun
         </button>
-        <button
-          className={`admin-tab-btn ${activeTab === 'contact' ? 'active' : ''}`}
-          onClick={() => setActiveTab('contact')}
-        >
-          <i className="fa-solid fa-address-book" /> Informasi Kontak & Footer
-        </button>
-        <button
-          className={`admin-tab-btn ${activeTab === 'hero' ? 'active' : ''}`}
-          onClick={() => setActiveTab('hero')}
-        >
-          <i className="fa-solid fa-bullhorn" /> Beranda & Visi Misi
-        </button>
       </div>
 
-      {/* ── TAB 1: SECURITY (PASSWORD) ── */}
+      {/* ── TAB 1: HERO BANNER MANAGEMENT ── */}
+      {activeTab === 'hero' && (
+        <form onSubmit={handleSettingsSubmit}>
+          <div className="admin-card" style={{ marginBottom: '1.5rem' }}>
+            <div className="admin-card__header">
+              <h2 className="admin-card__title">
+                <i className="fa-solid fa-heading" /> Pengaturan Teks Utama Hero
+                Banner
+              </h2>
+            </div>
+            <div className="admin-card__body">
+              {settingsError && (
+                <div
+                  className="admin-alert admin-alert--error"
+                  style={{ marginBottom: '1.5rem' }}
+                >
+                  <i className="fa-solid fa-circle-exclamation" />
+                  <span>{settingsError}</span>
+                </div>
+              )}
+
+              {settingsSuccess && (
+                <div
+                  className="admin-alert"
+                  style={{
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    color: '#10b981',
+                    border: '1px solid rgba(16, 185, 129, 0.15)',
+                    marginBottom: '1.5rem',
+                  }}
+                >
+                  <i className="fa-solid fa-circle-check" />
+                  <span>{settingsSuccess}</span>
+                </div>
+              )}
+
+              <div className="admin-form-group">
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <label className="admin-form-label">
+                    Judul Utama Banner (Hero Title)
+                  </label>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                    {settings.heroTitle.length}/60
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  className="admin-form-control"
+                  maxLength={60}
+                  placeholder="KARANG TARUNA KELURAHAN RAWA ARUM"
+                  value={settings.heroTitle}
+                  onChange={(e) =>
+                    setSettings({ ...settings, heroTitle: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="admin-form-group">
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <label className="admin-form-label">
+                    Tagline / Highlight Teks
+                  </label>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                    {settings.heroSubtitle.length}/80
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  className="admin-form-control"
+                  required
+                  maxLength={80}
+                  placeholder="Muda, Beda, Berkarya untuk Kemajuan Rawa Arum"
+                  value={settings.heroSubtitle}
+                  onChange={(e) =>
+                    setSettings({ ...settings, heroSubtitle: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="admin-form-group">
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <label className="admin-form-label">
+                    Deskripsi Pengantar Utama Beranda
+                  </label>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                    {settings.heroDescription.length}/200
+                  </span>
+                </div>
+                <textarea
+                  className="admin-form-control"
+                  rows="3"
+                  required
+                  maxLength={200}
+                  placeholder="Deskripsi singkat pengantar..."
+                  value={settings.heroDescription}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      heroDescription: e.target.value,
+                    })
+                  }
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Slides Manager Card */}
+          <div className="admin-card">
+            <div
+              className="admin-card__header"
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <h2 className="admin-card__title">
+                <i className="fa-solid fa-images" /> Kelola Gambar & Slide Hero
+                Banner ({settings.heroSlides.length} Slide Kustom)
+              </h2>
+              <button
+                type="button"
+                className="admin-btn admin-btn--outline admin-btn--sm"
+                onClick={addSlide}
+              >
+                <i className="fa-solid fa-plus" /> Tambah Slide Baru
+              </button>
+            </div>
+            <div className="admin-card__body">
+              {settings.heroSlides.length === 0 ? (
+                <div
+                  style={{
+                    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                    color: '#1d4ed8',
+                    border: '1px solid rgba(59, 130, 246, 0.25)',
+                    padding: '1.25rem',
+                    borderRadius: '8px',
+                    lineHeight: '1.6',
+                  }}
+                >
+                  <p style={{ margin: 0, fontWeight: '600' }}>
+                    <i
+                      className="fa-solid fa-circle-info"
+                      style={{ marginRight: '0.5rem' }}
+                    />
+                    Belum ada slide kustom. Website saat ini secara otomatis
+                    menampilkan <strong>3 slide default/dummy</strong>.
+                  </p>
+
+                  <p
+                    style={{
+                      margin: '0.5rem 0 0',
+                      fontSize: '0.88rem',
+                      opacity: 0.9,
+                    }}
+                  >
+                    Klik tombol <strong>"+ Tambah Slide Baru"</strong> di atas
+                    jika Anda ingin menambahkan slide kustom khusus. Jika ada 1
+                    atau lebih slide kustom yang diisi, website akan secara
+                    otomatis menampilkan slide kustom tersebut saja.
+                  </p>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1.5rem',
+                  }}
+                >
+                  {settings.heroSlides.map((slide, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        padding: '1.25rem',
+                        backgroundColor: '#f8fafc',
+                        position: 'relative',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: '1rem',
+                          paddingBottom: '0.5rem',
+                          borderBottom: '1px solid #e2e8f0',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontWeight: '800',
+                            color: 'var(--primary-deep)',
+                          }}
+                        >
+                          Slide Kustom #{idx + 1}
+                        </span>
+                        <button
+                          type="button"
+                          className="admin-btn-delete-slide"
+                          onClick={() => removeSlide(idx)}
+                        >
+                          <i className="fa-solid fa-trash-can" /> Hapus Slide
+                        </button>
+                      </div>
+
+                      <div className="admin-grid-2" style={{ gap: '1.25rem' }}>
+                        {/* Left: Image Upload & Preview */}
+                        <div>
+                          <label className="admin-form-label">
+                            Gambar Slide
+                          </label>
+                          <div
+                            style={{
+                              height: '140px',
+                              borderRadius: '6px',
+                              overflow: 'hidden',
+                              backgroundColor: '#0b2545',
+                              backgroundImage: slide.image
+                                ? `url(${slide.image})`
+                                : 'none',
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center',
+                              marginBottom: '0.75rem',
+                              border: '1px solid #cbd5e1',
+                            }}
+                          />
+                          <div
+                            style={{
+                              display: 'flex',
+                              gap: '0.5rem',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <input
+                              type="file"
+                              id={`slide-file-${idx}`}
+                              accept="image/*"
+                              style={{ display: 'none' }}
+                              onChange={(e) =>
+                                handleSlideImageUpload(idx, e.target.files[0])
+                              }
+                            />
+                            <label
+                              htmlFor={`slide-file-${idx}`}
+                              className="admin-btn admin-btn--outline admin-btn--sm"
+                              style={{ cursor: 'pointer' }}
+                            >
+                              {uploadingSlideIdx === idx ? (
+                                <>
+                                  <i className="fa-solid fa-spinner fa-spin" />{' '}
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  <i className="fa-solid fa-upload" /> Unggah
+                                  Gambar
+                                </>
+                              )}
+                            </label>
+                            <input
+                              type="text"
+                              className="admin-form-control"
+                              style={{ fontSize: '0.82rem' }}
+                              placeholder="atau paste URL Gambar..."
+                              value={slide.image}
+                              onChange={(e) =>
+                                handleSlideChange(idx, 'image', e.target.value)
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        {/* Right: Slide Text Fields */}
+                        <div>
+                          <div className="admin-form-group">
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <label className="admin-form-label">
+                                Judul Slide (Kartu Highlight)
+                              </label>
+                              <span
+                                style={{
+                                  fontSize: '0.78rem',
+                                  color: '#64748b',
+                                }}
+                              >
+                                {(slide.title || '').length}/60
+                              </span>
+                            </div>
+                            <input
+                              type="text"
+                              className="admin-form-control"
+                              required
+                              maxLength={60}
+                              placeholder="Ketik judul slide di sini (contoh: Pemberdayaan UMKM Pemuda)..."
+                              value={slide.title}
+                              onChange={(e) =>
+                                handleSlideChange(idx, 'title', e.target.value)
+                              }
+                            />
+                          </div>
+
+                          <div className="admin-form-group">
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <label className="admin-form-label">
+                                Deskripsi / Subtitle Slide
+                              </label>
+                              <span
+                                style={{
+                                  fontSize: '0.78rem',
+                                  color: '#64748b',
+                                }}
+                              >
+                                {(slide.subtitle || '').length}/150
+                              </span>
+                            </div>
+                            <textarea
+                              className="admin-form-control"
+                              rows="3"
+                              required
+                              maxLength={150}
+                              placeholder="Ketik deskripsi singkat slide di sini..."
+                              value={slide.subtitle}
+                              onChange={(e) =>
+                                handleSlideChange(
+                                  idx,
+                                  'subtitle',
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ marginTop: '2rem' }}>
+                <button
+                  type="submit"
+                  className="admin-btn admin-btn--primary"
+                  disabled={settingsSubmitting}
+                >
+                  {settingsSubmitting ? (
+                    <>
+                      <i className="fa-solid fa-spinner fa-spin" /> Menyimpan...
+                    </>
+                  ) : (
+                    'Simpan Semua Pengaturan Hero Banner'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* ── TAB 2: VISI MISI ── */}
+      {activeTab === 'visimisi' && (
+        <div className="admin-card">
+          <div className="admin-card__header">
+            <h2 className="admin-card__title">
+              <i className="fa-solid fa-bullseye" /> Pengaturan Pernyataan Visi
+              & Misi
+            </h2>
+          </div>
+          <div className="admin-card__body">
+            {settingsError && (
+              <div
+                className="admin-alert admin-alert--error"
+                style={{ marginBottom: '1.5rem' }}
+              >
+                <i className="fa-solid fa-circle-exclamation" />
+                <span>{settingsError}</span>
+              </div>
+            )}
+
+            {settingsSuccess && (
+              <div
+                className="admin-alert"
+                style={{
+                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                  color: '#10b981',
+                  border: '1px solid rgba(16, 185, 129, 0.15)',
+                  marginBottom: '1.5rem',
+                }}
+              >
+                <i className="fa-solid fa-circle-check" />
+                <span>{settingsSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSettingsSubmit}>
+              <div className="admin-form-group">
+                <label className="admin-form-label">Teks Visi Organisasi</label>
+                <textarea
+                  className="admin-form-control"
+                  rows="3"
+                  required
+                  value={settings.visiText}
+                  onChange={(e) =>
+                    setSettings({ ...settings, visiText: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="admin-form-group">
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  <label
+                    className="admin-form-label"
+                    style={{ marginBottom: 0 }}
+                  >
+                    Poin-Poin Misi Organisasi
+                  </label>
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn--outline admin-btn--sm"
+                    onClick={addMisiItem}
+                  >
+                    <i className="fa-solid fa-plus" /> Tambah Poin Misi
+                  </button>
+                </div>
+
+                {settings.misiList.map((misi, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      gap: '0.5rem',
+                      marginBottom: '0.5rem',
+                    }}
+                  >
+                    <input
+                      type="text"
+                      className="admin-form-control"
+                      required
+                      value={misi}
+                      onChange={(e) => handleMisiChange(idx, e.target.value)}
+                    />
+                    {settings.misiList.length > 1 && (
+                      <button
+                        type="button"
+                        className="admin-action-btn admin-action-btn--delete"
+                        style={{
+                          height: '40px',
+                          width: '40px',
+                          flexShrink: 0,
+                        }}
+                        onClick={() => removeMisiItem(idx)}
+                      >
+                        <i className="fa-solid fa-trash" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginTop: '2rem' }}>
+                <button
+                  type="submit"
+                  className="admin-btn admin-btn--primary"
+                  disabled={settingsSubmitting}
+                >
+                  {settingsSubmitting ? (
+                    <>
+                      <i className="fa-solid fa-spinner fa-spin" /> Menyimpan...
+                    </>
+                  ) : (
+                    'Simpan Visi & Misi'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB 3: CONTACT & FOOTER ── */}
+      {activeTab === 'contact' && (
+        <div className="admin-card">
+          <div className="admin-card__header">
+            <h2 className="admin-card__title">
+              <i className="fa-solid fa-address-book" /> Pengaturan Kontak &
+              Footer
+            </h2>
+          </div>
+          <div className="admin-card__body">
+            {settingsError && (
+              <div
+                className="admin-alert admin-alert--error"
+                style={{ marginBottom: '1.5rem' }}
+              >
+                <i className="fa-solid fa-circle-exclamation" />
+                <span>{settingsError}</span>
+              </div>
+            )}
+
+            {settingsSuccess && (
+              <div
+                className="admin-alert"
+                style={{
+                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                  color: '#10b981',
+                  border: '1px solid rgba(16, 185, 129, 0.15)',
+                  marginBottom: '1.5rem',
+                }}
+              >
+                <i className="fa-solid fa-circle-check" />
+                <span>{settingsSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSettingsSubmit}>
+              <div className="admin-form-group">
+                <label className="admin-form-label">
+                  Alamat Lengkap Sekretariat
+                </label>
+                <textarea
+                  className="admin-form-control"
+                  rows="3"
+                  required
+                  value={settings.address}
+                  onChange={(e) =>
+                    setSettings({ ...settings, address: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="admin-grid-2">
+                <div className="admin-form-group">
+                  <label className="admin-form-label">
+                    Nomor Telepon Kantor
+                  </label>
+                  <input
+                    type="text"
+                    className="admin-form-control"
+                    required
+                    value={settings.phone}
+                    onChange={(e) =>
+                      setSettings({ ...settings, phone: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div className="admin-form-group">
+                  <label className="admin-form-label">
+                    Nomor WhatsApp Call Center (Gunakan kode 62...)
+                  </label>
+                  <input
+                    type="text"
+                    className="admin-form-control"
+                    required
+                    placeholder="Contoh: 6281234567890"
+                    value={settings.whatsapp}
+                    onChange={(e) =>
+                      setSettings({ ...settings, whatsapp: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="admin-grid-2">
+                <div className="admin-form-group">
+                  <label className="admin-form-label">Alamat Email Resmi</label>
+                  <input
+                    type="email"
+                    className="admin-form-control"
+                    required
+                    value={settings.email}
+                    onChange={(e) =>
+                      setSettings({ ...settings, email: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div className="admin-form-group">
+                  <label className="admin-form-label">
+                    URL Embed Google Maps (Iframe Src)
+                  </label>
+                  <input
+                    type="text"
+                    className="admin-form-control"
+                    value={settings.mapsEmbedUrl}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        mapsEmbedUrl: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div
+                style={{
+                  marginTop: '1.5rem',
+                  borderTop: '1px solid #edf2f7',
+                  paddingTop: '1.5rem',
+                }}
+              >
+                <h3
+                  style={{
+                    fontSize: '1rem',
+                    fontWeight: '700',
+                    marginBottom: '1rem',
+                    color: 'var(--text-main)',
+                  }}
+                >
+                  Link Tautan Media Sosial
+                </h3>
+                <div className="admin-grid-2">
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">
+                      <i className="fa-brands fa-instagram" /> Instagram
+                    </label>
+                    <input
+                      type="text"
+                      className="admin-form-control"
+                      value={settings.socialInstagram}
+                      onChange={(e) =>
+                        setSettings({
+                          ...settings,
+                          socialInstagram: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label className="admin-form-label">
+                      <i className="fa-brands fa-facebook" /> Facebook
+                    </label>
+                    <input
+                      type="text"
+                      className="admin-form-control"
+                      value={settings.socialFacebook}
+                      onChange={(e) =>
+                        setSettings({
+                          ...settings,
+                          socialFacebook: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="admin-form-group" style={{ maxWidth: '500px' }}>
+                  <label className="admin-form-label">
+                    <i className="fa-brands fa-youtube" /> YouTube
+                  </label>
+                  <input
+                    type="text"
+                    className="admin-form-control"
+                    value={settings.socialYoutube}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        socialYoutube: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginTop: '2rem' }}>
+                <button
+                  type="submit"
+                  className="admin-btn admin-btn--primary"
+                  disabled={settingsSubmitting}
+                >
+                  {settingsSubmitting ? (
+                    <>
+                      <i className="fa-solid fa-spinner fa-spin" /> Menyimpan...
+                    </>
+                  ) : (
+                    'Simpan Kontak & Footer'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB 4: SECURITY (PASSWORD) ── */}
       {activeTab === 'security' && (
         <div
           className="admin-grid-2"
@@ -388,406 +1185,6 @@ const AdminSettingsPage = () => {
                 </li>
               </ul>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── TAB 2: CONTACT & FOOTER ── */}
-      {activeTab === 'contact' && (
-        <div className="admin-card">
-          <div className="admin-card__header">
-            <h2 className="admin-card__title">
-              <i className="fa-solid fa-address-book" /> Pengaturan Kontak &
-              Footer
-            </h2>
-          </div>
-          <div className="admin-card__body">
-            {settingsError && (
-              <div
-                className="admin-alert admin-alert--error"
-                style={{ marginBottom: '1.5rem' }}
-              >
-                <i className="fa-solid fa-circle-exclamation" />
-                <span>{settingsError}</span>
-              </div>
-            )}
-
-            {settingsSuccess && (
-              <div
-                className="admin-alert"
-                style={{
-                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                  color: '#10b981',
-                  border: '1px solid rgba(16, 185, 129, 0.15)',
-                  marginBottom: '1.5rem',
-                }}
-              >
-                <i className="fa-solid fa-circle-check" />
-                <span>{settingsSuccess}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSettingsSubmit}>
-              <div className="admin-form-group">
-                <label className="admin-form-label">
-                  Alamat Lengkap Sekretariat
-                </label>
-                <textarea
-                  className="admin-form-control"
-                  rows="3"
-                  required
-                  value={settings.address}
-                  onChange={(e) =>
-                    setSettings({ ...settings, address: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="admin-grid-2">
-                <div className="admin-form-group">
-                  <label className="admin-form-label">
-                    Nomor Telepon Kantor
-                  </label>
-                  <input
-                    type="text"
-                    className="admin-form-control"
-                    required
-                    value={settings.phone}
-                    onChange={(e) =>
-                      setSettings({ ...settings, phone: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div className="admin-form-group">
-                  <label className="admin-form-label">
-                    Nomor WhatsApp Call Center (Gunakan kode 62...)
-                  </label>
-                  <input
-                    type="text"
-                    className="admin-form-control"
-                    required
-                    placeholder="Contoh: 6281234567890"
-                    value={settings.whatsapp}
-                    onChange={(e) =>
-                      setSettings({ ...settings, whatsapp: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="admin-grid-2">
-                <div className="admin-form-group">
-                  <label className="admin-form-label">Alamat Email Resmi</label>
-                  <input
-                    type="email"
-                    className="admin-form-control"
-                    required
-                    value={settings.email}
-                    onChange={(e) =>
-                      setSettings({ ...settings, email: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div className="admin-form-group">
-                  <label className="admin-form-label">
-                    URL Embed Google Maps (Iframe Src)
-                  </label>
-                  <input
-                    type="text"
-                    className="admin-form-control"
-                    value={settings.mapsEmbedUrl}
-                    onChange={(e) =>
-                      setSettings({ ...settings, mapsEmbedUrl: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div
-                style={{
-                  marginTop: '1.5rem',
-                  borderTop: '1px solid #edf2f7',
-                  paddingTop: '1.5rem',
-                }}
-              >
-                <h3
-                  style={{
-                    fontSize: '1rem',
-                    fontWeight: '700',
-                    marginBottom: '1rem',
-                    color: 'var(--text-main)',
-                  }}
-                >
-                  Link Tautan Media Sosial
-                </h3>
-                <div className="admin-grid-2">
-                  <div className="admin-form-group">
-                    <label className="admin-form-label">
-                      <i className="fa-brands fa-instagram" /> Instagram
-                    </label>
-                    <input
-                      type="text"
-                      className="admin-form-control"
-                      value={settings.socialInstagram}
-                      onChange={(e) =>
-                        setSettings({
-                          ...settings,
-                          socialInstagram: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-
-                  <div className="admin-form-group">
-                    <label className="admin-form-label">
-                      <i className="fa-brands fa-facebook" /> Facebook
-                    </label>
-                    <input
-                      type="text"
-                      className="admin-form-control"
-                      value={settings.socialFacebook}
-                      onChange={(e) =>
-                        setSettings({
-                          ...settings,
-                          socialFacebook: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="admin-form-group" style={{ maxWidth: '500px' }}>
-                  <label className="admin-form-label">
-                    <i className="fa-brands fa-youtube" /> YouTube
-                  </label>
-                  <input
-                    type="text"
-                    className="admin-form-control"
-                    value={settings.socialYoutube}
-                    onChange={(e) =>
-                      setSettings({
-                        ...settings,
-                        socialYoutube: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div style={{ marginTop: '2rem' }}>
-                <button
-                  type="submit"
-                  className="admin-btn admin-btn--primary"
-                  disabled={settingsSubmitting}
-                >
-                  {settingsSubmitting ? (
-                    <>
-                      <i className="fa-solid fa-spinner fa-spin" /> Menyimpan...
-                    </>
-                  ) : (
-                    'Simpan Kontak & Footer'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ── TAB 3: HERO & VISI MISI ── */}
-      {activeTab === 'hero' && (
-        <div className="admin-card">
-          <div className="admin-card__header">
-            <h2 className="admin-card__title">
-              <i className="fa-solid fa-bullhorn" /> Pengaturan Konten Beranda &
-              Visi Misi
-            </h2>
-          </div>
-          <div className="admin-card__body">
-            {settingsError && (
-              <div
-                className="admin-alert admin-alert--error"
-                style={{ marginBottom: '1.5rem' }}
-              >
-                <i className="fa-solid fa-circle-exclamation" />
-                <span>{settingsError}</span>
-              </div>
-            )}
-
-            {settingsSuccess && (
-              <div
-                className="admin-alert"
-                style={{
-                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                  color: '#10b981',
-                  border: '1px solid rgba(16, 185, 129, 0.15)',
-                  marginBottom: '1.5rem',
-                }}
-              >
-                <i className="fa-solid fa-circle-check" />
-                <span>{settingsSuccess}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSettingsSubmit}>
-              <div className="admin-form-group">
-                <label className="admin-form-label">
-                  Judul Utama Banner Beranda (Hero Title)
-                </label>
-                <input
-                  type="text"
-                  className="admin-form-control"
-                  required
-                  value={settings.heroTitle}
-                  onChange={(e) =>
-                    setSettings({ ...settings, heroTitle: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="admin-form-group">
-                <label className="admin-form-label">
-                  Tagline / Subtitle Banner
-                </label>
-                <input
-                  type="text"
-                  className="admin-form-control"
-                  required
-                  value={settings.heroSubtitle}
-                  onChange={(e) =>
-                    setSettings({ ...settings, heroSubtitle: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="admin-form-group">
-                <label className="admin-form-label">
-                  Deskripsi Pengantar Utama Beranda
-                </label>
-                <textarea
-                  className="admin-form-control"
-                  rows="3"
-                  required
-                  value={settings.heroDescription}
-                  onChange={(e) =>
-                    setSettings({
-                      ...settings,
-                      heroDescription: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div
-                style={{
-                  marginTop: '1.5rem',
-                  borderTop: '1px solid #edf2f7',
-                  paddingTop: '1.5rem',
-                }}
-              >
-                <h3
-                  style={{
-                    fontSize: '1rem',
-                    fontWeight: '700',
-                    marginBottom: '1rem',
-                    color: 'var(--text-main)',
-                  }}
-                >
-                  Pernyataan Visi & Misi
-                </h3>
-
-                <div className="admin-form-group">
-                  <label className="admin-form-label">
-                    Teks Visi Organisasi
-                  </label>
-                  <textarea
-                    className="admin-form-control"
-                    rows="3"
-                    required
-                    value={settings.visiText}
-                    onChange={(e) =>
-                      setSettings({ ...settings, visiText: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div className="admin-form-group">
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: '0.5rem',
-                    }}
-                  >
-                    <label
-                      className="admin-form-label"
-                      style={{ marginBottom: 0 }}
-                    >
-                      Poin-Poin Misi Organisasi
-                    </label>
-                    <button
-                      type="button"
-                      className="admin-btn admin-btn--outline admin-btn--sm"
-                      onClick={addMisiItem}
-                    >
-                      <i className="fa-solid fa-plus" /> Tambah Poin Misi
-                    </button>
-                  </div>
-
-                  {settings.misiList.map((misi, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        display: 'flex',
-                        gap: '0.5rem',
-                        marginBottom: '0.5rem',
-                      }}
-                    >
-                      <input
-                        type="text"
-                        className="admin-form-control"
-                        required
-                        value={misi}
-                        onChange={(e) => handleMisiChange(idx, e.target.value)}
-                      />
-                      {settings.misiList.length > 1 && (
-                        <button
-                          type="button"
-                          className="admin-action-btn admin-action-btn--delete"
-                          style={{
-                            height: '40px',
-                            width: '40px',
-                            flexShrink: 0,
-                          }}
-                          onClick={() => removeMisiItem(idx)}
-                        >
-                          <i className="fa-solid fa-trash" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ marginTop: '2rem' }}>
-                <button
-                  type="submit"
-                  className="admin-btn admin-btn--primary"
-                  disabled={settingsSubmitting}
-                >
-                  {settingsSubmitting ? (
-                    <>
-                      <i className="fa-solid fa-spinner fa-spin" /> Menyimpan...
-                    </>
-                  ) : (
-                    'Simpan Beranda & Visi Misi'
-                  )}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
