@@ -14,6 +14,13 @@ const SiteSettingsSchema = new Schema(
       default:
         'Wadah pengembangan generasi muda Kelurahan Rawa Arum yang berkesadaran sosial, kreatif, inovatif, dan berdaya saing.',
     },
+    heroSlides: [
+      {
+        title: { type: String, default: '' },
+        subtitle: { type: String, default: '' },
+        image: { type: String, default: '' },
+      },
+    ],
 
     // Visi & Misi
     visiText: {
