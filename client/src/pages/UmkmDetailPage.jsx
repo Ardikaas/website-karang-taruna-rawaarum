@@ -560,7 +560,10 @@ const UmkmDetailPage = () => {
                   display: 'flex',
                   gap: '0.75rem',
                   overflowX: 'auto',
+                  maxWidth: '448px',
+                  width: '100%',
                   paddingBottom: '0.5rem',
+                  scrollbarWidth: 'thin',
                 }}
               >
                 {galleryImages.map((imgUrl, idx) => (
