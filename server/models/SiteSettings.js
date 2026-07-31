@@ -58,6 +58,20 @@ const SiteSettingsSchema = new Schema(
       type: String,
       default: 'https://youtube.com/@kartarrawaarum',
     },
+
+    // Pengumuman Ulang Tahun (Manual Admin Toggle)
+    birthdayAnnouncement: {
+      isActive: { type: Boolean, default: false },
+      name: { type: String, default: '' },
+      role: { type: String, default: '' },
+      photoUrl: { type: String, default: '' },
+      message: {
+        type: String,
+        default:
+          'Selamat Ulang Tahun! Semoga panjang umur, sehat selalu, dan semakin sukses.',
+      },
+      whatsapp: { type: String, default: '' },
+    },
   },
   { timestamps: true }
 );
