@@ -4,10 +4,22 @@ import {
   fetchSiteSettings,
   updateSiteSettings,
   uploadImage,
+  fetchPengurus,
 } from '../../services/api';
+import { getAvatarPhoto } from '../../constants/structureData';
+import { compressImageIfNeeded } from '../../utils/imageCompressor';
+
+const BIRTHDAY_TEMPLATE_MESSAGES = [
+  'Selamat Ulang Tahun! Semoga bertambahnya usia membawa keberkahan, kesehatan yang prima, serta kemudahan dalam setiap niat baik. Terima kasih atas dedikasi dan kontribusi nyata dalam memajukan pemuda Kelurahan Rawa Arum.',
+  'Barakallah fii umrik. Semoga Allah SWT senantiasa melimpahkan kesehatan, umur yang panjang dan penuh manfaat, serta melapangkan rezeki dan memberikan kemudahan dalam setiap karya dan pengabdian bagi masyarakat.',
+  'Selamat Ulang Tahun! Semoga senantiasa diberikan kekuatan, kebahagiaan, dan inspirasi dalam melangkah. Terima kasih atas semangat kebersamaan dan kepemimpinan yang senantiasa membawa Karang Taruna Rawa Arum menjadi lebih solid.',
+  'Selamat bertambah usia! Semoga panjang umur, sehat selalu, dan dipermudah segala langkah dalam meraih cita-cita. Semoga senantiasa menjadi pribadi yang menginspirasi dan membawa kemajuan bagi lingkungan Rawa Arum.',
+  'Selamat Ulang Tahun! Selamat merayakan bertambahnya usia dengan penuh rasa syukur. Semoga senantiasa dilimpahi kebahagiaan bersama keluarga tercinta dan terus bersemangat dalam menebar manfaat bagi sesama.',
+];
 
 const AdminSettingsPage = () => {
   const [activeTab, setActiveTab] = useState('hero'); // 'hero' | 'security' | 'contact' | 'visimisi'
+  const [pengurusList, setPengurusList] = useState([]);
 
   // ── Password Form State ──
   const [passForm, setPassForm] = useState({
@@ -38,6 +50,15 @@ const AdminSettingsPage = () => {
     socialInstagram: '',
     socialFacebook: '',
     socialYoutube: '',
+    birthdayAnnouncement: {
+      isActive: false,
+      name: '',
+      role: '',
+      photoUrl: '',
+      message:
+        'Selamat Ulang Tahun! Semoga bertambahnya usia membawa keberkahan dan kesehatan.',
+      whatsapp: '',
+    },
   });
 
   const [settingsLoading, setSettingsLoading] = useState(true);
@@ -45,13 +66,22 @@ const AdminSettingsPage = () => {
   const [settingsError, setSettingsError] = useState('');
   const [settingsSuccess, setSettingsSuccess] = useState('');
   const [uploadingSlideIdx, setUploadingSlideIdx] = useState(null);
+  const [uploadingBirthdayPhoto, setUploadingBirthdayPhoto] = useState(false);
 
-  // Load site settings on mount
+  // Load site settings & pengurus list on mount
   useEffect(() => {
     const loadSettings = async () => {
       try {
         setSettingsLoading(true);
-        const data = await fetchSiteSettings();
+        const [data, pengurusData] = await Promise.all([
+          fetchSiteSettings(),
+          fetchPengurus().catch(() => []),
+        ]);
+
+        if (Array.isArray(pengurusData)) {
+          setPengurusList(pengurusData);
+        }
+
         setSettings({
           heroTitle: data.heroTitle || '',
           heroSubtitle: data.heroSubtitle || '',
@@ -67,6 +97,15 @@ const AdminSettingsPage = () => {
           socialInstagram: data.socialInstagram || '',
           socialFacebook: data.socialFacebook || '',
           socialYoutube: data.socialYoutube || '',
+          birthdayAnnouncement: data.birthdayAnnouncement || {
+            isActive: false,
+            name: '',
+            role: '',
+            photoUrl: '',
+            message:
+              'Selamat Ulang Tahun! Semoga bertambahnya usia membawa keberkahan dan kesehatan.',
+            whatsapp: '',
+          },
         });
       } catch (_err) {
         setSettingsError('Gagal memuat pengaturan situs.');
@@ -115,6 +154,24 @@ const AdminSettingsPage = () => {
     e.preventDefault();
     setSettingsError('');
     setSettingsSuccess('');
+
+    // Validation for Birthday Announcement Tab
+    if (activeTab === 'birthday') {
+      const bday = settings.birthdayAnnouncement;
+      if (!bday?.name || bday.name.trim() === '') {
+        setSettingsError(
+          'Harap pilih Anggota Pengurus yang ulang tahun terlebih dahulu!'
+        );
+        return;
+      }
+      if (!bday?.message || bday.message.trim() === '') {
+        setSettingsError(
+          'Harap pilih Template Doa / Ucapan Ulang Tahun terlebih dahulu!'
+        );
+        return;
+      }
+    }
+
     setSettingsSubmitting(true);
 
     try {
@@ -206,6 +263,32 @@ const AdminSettingsPage = () => {
     setSettings({ ...settings, misiList: newList });
   };
 
+  const handleUploadBirthdayPhoto = async (e) => {
+    const rawFile = e.target.files[0];
+    if (!rawFile) return;
+
+    setUploadingBirthdayPhoto(true);
+    try {
+      const file = await compressImageIfNeeded(rawFile, 1.5);
+      const res = await uploadImage(file);
+      const uploadedUrl =
+        typeof res === 'string' ? res : res?.imageUrl || res?.url || '';
+      if (uploadedUrl) {
+        setSettings((prev) => ({
+          ...prev,
+          birthdayAnnouncement: {
+            ...prev.birthdayAnnouncement,
+            photoUrl: uploadedUrl,
+          },
+        }));
+      }
+    } catch (_err) {
+      setSettingsError('Gagal mengunggah foto ulang tahun.');
+    } finally {
+      setUploadingBirthdayPhoto(false);
+    }
+  };
+
   if (settingsLoading) {
     return (
       <div className="admin-loading-container">
@@ -222,7 +305,8 @@ const AdminSettingsPage = () => {
         <div>
           <h1 className="admin-page-title">Pengaturan Website & Akun</h1>
           <p className="admin-page-subtitle">
-            Kelola Hero Banner, konten utama beranda, kontak, dan keamanan akun.
+            Kelola Hero Banner, pengumuman ulang tahun, kontak, dan keamanan
+            akun.
           </p>
         </div>
       </div>
@@ -237,6 +321,16 @@ const AdminSettingsPage = () => {
           onClick={() => setActiveTab('hero')}
         >
           <i className="fa-solid fa-images" /> Menu Hero Banner
+        </button>
+        <button
+          className={`admin-tab-btn ${activeTab === 'birthday' ? 'active' : ''}`}
+          onClick={() => setActiveTab('birthday')}
+        >
+          <i
+            className="fa-solid fa-cake-candles"
+            style={{ color: '#f97316' }}
+          />{' '}
+          Pengumuman Ulang Tahun
         </button>
         <button
           className={`admin-tab-btn ${activeTab === 'visimisi' ? 'active' : ''}`}
@@ -643,6 +737,439 @@ const AdminSettingsPage = () => {
                     'Simpan Semua Pengaturan Hero Banner'
                   )}
                 </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* ── TAB: PENGUMUMAN ULANG TAHUN ── */}
+      {activeTab === 'birthday' && (
+        <form onSubmit={handleSettingsSubmit}>
+          <div className="admin-card" style={{ marginBottom: '1.5rem' }}>
+            <div className="admin-card__header">
+              <h2 className="admin-card__title">
+                <i
+                  className="fa-solid fa-cake-candles"
+                  style={{ color: '#f97316' }}
+                />{' '}
+                Pengaturan Pengumuman Ulang Tahun (Manual Admin)
+              </h2>
+            </div>
+            <div className="admin-card__body">
+              {settingsError && (
+                <div
+                  className="admin-alert admin-alert--error"
+                  style={{ marginBottom: '1.5rem' }}
+                >
+                  <i className="fa-solid fa-circle-exclamation" />
+                  <span>{settingsError}</span>
+                </div>
+              )}
+
+              {settingsSuccess && (
+                <div
+                  className="admin-alert admin-alert--success"
+                  style={{ marginBottom: '1.5rem' }}
+                >
+                  <i className="fa-solid fa-circle-check" />
+                  <span>{settingsSuccess}</span>
+                </div>
+              )}
+
+              {/* Status Switch Toggle (Modern iOS Pill Toggle) */}
+              <div
+                style={{
+                  background: settings.birthdayAnnouncement?.isActive
+                    ? '#f0fdf4'
+                    : '#f8fafc',
+                  border: `1px solid ${settings.birthdayAnnouncement?.isActive ? '#bbf7d0' : '#e2e8f0'}`,
+                  borderRadius: '14px',
+                  padding: '1.25rem 1.5rem',
+                  marginBottom: '1.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '1rem',
+                  flexWrap: 'wrap',
+                  transition: 'all 0.3s ease',
+                }}
+              >
+                <div>
+                  <strong
+                    style={{
+                      fontSize: '1.05rem',
+                      color: '#0f172a',
+                      display: 'block',
+                      marginBottom: '0.2rem',
+                    }}
+                  >
+                    Status Banner Ulang Tahun di Beranda
+                  </strong>
+                  <span
+                    style={{
+                      fontSize: '0.85rem',
+                      color: settings.birthdayAnnouncement?.isActive
+                        ? '#15803d'
+                        : '#64748b',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {settings.birthdayAnnouncement?.isActive
+                      ? 'BANNER AKTIF: Kartu ucapan ulang tahun sedang tampil di Beranda Publik.'
+                      : 'BANNER NONAKTIF: Kartu ucapan ulang tahun tersembunyi dari Beranda.'}
+                  </span>
+                </div>
+
+                <div
+                  onClick={() =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      birthdayAnnouncement: {
+                        ...prev.birthdayAnnouncement,
+                        isActive: !prev.birthdayAnnouncement?.isActive,
+                      },
+                    }))
+                  }
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.85rem',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    background: '#ffffff',
+                    padding: '0.5rem 0.85rem',
+                    borderRadius: '50px',
+                    border: '1px solid #cbd5e1',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '0.88rem',
+                      fontWeight: 800,
+                      color: settings.birthdayAnnouncement?.isActive
+                        ? '#16a34a'
+                        : '#64748b',
+                    }}
+                  >
+                    {settings.birthdayAnnouncement?.isActive
+                      ? 'Banner Aktif'
+                      : 'Banner Nonaktif'}
+                  </span>
+
+                  <div
+                    style={{
+                      width: '52px',
+                      height: '28px',
+                      borderRadius: '30px',
+                      background: settings.birthdayAnnouncement?.isActive
+                        ? '#16a34a'
+                        : '#cbd5e1',
+                      padding: '2px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      transition: 'all 0.3s ease',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        background: '#ffffff',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                        transform: settings.birthdayAnnouncement?.isActive
+                          ? 'translateX(24px)'
+                          : 'translateX(0px)',
+                        transition:
+                          'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Select Member & Template Bar */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '1.25rem',
+                  marginBottom: '1.5rem',
+                }}
+              >
+                <h4
+                  style={{
+                    fontSize: '0.95rem',
+                    fontWeight: 800,
+                    color: 'var(--primary-deep)',
+                    marginBottom: '0.85rem',
+                  }}
+                >
+                  <i
+                    className="fa-solid fa-bolt"
+                    style={{ color: '#f97316', marginRight: '6px' }}
+                  />{' '}
+                  Cepat: Pilih Pengurus / Anggota &amp; Template Ucapan
+                </h4>
+
+                <div className="admin-grid-2">
+                  <div className="admin-form-group" style={{ marginBottom: 0 }}>
+                    <label className="admin-form-label">
+                      Pilih Dari Daftar Pengurus Karang Taruna:
+                    </label>
+                    <select
+                      className="admin-form-control"
+                      onChange={(e) => {
+                        const selectedIdx = e.target.value;
+                        if (selectedIdx !== '') {
+                          const item = pengurusList[selectedIdx];
+                          if (item) {
+                            const photo =
+                              item.imageUrl ||
+                              item.photoUrl ||
+                              getAvatarPhoto(item.name);
+                            const roleText = item.role
+                              ? item.bidangTitle &&
+                                !item.role.includes(item.bidangTitle)
+                                ? `${item.role} - ${item.bidangTitle}`
+                                : item.role
+                              : item.bidangTitle || 'Pengurus Karang Taruna';
+
+                            setSettings((prev) => ({
+                              ...prev,
+                              birthdayAnnouncement: {
+                                ...prev.birthdayAnnouncement,
+                                name: item.name,
+                                role: roleText,
+                                photoUrl: photo,
+                                whatsapp:
+                                  item.whatsapp ||
+                                  prev.birthdayAnnouncement?.whatsapp ||
+                                  '',
+                              },
+                            }));
+                          }
+                        }
+                      }}
+                      defaultValue=""
+                    >
+                      <option value="">
+                        {pengurusList.length > 0
+                          ? `-- Pilih Anggota Pengurus (${pengurusList.length} Orang Terdaftar) --`
+                          : '-- Memuat Daftar Pengurus... --'}
+                      </option>
+                      {pengurusList.map((item, idx) => {
+                        const roleLabel = item.bidangTitle
+                          ? `${item.role || 'Anggota'} - ${item.bidangTitle}`
+                          : item.role || 'Pengurus';
+                        return (
+                          <option key={item._id || idx} value={idx}>
+                            {item.name} ({roleLabel})
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  <div className="admin-form-group" style={{ marginBottom: 0 }}>
+                    <label className="admin-form-label">
+                      Pilih Template Doa / Ucapan Ulang Tahun:
+                    </label>
+                    <select
+                      className="admin-form-control"
+                      onChange={(e) => {
+                        const selectedMsg = e.target.value;
+                        if (selectedMsg) {
+                          setSettings((prev) => ({
+                            ...prev,
+                            birthdayAnnouncement: {
+                              ...prev.birthdayAnnouncement,
+                              message: selectedMsg,
+                            },
+                          }));
+                        }
+                      }}
+                      defaultValue=""
+                    >
+                      <option value="">-- Pilih Template Ucapan --</option>
+                      {BIRTHDAY_TEMPLATE_MESSAGES.map((msg, idx) => (
+                        <option key={idx} value={msg}>
+                          Template {idx + 1}: "{msg.substring(0, 45)}..."
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Live Preview Card of Selected Birthday Announcement */}
+              {settings.birthdayAnnouncement?.name && (
+                <div
+                  style={{
+                    background:
+                      'linear-gradient(135deg, #ffffff 0%, #fff7ed 100%)',
+                    border: '2px solid rgba(249, 115, 22, 0.25)',
+                    borderRadius: '16px',
+                    padding: '1.25rem 1.5rem',
+                    marginBottom: '1.5rem',
+                    boxShadow: '0 4px 15px rgba(249, 115, 22, 0.06)',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      color: '#ea580c',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      marginBottom: '0.85rem',
+                    }}
+                  >
+                    <i
+                      className="fa-solid fa-eye"
+                      style={{ marginRight: '6px' }}
+                    />{' '}
+                    Preview Tampilan Beranda:
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '1.25rem',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <img
+                      src={
+                        settings.birthdayAnnouncement?.photoUrl ||
+                        '/assets/potensi_umkm.png'
+                      }
+                      alt={settings.birthdayAnnouncement?.name}
+                      style={{
+                        maxWidth: '100px',
+                        maxHeight: '120px',
+                        width: 'auto',
+                        height: 'auto',
+                        borderRadius: '12px',
+                        objectFit: 'contain',
+                        border: '2px solid #ffffff',
+                        boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+                      }}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = '/assets/potensi_umkm.png';
+                      }}
+                    />
+
+                    <div style={{ flex: 1 }}>
+                      <h4
+                        style={{
+                          fontSize: '1.15rem',
+                          fontWeight: 900,
+                          color: '#0f172a',
+                          margin: '0 0 0.2rem 0',
+                        }}
+                      >
+                        {settings.birthdayAnnouncement?.name}
+                      </h4>
+                      <p
+                        style={{
+                          fontSize: '0.85rem',
+                          fontWeight: 700,
+                          color: '#64748b',
+                          margin: '0 0 0.5rem 0',
+                        }}
+                      >
+                        {settings.birthdayAnnouncement?.role}
+                      </p>
+                      <p
+                        style={{
+                          fontSize: '0.88rem',
+                          color: '#334155',
+                          fontStyle: 'italic',
+                          margin: 0,
+                          background: '#fff',
+                          padding: '0.5rem 0.75rem',
+                          borderRadius: '8px',
+                          borderLeft: '3px solid #f97316',
+                        }}
+                      >
+                        "
+                        {settings.birthdayAnnouncement?.message ||
+                          'Selamat Ulang Tahun!'}
+                        "
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div
+                style={{
+                  marginTop: '1.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <button
+                  type="submit"
+                  className="admin-btn admin-btn--primary"
+                  disabled={
+                    settingsSubmitting ||
+                    !settings.birthdayAnnouncement?.name ||
+                    !settings.birthdayAnnouncement?.message
+                  }
+                  style={{
+                    opacity:
+                      !settings.birthdayAnnouncement?.name ||
+                      !settings.birthdayAnnouncement?.message
+                        ? 0.55
+                        : 1,
+                    cursor:
+                      !settings.birthdayAnnouncement?.name ||
+                      !settings.birthdayAnnouncement?.message
+                        ? 'not-allowed'
+                        : 'pointer',
+                  }}
+                >
+                  {settingsSubmitting ? (
+                    <>
+                      <i className="fa-solid fa-spinner fa-spin" /> Menyimpan...
+                    </>
+                  ) : (
+                    <>
+                      <i
+                        className="fa-solid fa-floppy-disk"
+                        style={{ marginRight: '6px' }}
+                      />
+                      Simpan Pengumuman Ulang Tahun
+                    </>
+                  )}
+                </button>
+
+                {(!settings.birthdayAnnouncement?.name ||
+                  !settings.birthdayAnnouncement?.message) && (
+                  <span
+                    style={{
+                      fontSize: '0.82rem',
+                      color: '#ef4444',
+                      fontWeight: 600,
+                    }}
+                  >
+                    <i
+                      className="fa-solid fa-circle-exclamation"
+                      style={{ marginRight: '4px' }}
+                    />
+                    Pilih Anggota &amp; Template Ucapan di atas terlebih dahulu
+                    untuk menyimpan.
+                  </span>
+                )}
               </div>
             </div>
           </div>

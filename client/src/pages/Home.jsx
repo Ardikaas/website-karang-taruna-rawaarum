@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 import Hero from '../components/Hero';
+import VideoBanner from '../components/VideoBanner';
+import BirthdayBanner from '../components/BirthdayBanner';
 import Pilars from '../components/Pilars';
 import VisiMisi from '../components/VisiMisi';
 import Struktur from '../components/Struktur';
@@ -11,7 +13,7 @@ import Kemitraan from '../components/Kemitraan';
 import InfoCard from '../components/InfoCard';
 
 import { HERO_SLIDES } from '../constants/mockData';
-import { fetchRecentItems } from '../services/api';
+import { fetchRecentItems, fetchSiteSettings } from '../services/api';
 
 const SLIDE_INTERVAL_MS = 6000;
 
@@ -19,6 +21,7 @@ const Home = ({ onOpenRegModal }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const slideInterval = useRef(null);
   const [recentItems, setRecentItems] = useState([]);
+  const [siteSettings, setSiteSettings] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,15 +30,24 @@ const Home = ({ onOpenRegModal }) => {
       setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
     }, SLIDE_INTERVAL_MS);
 
-    // Fetch recent info items for preview section
-    const loadRecentItems = async () => {
+    // Fetch recent info items and site settings for preview section
+    const loadHomeData = async () => {
       setLoading(true);
-      const items = await fetchRecentItems();
-      setRecentItems(items);
-      setLoading(false);
+      try {
+        const [items, settings] = await Promise.all([
+          fetchRecentItems(),
+          fetchSiteSettings(),
+        ]);
+        setRecentItems(items);
+        setSiteSettings(settings);
+      } catch (_err) {
+        // Fallback gracefully on API error
+      } finally {
+        setLoading(false);
+      }
     };
 
-    loadRecentItems();
+    loadHomeData();
 
     return () => {
       if (slideInterval.current) clearInterval(slideInterval.current);
@@ -57,6 +69,11 @@ const Home = ({ onOpenRegModal }) => {
         slides={HERO_SLIDES}
         onDotClick={handleDotClick}
       />
+      <VideoBanner />
+
+      {/* Birthday Announcement Banner (Placed Directly Below Video Banner) */}
+      <BirthdayBanner data={siteSettings?.birthdayAnnouncement} />
+
       <Pilars onOpenRegModal={onOpenRegModal} />
       <VisiMisi />
       <Struktur />
