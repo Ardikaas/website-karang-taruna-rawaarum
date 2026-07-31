@@ -41,6 +41,133 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/program', programRoutes);
 app.use('/api/partner', partnerRoutes);
 
+// --------------- Models for Dynamic Social Media OG Preview ---------------
+const Umkm = require('./models/Umkm');
+const InfoItem = require('./models/InfoItem');
+
+const stripHtml = (html = '') => {
+  return (html || '')
+    .replace(/<[^>]*>?/gm, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+const getAbsoluteImageUrl = (imgPath) => {
+  if (!imgPath)
+    return 'https://tunasarum.devlabfortirta.my.id/assets/hero_banner.png';
+  if (imgPath.startsWith('http://') || imgPath.startsWith('https://'))
+    return imgPath;
+  const cleanPath = imgPath.startsWith('/') ? imgPath : `/${imgPath}`;
+  return `https://tunasarum.devlabfortirta.my.id${cleanPath}`;
+};
+
+// --------------- Dynamic Open Graph Preview Routes ---------------
+
+// Dynamic UMKM Open Graph Link Preview (WhatsApp, Telegram, Facebook, Twitter, Discord, Slack, etc.)
+app.get(['/umkm/:id', '/umkm/:slug/:id'], async (req, res, next) => {
+  try {
+    const umkmId = req.params.id;
+    const item = await Umkm.findById(umkmId);
+    if (!item) return next();
+
+    const title = `${item.title} - UMKM Rawa Arum`;
+    const description =
+      stripHtml(item.description).substring(0, 160) ||
+      'Showcase UMKM Kelurahan Rawa Arum, Kec. Grogol, Kota Cilegon.';
+    const rawImage =
+      item.imageUrl || (Array.isArray(item.images) && item.images[0]);
+    const imageUrl = getAbsoluteImageUrl(rawImage);
+    const slug = req.params.slug || 'detail';
+    const pageUrl = `https://tunasarum.devlabfortirta.my.id/umkm/${slug}/${umkmId}`;
+
+    res.send(`<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <meta name="description" content="${description}">
+
+    <!-- Open Graph / WhatsApp / Facebook / Telegram / LinkedIn / Discord -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="${pageUrl}">
+    <meta property="og:title" content="${title}">
+    <meta property="og:description" content="${description}">
+    <meta property="og:image" content="${imageUrl}">
+    <meta property="og:image:secure_url" content="${imageUrl}">
+    <meta property="og:site_name" content="Karang Taruna Rawa Arum">
+    <meta property="og:locale" content="id_ID">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="${pageUrl}">
+    <meta name="twitter:title" content="${title}">
+    <meta name="twitter:description" content="${description}">
+    <meta name="twitter:image" content="${imageUrl}">
+
+    <meta http-equiv="refresh" content="0;url=${pageUrl}">
+  </head>
+  <body>
+    <h1>${title}</h1>
+    <p>${description}</p>
+    <a href="${pageUrl}">Buka Halaman UMKM Karang Taruna Rawa Arum</a>
+  </body>
+</html>`);
+  } catch (_err) {
+    next();
+  }
+});
+
+// Dynamic News / Informasi / Loker Open Graph Link Preview
+app.get(['/informasi/:id', '/info/:id'], async (req, res, next) => {
+  try {
+    const infoId = req.params.id;
+    const item = await InfoItem.findById(infoId);
+    if (!item) return next();
+
+    const title = `${item.title} - Kabar Rawa Arum`;
+    const description =
+      stripHtml(item.description).substring(0, 160) ||
+      'Informasi resmi Karang Taruna Kelurahan Rawa Arum, Kec. Grogol, Kota Cilegon.';
+    const imageUrl = getAbsoluteImageUrl(item.imageUrl);
+    const pageUrl = `https://tunasarum.devlabfortirta.my.id/informasi/${infoId}`;
+
+    res.send(`<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <meta name="description" content="${description}">
+
+    <!-- Open Graph / WhatsApp / Facebook / Telegram / LinkedIn / Discord -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="${pageUrl}">
+    <meta property="og:title" content="${title}">
+    <meta property="og:description" content="${description}">
+    <meta property="og:image" content="${imageUrl}">
+    <meta property="og:image:secure_url" content="${imageUrl}">
+    <meta property="og:site_name" content="Karang Taruna Rawa Arum">
+    <meta property="og:locale" content="id_ID">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="${pageUrl}">
+    <meta name="twitter:title" content="${title}">
+    <meta name="twitter:description" content="${description}">
+    <meta name="twitter:image" content="${imageUrl}">
+
+    <meta http-equiv="refresh" content="0;url=${pageUrl}">
+  </head>
+  <body>
+    <h1>${title}</h1>
+    <p>${description}</p>
+    <a href="${pageUrl}">Buka Informasi Karang Taruna Rawa Arum</a>
+  </body>
+</html>`);
+  } catch (_err) {
+    next();
+  }
+});
+
 // --------------- Health & Index ---------------
 app.get('/', (_req, res) => {
   res.json({ message: 'Welcome to the Karangtaruna Rawa Arum Modular API' });
