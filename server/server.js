@@ -54,11 +54,19 @@ const stripHtml = (html = '') => {
 
 const getAbsoluteImageUrl = (imgPath) => {
   if (!imgPath)
-    return 'https://tunasarum.devlabfortirta.my.id/assets/hero_banner.png';
+    return 'https://tunasarum.devlabfortirta.my.id/assets/karang-taruna-seeklogo.png';
   if (imgPath.startsWith('http://') || imgPath.startsWith('https://'))
     return imgPath;
-  const cleanPath = imgPath.startsWith('/') ? imgPath : `/${imgPath}`;
-  return `https://tunasarum.devlabfortirta.my.id${cleanPath}`;
+
+  let formatted = (imgPath || '').trim();
+  if (!formatted.startsWith('/uploads/') && !formatted.startsWith('/assets/')) {
+    if (formatted.startsWith('uploads/')) formatted = `/${formatted}`;
+    else if (formatted.startsWith('/')) formatted = `/uploads${formatted}`;
+    else formatted = `/uploads/${formatted}`;
+  }
+
+  if (!formatted.startsWith('/')) formatted = `/${formatted}`;
+  return `https://tunasarum.devlabfortirta.my.id${formatted}`;
 };
 
 // --------------- Dynamic Open Graph Preview Routes ---------------
