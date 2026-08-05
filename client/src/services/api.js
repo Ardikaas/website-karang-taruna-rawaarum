@@ -1197,3 +1197,50 @@ export const fetchUserActivityLogs = async () => {
     return [];
   }
 };
+
+// --------------- Contact Messages / Pesan Masuk ---------------
+
+export const sendContactMessage = async (payload) => {
+  const res = await fetch(`${API_BASE}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Gagal mengirim pesan.');
+  return data;
+};
+
+export const fetchContactMessages = async (statusFilter = 'all') => {
+  try {
+    const url =
+      statusFilter && statusFilter !== 'all'
+        ? `${API_BASE}/messages?status=${statusFilter}`
+        : `${API_BASE}/messages`;
+    const res = await fetchWithAuth(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  } catch (_err) {
+    console.warn('API offline (fetchContactMessages). Using empty array.');
+    return [];
+  }
+};
+
+export const updateMessageStatus = async (id, status) => {
+  const res = await fetchWithAuth(`${API_BASE}/messages/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Gagal memperbarui status pesan.');
+  return data;
+};
+
+export const deleteContactMessage = async (id) => {
+  const res = await fetchWithAuth(`${API_BASE}/messages/${id}`, {
+    method: 'DELETE',
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Gagal menghapus pesan.');
+  return data;
+};

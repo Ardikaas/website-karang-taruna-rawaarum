@@ -55,6 +55,9 @@ const createInfoItem = async (req, res) => {
       imageUrl,
       badge,
       linkText,
+      contactType,
+      contactUrl,
+      whatsappText,
       categoryType,
       address,
       whatsapp,
@@ -89,6 +92,9 @@ const createInfoItem = async (req, res) => {
       imageUrl,
       badge,
       linkText,
+      contactType: contactType || 'default',
+      contactUrl: contactUrl || '',
+      whatsappText: whatsappText || '',
       createdBy: req.user ? req.user.id : null,
       categoryType: categoryType || 'produk',
       address: address || '',
@@ -121,6 +127,9 @@ const updateInfoItem = async (req, res) => {
       imageUrl,
       badge,
       linkText,
+      contactType,
+      contactUrl,
+      whatsappText,
       categoryType,
       address,
       whatsapp,
@@ -170,6 +179,9 @@ const updateInfoItem = async (req, res) => {
       linkText,
     };
 
+    if (contactType !== undefined) updatePayload.contactType = contactType;
+    if (contactUrl !== undefined) updatePayload.contactUrl = contactUrl;
+    if (whatsappText !== undefined) updatePayload.whatsappText = whatsappText;
     if (categoryType !== undefined) updatePayload.categoryType = categoryType;
     if (address !== undefined) updatePayload.address = address;
     if (whatsapp !== undefined) updatePayload.whatsapp = whatsapp;

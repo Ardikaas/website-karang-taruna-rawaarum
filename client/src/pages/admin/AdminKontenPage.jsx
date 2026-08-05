@@ -14,8 +14,12 @@ const INITIAL_FORM = {
   type: 'kegiatan',
   customType: '',
   imageUrl: '',
+  images: [],
   badge: '',
   linkText: 'Lihat Detail',
+  contactType: 'default',
+  contactUrl: '',
+  whatsappText: '',
   categoryType: 'produk',
   address: '',
   whatsapp: '',
@@ -218,7 +222,6 @@ const AdminKontenPage = () => {
 
   // Image Uploading States
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [showManualUrl, setShowManualUrl] = useState(false);
 
   // Delete State
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
@@ -258,8 +261,12 @@ const AdminKontenPage = () => {
       type: isStandardType ? item.type : 'kustom',
       customType: isStandardType ? '' : item.type,
       imageUrl: item.imageUrl,
+      images: Array.isArray(item.images) ? [...item.images] : [],
       badge: item.badge,
       linkText: item.linkText || 'Lihat Detail',
+      contactType: item.contactType || (item.whatsapp ? 'whatsapp' : 'default'),
+      contactUrl: item.contactUrl || '',
+      whatsappText: item.whatsappText || '',
       categoryType: item.categoryType || 'produk',
       address: item.address || '',
       whatsapp: item.whatsapp || '',
@@ -292,6 +299,29 @@ const AdminKontenPage = () => {
     }
   };
 
+  const handleMultipleImagesUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    setUploadingImage(true);
+    setFormError('');
+
+    try {
+      const uploadPromises = files.map((file) => uploadImage(file));
+      const results = await Promise.all(uploadPromises);
+      const newUrls = results.map((r) => r.imageUrl);
+
+      setForm((prevForm) => ({
+        ...prevForm,
+        images: [...(prevForm.images || []), ...newUrls],
+      }));
+    } catch (err) {
+      setFormError(err.message || 'Gagal mengupload beberapa gambar galeri.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
@@ -306,6 +336,7 @@ const AdminKontenPage = () => {
     const payload = {
       ...form,
       type: form.type.toLowerCase(),
+      images: Array.isArray(form.images) ? form.images : [],
     };
 
     // Set default illustration if custom image url is empty
@@ -1036,6 +1067,157 @@ const AdminKontenPage = () => {
                 </div>
               </div>
 
+              {/* 3b. Galeri Multi-Foto Tambahan */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '12px',
+                  padding: '1.25rem',
+                  marginBottom: '1.25rem',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  <label
+                    className="admin-form-label"
+                    style={{
+                      fontWeight: 700,
+                      color: 'var(--primary-deep)',
+                      margin: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <i
+                      className="fa-solid fa-images"
+                      style={{ color: 'var(--accent)' }}
+                    />
+                    Galeri Foto Tambahan ({(form.images || []).length} Foto)
+                  </label>
+                </div>
+                <p
+                  style={{
+                    fontSize: '0.85rem',
+                    color: '#64748b',
+                    marginTop: 0,
+                    marginBottom: '1rem',
+                  }}
+                >
+                  Tambahkan beberapa foto pendukung. Foto akan tampil sebagai
+                  tayangan slider interaktif yang berputar otomatis di halaman
+                  detail.
+                </p>
+
+                {/* Multi Upload Input */}
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '0.75rem',
+                    marginBottom: '1rem',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <label
+                    className="admin-btn admin-btn--outline"
+                    style={{
+                      cursor: 'pointer',
+                      padding: '0.55rem 1rem',
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    <i
+                      className="fa-solid fa-cloud-arrow-up"
+                      style={{ marginRight: '6px' }}
+                    />
+                    Upload Beberapa Foto Sekaligus
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleMultipleImagesUpload}
+                      style={{ display: 'none' }}
+                      disabled={uploadingImage}
+                    />
+                  </label>
+                </div>
+
+                {/* Gallery Thumbnails List */}
+                {form.images && form.images.length > 0 && (
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns:
+                        'repeat(auto-fill, minmax(90px, 1fr))',
+                      gap: '0.75rem',
+                      marginTop: '0.75rem',
+                    }}
+                  >
+                    {form.images.map((url, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          position: 'relative',
+                          height: '75px',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          border: '1px solid #cbd5e1',
+                          background: '#fff',
+                        }}
+                      >
+                        <img
+                          src={url}
+                          alt={`Foto ${idx + 1}`}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                          }}
+                          onError={(e) => {
+                            e.target.src = '/assets/info_kegiatan.png';
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              images: prev.images.filter((_, i) => i !== idx),
+                            }))
+                          }
+                          style={{
+                            position: 'absolute',
+                            top: '4px',
+                            right: '4px',
+                            width: '22px',
+                            height: '22px',
+                            borderRadius: '50%',
+                            background: 'rgba(239, 68, 68, 0.9)',
+                            border: 'none',
+                            color: '#fff',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.7rem',
+                          }}
+                          title="Hapus foto dari galeri"
+                        >
+                          <i className="fa-solid fa-trash" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* 4. Deskripsi Lengkap / Rincian */}
               <div
                 className="admin-form-group"
@@ -1057,6 +1239,229 @@ const AdminKontenPage = () => {
                   onChange={(val) => setForm({ ...form, description: val })}
                   placeholder="Tuliskan berita lengkap, syarat loker, atau rincian kegiatan..."
                 />
+              </div>
+
+              {/* 5. Kustomisasi Tombol "Hubungi Kami" */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '12px',
+                  padding: '1.25rem',
+                  marginBottom: '1.5rem',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '0.5rem',
+                  }}
+                >
+                  <i
+                    className="fa-solid fa-headset"
+                    style={{ color: 'var(--accent)', fontSize: '1.1rem' }}
+                  />
+                  <h4
+                    style={{
+                      margin: 0,
+                      fontWeight: 800,
+                      color: 'var(--primary-deep)',
+                      fontSize: '1rem',
+                    }}
+                  >
+                    Kustomisasi Tombol "Hubungi Kami"
+                  </h4>
+                </div>
+                <p
+                  style={{
+                    fontSize: '0.85rem',
+                    color: '#64748b',
+                    marginTop: 0,
+                    marginBottom: '1rem',
+                  }}
+                >
+                  Tentukan aksi tombol "Hubungi Kami" pada halaman detail konten
+                  ini (WhatsApp langsung, link web/form kustom, atau halaman
+                  kontak website).
+                </p>
+
+                <div
+                  className="admin-form-group"
+                  style={{ marginBottom: '1rem' }}
+                >
+                  <label
+                    className="admin-form-label"
+                    style={{
+                      fontWeight: 700,
+                      color: 'var(--primary-deep)',
+                      marginBottom: '0.4rem',
+                      display: 'block',
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    Tipe Tujuan Kontak
+                  </label>
+                  <select
+                    className="admin-form-control"
+                    value={form.contactType}
+                    onChange={(e) =>
+                      setForm({ ...form, contactType: e.target.value })
+                    }
+                    style={{ borderRadius: '8px', padding: '0.6rem 0.9rem' }}
+                  >
+                    <option value="default">
+                      Halaman Kontak Website (Default /kontak)
+                    </option>
+                    <option value="whatsapp">
+                      WhatsApp Langsung (Nomor & Template Chat)
+                    </option>
+                    <option value="link">
+                      Link Web / Form Kustom (URL Luar)
+                    </option>
+                  </select>
+                </div>
+
+                {form.contactType === 'whatsapp' && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '1rem',
+                      background: '#fff',
+                      padding: '1rem',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                    }}
+                  >
+                    <div className="admin-form-group">
+                      <label
+                        className="admin-form-label"
+                        style={{
+                          fontWeight: 700,
+                          fontSize: '0.85rem',
+                          marginBottom: '0.3rem',
+                          display: 'block',
+                        }}
+                      >
+                        Nomor WhatsApp (Contoh: 081234567890)
+                      </label>
+                      <input
+                        type="text"
+                        className="admin-form-control"
+                        placeholder="Contoh: 081234567890"
+                        value={form.whatsapp}
+                        onChange={(e) =>
+                          setForm({ ...form, whatsapp: e.target.value })
+                        }
+                        style={{
+                          borderRadius: '8px',
+                          padding: '0.55rem 0.8rem',
+                        }}
+                      />
+                      <span
+                        style={{
+                          fontSize: '0.75rem',
+                          color: '#64748b',
+                          marginTop: '4px',
+                          display: 'block',
+                        }}
+                      >
+                        Kosongkan jika ingin menggunakan nomor WhatsApp utama
+                        Karang Taruna Rawa Arum.
+                      </span>
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label
+                        className="admin-form-label"
+                        style={{
+                          fontWeight: 700,
+                          fontSize: '0.85rem',
+                          marginBottom: '0.3rem',
+                          display: 'block',
+                        }}
+                      >
+                        Template Chat WhatsApp
+                      </label>
+                      <textarea
+                        className="admin-form-control"
+                        rows={3}
+                        placeholder="Halo Admin Karang Taruna Rawa Arum, saya mau bertanya mengenai: {title}"
+                        value={form.whatsappText}
+                        onChange={(e) =>
+                          setForm({ ...form, whatsappText: e.target.value })
+                        }
+                        style={{
+                          borderRadius: '8px',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                        }}
+                      />
+                      <span
+                        style={{
+                          fontSize: '0.75rem',
+                          color: '#64748b',
+                          marginTop: '4px',
+                          display: 'block',
+                        }}
+                      >
+                        Gunakan tag <code>{'{title}'}</code> untuk menyisipkan
+                        judul konten ini secara otomatis.
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {form.contactType === 'link' && (
+                  <div
+                    style={{
+                      background: '#fff',
+                      padding: '1rem',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                    }}
+                  >
+                    <div className="admin-form-group">
+                      <label
+                        className="admin-form-label"
+                        style={{
+                          fontWeight: 700,
+                          fontSize: '0.85rem',
+                          marginBottom: '0.3rem',
+                          display: 'block',
+                        }}
+                      >
+                        Tautan Link Tujuan (URL Kustom)
+                      </label>
+                      <input
+                        type="url"
+                        className="admin-form-control"
+                        placeholder="https://forms.google.com/..."
+                        value={form.contactUrl}
+                        onChange={(e) =>
+                          setForm({ ...form, contactUrl: e.target.value })
+                        }
+                        style={{
+                          borderRadius: '8px',
+                          padding: '0.55rem 0.8rem',
+                        }}
+                      />
+                      <span
+                        style={{
+                          fontSize: '0.75rem',
+                          color: '#64748b',
+                          marginTop: '4px',
+                          display: 'block',
+                        }}
+                      >
+                        Pengunjung akan diarahkan ke URL ini saat menekan tombol
+                        "Hubungi Kami".
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Modal Action Buttons */}
