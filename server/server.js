@@ -19,6 +19,7 @@ const settingsRoutes = require('./routes/settings.routes');
 const programRoutes = require('./routes/program.routes');
 const partnerRoutes = require('./routes/partner.routes');
 const umkmRoutes = require('./routes/umkm.routes');
+const messageRoutes = require('./routes/message.routes');
 const path = require('path');
 
 const app = express();
@@ -40,6 +41,7 @@ app.use('/api/pengurus', pengurusRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/program', programRoutes);
 app.use('/api/partner', partnerRoutes);
+app.use('/api/messages', messageRoutes);
 
 // --------------- Models for Dynamic Social Media OG Preview ---------------
 const Umkm = require('./models/Umkm');

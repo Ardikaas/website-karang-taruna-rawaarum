@@ -34,6 +34,7 @@ import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminPengurusPage from './pages/admin/AdminPengurusPage';
 import AdminProgramPage from './pages/admin/AdminProgramPage';
 import AdminPartnerPage from './pages/admin/AdminPartnerPage';
+import AdminPesanPage from './pages/admin/AdminPesanPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminLayout from './components/AdminLayout';
 import { AuthProvider } from './context/AuthContext';
@@ -222,6 +223,18 @@ const App = () => {
             }
           />
           <Route
+            path="/pengurus/pesan"
+            element={
+              <ProtectedRoute
+                allowedRoles={['superadmin', 'admin', 'pengurus']}
+              >
+                <AdminLayout>
+                  <AdminPesanPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin"
             element={<Navigate to="/admin/dashboard" replace />}
           />
@@ -255,6 +268,18 @@ const App = () => {
               >
                 <AdminLayout>
                   <AdminUmkmPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/pesan"
+            element={
+              <ProtectedRoute
+                allowedRoles={['superadmin', 'admin', 'pengurus']}
+              >
+                <AdminLayout>
+                  <AdminPesanPage />
                 </AdminLayout>
               </ProtectedRoute>
             }
