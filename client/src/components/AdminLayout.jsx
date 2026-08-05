@@ -40,6 +40,7 @@ const ALL_NAV_ITEMS = [
     label: 'Kemitraan',
     roles: ['superadmin', 'admin'],
   },
+  /*
   {
     to: '/admin/anggota',
     icon: 'fa-users',
@@ -51,6 +52,13 @@ const ALL_NAV_ITEMS = [
     icon: 'fa-envelope-open-text',
     label: 'Subscriber',
     roles: ['superadmin', 'admin'],
+  },
+  */
+  {
+    to: '/admin/pesan',
+    icon: 'fa-inbox',
+    label: 'Pesan Masuk',
+    roles: ['superadmin', 'admin', 'pengurus'],
   },
   {
     to: '/admin/pengurus',

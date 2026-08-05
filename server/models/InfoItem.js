@@ -15,6 +15,15 @@ const InfoItemSchema = new Schema(
     linkText: { type: String, default: 'Lihat Selengkapnya' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
 
+    // Custom Action Button & Contact Link Configuration
+    contactType: {
+      type: String,
+      enum: ['default', 'whatsapp', 'link'],
+      default: 'default',
+    },
+    contactUrl: { type: String, default: '' },
+    whatsappText: { type: String, default: '' },
+
     // UMKM Specific Fields (Optional)
     categoryType: {
       type: String,

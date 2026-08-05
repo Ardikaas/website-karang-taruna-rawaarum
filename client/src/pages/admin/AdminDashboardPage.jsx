@@ -117,6 +117,7 @@ const AdminDashboardPage = () => {
           </div>
         </div>
 
+        {/* Disabled for now (Anggota & Subscriber)
         <div className="admin-stat-card">
           <div
             className="admin-stat-card__icon-wrapper"
@@ -150,6 +151,7 @@ const AdminDashboardPage = () => {
             </div>
           </div>
         </div>
+        */}
       </div>
 
       {/* Three Column Layout for Recent Activity */}
