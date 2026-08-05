@@ -11,7 +11,7 @@ const DEFAULT_PROGRAMS = [
     target: '50+ Pelaku UMKM & Pemuda Kreatif',
     status: 'Sedang Berjalan',
     icon: 'fa-chart-line',
-    year: '2024',
+    year: '2026',
   },
   {
     _id: 'p2',
@@ -22,7 +22,7 @@ const DEFAULT_PROGRAMS = [
     target: 'Seluruh RW di Kelurahan Rawa Arum',
     status: 'Selesai',
     icon: 'fa-chalkboard-user',
-    year: '2025',
+    year: '2027',
   },
   {
     _id: 'p3',
@@ -33,7 +33,7 @@ const DEFAULT_PROGRAMS = [
     target: '200+ Pemuda & Remaja Rawa Arum',
     status: 'Terencana',
     icon: 'fa-shapes',
-    year: '2026',
+    year: '2028',
   },
   {
     _id: 'p4',
@@ -44,7 +44,7 @@ const DEFAULT_PROGRAMS = [
     target: 'Pencari Kerja Rawa Arum',
     status: 'Sedang Berjalan',
     icon: 'fa-book-open',
-    year: '2027',
+    year: '2029',
   },
 ];
 
@@ -72,7 +72,7 @@ const Roadmap = () => {
     if (item.year) return item.year;
     if (item.status && /^\d{4}$/.test(item.status.trim()))
       return item.status.trim();
-    return String(2024 + idx);
+    return String(2026 + idx);
   };
 
   return (

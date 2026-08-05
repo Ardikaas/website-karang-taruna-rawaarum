@@ -20,6 +20,48 @@ const InfoDetailPage = () => {
   const [notFound, setNotFound] = useState(false);
   const [previewDoc, setPreviewDoc] = useState(null);
 
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+  const [firstAspect, setFirstAspect] = useState(null);
+
+  // Construct images gallery array (imageUrl + images[])
+  const gallery = [];
+  if (item?.imageUrl) {
+    gallery.push(item.imageUrl);
+  }
+  if (Array.isArray(item?.images)) {
+    item.images.forEach((img) => {
+      if (img && !gallery.includes(img)) {
+        gallery.push(img);
+      }
+    });
+  }
+
+  // Preload 1st image to derive its natural aspect ratio
+  useEffect(() => {
+    if (gallery.length > 0 && gallery[0]) {
+      const firstUrl = formatImageUrl(gallery[0]);
+      const img = new Image();
+      img.src = firstUrl;
+      img.onload = () => {
+        if (img.naturalWidth && img.naturalHeight) {
+          setFirstAspect(img.naturalWidth / img.naturalHeight);
+        }
+      };
+    }
+  }, [gallery[0]]);
+
+  // Auto-slide effect (3.5 sec looping interval)
+  useEffect(() => {
+    if (gallery.length <= 1 || isHovered) return;
+
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % gallery.length);
+    }, 3500);
+
+    return () => clearInterval(timer);
+  }, [gallery.length, isHovered]);
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -83,6 +125,45 @@ const InfoDetailPage = () => {
       return 'warning';
     }
     return '';
+  };
+
+  const getContactConfig = () => {
+    if (!item) return { isExternal: false, url: '/kontak', isWa: false };
+
+    const type = item.contactType || (item.whatsapp ? 'whatsapp' : 'default');
+
+    if (type === 'whatsapp') {
+      const rawWa = item.whatsapp || '6281234567890';
+      const cleanNum = rawWa.replace(/[^0-9]/g, '');
+      const formattedNum = cleanNum.startsWith('0')
+        ? '62' + cleanNum.slice(1)
+        : cleanNum;
+
+      const rawTemplate =
+        item.whatsappText ||
+        'Halo Admin Karang Taruna Rawa Arum, saya mau bertanya mengenai: {title}';
+      const filledText = rawTemplate.replace('{title}', item.title || '');
+
+      return {
+        isExternal: true,
+        url: `https://wa.me/${formattedNum}?text=${encodeURIComponent(filledText)}`,
+        isWa: true,
+      };
+    }
+
+    if (type === 'link' && item.contactUrl) {
+      return {
+        isExternal: true,
+        url: item.contactUrl,
+        isWa: false,
+      };
+    }
+
+    return {
+      isExternal: false,
+      url: '/kontak',
+      isWa: false,
+    };
   };
 
   if (loading) {
@@ -293,59 +374,231 @@ const InfoDetailPage = () => {
             {item.title}
           </h1>
 
-          {/* Featured Image */}
-          {item.imageUrl && (
-            <div
-              onClick={() =>
-                setPreviewDoc({
-                  title: item.title,
-                  fileUrl: formatImageUrl(item.imageUrl),
-                })
-              }
-              title="Klik untuk memperbesar gambar"
-              style={{
-                position: 'relative',
-                width: '100%',
-                borderRadius: 'calc(var(--radius-md) - 4px)',
-                overflow: 'hidden',
-                marginBottom: '2rem',
-                backgroundColor: '#ffffff',
-                boxShadow: 'var(--shadow-sm)',
-                cursor: 'pointer',
-              }}
-            >
-              <img
-                src={formatImageUrl(item.imageUrl)}
-                alt={item.title}
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  display: 'block',
-                }}
-              />
+          {/* Featured Image & Auto-Sliding Carousel */}
+          {gallery.length > 0 && (
+            <div style={{ marginBottom: '2rem' }}>
               <div
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                onClick={() =>
+                  setPreviewDoc({
+                    title: `${item.title} (Foto ${currentSlide + 1}/${gallery.length})`,
+                    fileUrl: formatImageUrl(gallery[currentSlide]),
+                  })
+                }
+                title="Klik untuk memperbesar foto dalam tampilan Lightbox"
                 style={{
-                  position: 'absolute',
-                  bottom: '12px',
-                  right: '12px',
-                  background: 'rgba(15, 23, 42, 0.75)',
-                  backdropFilter: 'blur(4px)',
-                  color: '#ffffff',
-                  padding: '4px 10px',
-                  borderRadius: '20px',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  zIndex: 4,
-                  pointerEvents: 'none',
+                  position: 'relative',
+                  width: '100%',
+                  height: '460px',
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  backgroundColor: '#ffffff',
+                  boxShadow: 'var(--shadow-sm)',
+                  border: '1px solid #e2e8f0',
+                  cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '5px',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                  justifyContent: 'center',
                 }}
               >
-                <i className="fa-solid fa-magnifying-glass-plus" />
-                <span>Klik untuk memperbesar</span>
+                {/* Active Image */}
+                <img
+                  src={formatImageUrl(gallery[currentSlide])}
+                  alt={`${item.title} - ${currentSlide + 1}`}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: currentSlide === 0 ? 'cover' : 'contain',
+                    display: 'block',
+                    transition: 'all 0.3s ease-in-out',
+                  }}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = '/assets/info_kegiatan.png';
+                  }}
+                />
+
+                {/* Navigation Arrow Controls (for multi-image) */}
+                {gallery.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentSlide(
+                          (prev) => (prev - 1 + gallery.length) % gallery.length
+                        );
+                      }}
+                      style={{
+                        position: 'absolute',
+                        left: '14px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        backdropFilter: 'blur(4px)',
+                        color: 'var(--primary-deep)',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '50%',
+                        width: '42px',
+                        height: '42px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        zIndex: 10,
+                        fontSize: '1.1rem',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                      }}
+                      title="Foto Sebelumnya"
+                    >
+                      <i className="fa-solid fa-chevron-left" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCurrentSlide((prev) => (prev + 1) % gallery.length);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: '14px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        backdropFilter: 'blur(4px)',
+                        color: 'var(--primary-deep)',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '50%',
+                        width: '42px',
+                        height: '42px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        zIndex: 10,
+                        fontSize: '1.1rem',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                      }}
+                      title="Foto Selanjutnya"
+                    >
+                      <i className="fa-solid fa-chevron-right" />
+                    </button>
+                  </>
+                )}
+
+                {/* Lightbox Badge indicator on image */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '12px',
+                    right: '12px',
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    backdropFilter: 'blur(4px)',
+                    color: '#ffffff',
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    zIndex: 4,
+                    pointerEvents: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <i className="fa-solid fa-magnifying-glass-plus" />
+                  {gallery.length > 1
+                    ? `${currentSlide + 1} / ${gallery.length} (Klik untuk Perbesar)`
+                    : 'Klik untuk Perbesar'}
+                </div>
+
+                {/* Looping slide dots */}
+                {gallery.length > 1 && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '14px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      display: 'flex',
+                      gap: '6px',
+                      zIndex: 5,
+                    }}
+                  >
+                    {gallery.map((_, idx) => (
+                      <span
+                        key={idx}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCurrentSlide(idx);
+                        }}
+                        style={{
+                          width: currentSlide === idx ? '20px' : '8px',
+                          height: '8px',
+                          borderRadius: '4px',
+                          background:
+                            currentSlide === idx
+                              ? 'var(--accent)'
+                              : 'rgba(255, 255, 255, 0.6)',
+                          transition: 'all 0.3s ease',
+                          cursor: 'pointer',
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {/* Thumbnails strip below main slider */}
+              {gallery.length > 1 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '0.75rem',
+                    marginTop: '0.85rem',
+                    overflowX: 'auto',
+                    paddingBottom: '0.5rem',
+                  }}
+                >
+                  {gallery.map((url, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => setCurrentSlide(idx)}
+                      style={{
+                        position: 'relative',
+                        width: '75px',
+                        height: '55px',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        border:
+                          currentSlide === idx
+                            ? '2px solid var(--accent)'
+                            : '2px solid #cbd5e1',
+                        opacity: currentSlide === idx ? 1 : 0.6,
+                        transition: 'all 0.2s ease',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <img
+                        src={formatImageUrl(url)}
+                        alt={`Thumb ${idx + 1}`}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = '/assets/info_kegiatan.png';
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -391,21 +644,48 @@ const InfoDetailPage = () => {
               </button>
             </div>
 
-            <Link
-              to="/kontak"
-              className="btn btn-primary"
-              style={{
-                borderRadius: '50px',
-                padding: '0.55rem 1.5rem',
-                fontSize: '0.85rem',
-              }}
-            >
-              Hubungi Kami{' '}
-              <i
-                className="fa-solid fa-arrow-right-long"
-                style={{ marginLeft: '6px' }}
-              />
-            </Link>
+            {(() => {
+              const contactConfig = getContactConfig();
+              return contactConfig.isExternal ? (
+                <a
+                  href={contactConfig.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary"
+                  style={{
+                    borderRadius: '50px',
+                    padding: '0.55rem 1.5rem',
+                    fontSize: '0.85rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  {contactConfig.isWa && (
+                    <i
+                      className="fa-brands fa-whatsapp"
+                      style={{ fontSize: '1rem' }}
+                    />
+                  )}
+                  Hubungi Kami <i className="fa-solid fa-arrow-right-long" />
+                </a>
+              ) : (
+                <Link
+                  to={contactConfig.url}
+                  className="btn btn-primary"
+                  style={{
+                    borderRadius: '50px',
+                    padding: '0.55rem 1.5rem',
+                    fontSize: '0.85rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  Hubungi Kami <i className="fa-solid fa-arrow-right-long" />
+                </Link>
+              );
+            })()}
           </div>
         </article>
 

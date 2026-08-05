@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { fetchSiteSettings } from '../services/api';
+import { fetchSiteSettings, sendContactMessage } from '../services/api';
 
 const KontakPage = () => {
   const [settings, setSettings] = useState(null);
@@ -24,6 +24,7 @@ const KontakPage = () => {
 
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -33,9 +34,10 @@ const KontakPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+    setErrorMessage('');
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await sendContactMessage(formData);
       setSuccess(true);
       setFormData({
         name: '',
@@ -44,8 +46,10 @@ const KontakPage = () => {
         subject: 'Kemitraan & Sponsorship',
         message: '',
       });
-    } catch (_err) {
-      // Handled
+    } catch (err) {
+      setErrorMessage(
+        err.message || 'Gagal mengirim pesan. Silakan coba lagi.'
+      );
     } finally {
       setSubmitting(false);
     }
@@ -160,6 +164,25 @@ const KontakPage = () => {
                 </div>
               ) : (
                 <form className="premium-contact-form" onSubmit={handleSubmit}>
+                  {errorMessage && (
+                    <div
+                      style={{
+                        padding: '0.75rem 1rem',
+                        background: '#fef2f2',
+                        border: '1px solid #fca5a5',
+                        borderRadius: '8px',
+                        color: '#991b1b',
+                        fontSize: '0.85rem',
+                        marginBottom: '1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <i className="fa-solid fa-triangle-exclamation" />
+                      <span>{errorMessage}</span>
+                    </div>
+                  )}
                   <div className="form-row-2">
                     <div className="form-group-premium">
                       <label htmlFor="name">Nama Lengkap</label>
