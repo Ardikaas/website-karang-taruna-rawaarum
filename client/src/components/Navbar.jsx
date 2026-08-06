@@ -52,7 +52,6 @@ const Navbar = ({
             >
               <i className="fa-solid fa-xmark" />
             </button>
-
             <a
               href="/#home"
               className={`nav-link ${activeSection === 'home' ? 'active' : ''}`}
