@@ -40,6 +40,7 @@ const ALL_NAV_ITEMS = [
     label: 'Kemitraan',
     roles: ['superadmin', 'admin'],
   },
+  /*
   {
     to: '/admin/keuangan',
     icon: 'fa-wallet',
