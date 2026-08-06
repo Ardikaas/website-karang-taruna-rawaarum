@@ -12,6 +12,8 @@ import {
   MOCK_KEGIATAN,
   MOCK_PENGUMUMAN,
   MOCK_RECENT_ITEMS,
+  MOCK_FINANCE_TRANSACTIONS,
+  MOCK_FINANCE_SUMMARY,
 } from '../constants/mockData';
 import { structureData } from '../constants/structureData';
 import { compressImageIfNeeded } from '../utils/imageCompressor';
@@ -1242,5 +1244,86 @@ export const deleteContactMessage = async (id) => {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Gagal menghapus pesan.');
+  return data;
+};
+
+// --------------- Transparansi Keuangan ---------------
+
+export const fetchFinanceTransactions = async (params = {}) => {
+  try {
+    const query = new URLSearchParams();
+    if (params.type && params.type !== 'all') query.append('type', params.type);
+    if (params.category && params.category !== 'all')
+      query.append('category', params.category);
+    if (params.search) query.append('search', params.search);
+
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    const res = await fetch(`${API_BASE}/finance${queryString}`);
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (_err) {
+    console.warn(
+      'API offline (fetchFinanceTransactions). Using fallback data.'
+    );
+    let data = [...MOCK_FINANCE_TRANSACTIONS];
+    if (params.type && params.type !== 'all') {
+      data = data.filter((item) => item.type === params.type);
+    }
+    if (params.category && params.category !== 'all') {
+      data = data.filter((item) => item.category === params.category);
+    }
+    if (params.search) {
+      const q = params.search.toLowerCase();
+      data = data.filter(
+        (item) =>
+          item.title.toLowerCase().includes(q) ||
+          item.description.toLowerCase().includes(q) ||
+          item.category.toLowerCase().includes(q)
+      );
+    }
+    return data;
+  }
+};
+
+export const fetchFinanceSummary = async () => {
+  try {
+    const res = await fetch(`${API_BASE}/finance/summary`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (_err) {
+    console.warn('API offline (fetchFinanceSummary). Using fallback summary.');
+    return MOCK_FINANCE_SUMMARY;
+  }
+};
+
+export const createFinanceTransaction = async (payload) => {
+  const res = await fetchWithAuth(`${API_BASE}/finance`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok)
+    throw new Error(data.error || 'Gagal menambahkan transaksi kas.');
+  return data;
+};
+
+export const updateFinanceTransaction = async (id, payload) => {
+  const res = await fetchWithAuth(`${API_BASE}/finance/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok)
+    throw new Error(data.error || 'Gagal memperbarui transaksi kas.');
+  return data;
+};
+
+export const deleteFinanceTransaction = async (id) => {
+  const res = await fetchWithAuth(`${API_BASE}/finance/${id}`, {
+    method: 'DELETE',
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Gagal menghapus transaksi kas.');
   return data;
 };
