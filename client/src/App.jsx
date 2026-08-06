@@ -22,12 +22,14 @@ import KontakPage from './pages/KontakPage';
 import ProgramPage from './pages/ProgramPage';
 import LoginPage from './pages/LoginPage';
 import InfoDetailPage from './pages/InfoDetailPage';
+import KeuanganPage from './pages/KeuanganPage';
 import PengurusProfilePage from './pages/pengurus/PengurusProfilePage';
 
 // Admin Pages & Layout
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminKontenPage from './pages/admin/AdminKontenPage';
 import AdminUmkmPage from './pages/admin/AdminUmkmPage';
+import AdminKeuanganPage from './pages/admin/AdminKeuanganPage';
 import AdminAnggotaPage from './pages/admin/AdminAnggotaPage';
 import AdminSubscriberPage from './pages/admin/AdminSubscriberPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
@@ -175,6 +177,7 @@ const App = () => {
           <Route path="/struktur" element={<StrukturPage />} />
           <Route path="/kemitraan" element={<KemitraanPage />} />
           <Route path="/kontak" element={<KontakPage />} />
+          <Route path="/keuangan" element={<KeuanganPage />} />
 
           {/* Auth & Pengurus Routes */}
           <Route path="/login" element={<LoginPage />} />
@@ -235,6 +238,18 @@ const App = () => {
             }
           />
           <Route
+            path="/pengurus/keuangan"
+            element={
+              <ProtectedRoute
+                allowedRoles={['superadmin', 'admin', 'pengurus']}
+              >
+                <AdminLayout>
+                  <AdminKeuanganPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin"
             element={<Navigate to="/admin/dashboard" replace />}
           />
@@ -280,6 +295,18 @@ const App = () => {
               >
                 <AdminLayout>
                   <AdminPesanPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/keuangan"
+            element={
+              <ProtectedRoute
+                allowedRoles={['superadmin', 'admin', 'pengurus']}
+              >
+                <AdminLayout>
+                  <AdminKeuanganPage />
                 </AdminLayout>
               </ProtectedRoute>
             }

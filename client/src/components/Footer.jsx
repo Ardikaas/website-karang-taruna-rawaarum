@@ -98,6 +98,9 @@ const Footer = ({
             <li>
               <Link to="/umkm">Katalog UMKM</Link>
             </li>
+            <li>
+              <Link to="/keuangan">Transparansi Keuangan</Link>
+            </li>
           </ul>
         </div>
 

@@ -44,6 +44,14 @@ const Navbar = ({
 
           {/* Nav Menu */}
           <nav className={`nav-menu ${mobileMenuOpen ? 'active' : ''}`}>
+            <button
+              type="button"
+              className="mobile-close-btn"
+              onClick={closeAll}
+              aria-label="Tutup Menu Navigasi"
+            >
+              <i className="fa-solid fa-xmark" />
+            </button>
             <a
               href="/#home"
               className={`nav-link ${activeSection === 'home' ? 'active' : ''}`}
@@ -121,6 +129,9 @@ const Navbar = ({
                 </Link>
                 <Link to="/umkm" onClick={closeAll}>
                   Showcase UMKM
+                </Link>
+                <Link to="/keuangan" onClick={closeAll}>
+                  Transparansi Keuangan
                 </Link>
               </div>
             </div>

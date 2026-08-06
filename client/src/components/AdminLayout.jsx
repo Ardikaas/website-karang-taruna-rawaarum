@@ -40,6 +40,12 @@ const ALL_NAV_ITEMS = [
     label: 'Kemitraan',
     roles: ['superadmin', 'admin'],
   },
+  {
+    to: '/admin/keuangan',
+    icon: 'fa-wallet',
+    label: 'Keuangan Kas',
+    roles: ['superadmin', 'admin', 'pengurus'],
+  },
   /*
   {
     to: '/admin/anggota',
@@ -140,6 +146,14 @@ const AdminLayout = ({ children }) => {
             </div>
             <div className="admin-sidebar__brand-sub">Karang Taruna</div>
           </div>
+          <button
+            type="button"
+            className="admin-sidebar__close-btn"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Tutup Sidebar"
+          >
+            <i className="fa-solid fa-xmark" />
+          </button>
         </div>
 
         <nav className="admin-sidebar__nav">
