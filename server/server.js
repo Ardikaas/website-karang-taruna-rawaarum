@@ -20,9 +20,13 @@ const programRoutes = require('./routes/program.routes');
 const partnerRoutes = require('./routes/partner.routes');
 const umkmRoutes = require('./routes/umkm.routes');
 const messageRoutes = require('./routes/message.routes');
+const financeRoutes = require('./routes/finance.routes');
 const path = require('path');
 
 const app = express();
+
+// --------------- Database Connection ---------------
+connectDB();
 
 // --------------- Middleware ---------------
 app.use(cors());
@@ -42,6 +46,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/program', programRoutes);
 app.use('/api/partner', partnerRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/finance', financeRoutes);
 
 // --------------- Models for Dynamic Social Media OG Preview ---------------
 const Umkm = require('./models/Umkm');
