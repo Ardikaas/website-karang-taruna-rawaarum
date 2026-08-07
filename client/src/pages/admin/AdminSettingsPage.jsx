@@ -5,9 +5,42 @@ import {
   updateSiteSettings,
   uploadImage,
   fetchPengurus,
+  fetchAllAchievements,
+  createAchievement,
+  updateAchievement,
+  toggleAchievementStatus,
+  deleteAchievement,
 } from '../../services/api';
 import { getAvatarPhoto } from '../../constants/structureData';
 import { compressImageIfNeeded } from '../../utils/imageCompressor';
+
+const ACH_CATEGORY_OPTIONS = [
+  {
+    value: 'pendidikan',
+    label: 'Pendidikan & Wisuda',
+    icon: 'fa-solid fa-graduation-cap',
+  },
+  {
+    value: 'akademik',
+    label: 'Akademik & Sidang Skripsi',
+    icon: 'fa-solid fa-book-open',
+  },
+  {
+    value: 'pernikahan',
+    label: 'Pernikahan & Momen Spesial',
+    icon: 'fa-solid fa-ring',
+  },
+  {
+    value: 'prestasi',
+    label: 'Prestasi & Kejuaraan',
+    icon: 'fa-solid fa-trophy',
+  },
+  {
+    value: 'lainnya',
+    label: 'Apresiasi Spesial',
+    icon: 'fa-solid fa-star',
+  },
+];
 
 const BIRTHDAY_TEMPLATE_MESSAGES = [
   'Selamat Ulang Tahun! Semoga bertambahnya usia membawa keberkahan, kesehatan yang prima, serta kemudahan dalam setiap niat baik. Terima kasih atas dedikasi dan kontribusi nyata dalam memajukan pemuda Kelurahan Rawa Arum.',
@@ -18,8 +51,113 @@ const BIRTHDAY_TEMPLATE_MESSAGES = [
 ];
 
 const AdminSettingsPage = () => {
-  const [activeTab, setActiveTab] = useState('hero'); // 'hero' | 'security' | 'contact' | 'visimisi'
+  const [activeTab, setActiveTab] = useState('hero'); // 'hero' | 'birthday' | 'apresiasi' | 'visimisi' | 'contact' | 'security'
   const [pengurusList, setPengurusList] = useState([]);
+
+  // ── Apresiasi Anggota State ──
+  const [achievements, setAchievements] = useState([]);
+  const [achLoading, setAchLoading] = useState(false);
+  const [achModalOpen, setAchModalOpen] = useState(false);
+  const [editingAch, setEditingAch] = useState(null);
+  const [achSubmitting, setAchSubmitting] = useState(false);
+  const [achUploading, setAchUploading] = useState(false);
+
+  const [achForm, setAchForm] = useState({
+    memberName: '',
+    title: '',
+    category: 'prestasi',
+    message: '',
+    imageUrl: '',
+    date: '',
+    whatsapp: '',
+    isActive: true,
+  });
+
+  const loadAchievements = async () => {
+    try {
+      setAchLoading(true);
+      const data = await fetchAllAchievements();
+      setAchievements(data || []);
+    } catch (_err) {
+      // quiet fallback
+    } finally {
+      setAchLoading(false);
+    }
+  };
+
+  const handleOpenAddAchModal = () => {
+    setEditingAch(null);
+    setAchForm({
+      memberName: '',
+      title: '',
+      category: 'prestasi',
+      message: '',
+      imageUrl: '',
+      date: new Date().toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }),
+      whatsapp: '',
+      isActive: true,
+    });
+    setAchModalOpen(true);
+  };
+
+  const handleOpenEditAchModal = (item) => {
+    setEditingAch(item);
+    setAchForm({
+      memberName: item.memberName || '',
+      title: item.title || '',
+      category: item.category || 'prestasi',
+      message: item.message || '',
+      imageUrl: item.imageUrl || '',
+      date: item.date || '',
+      whatsapp: item.whatsapp || '',
+      isActive: item.isActive !== undefined ? item.isActive : true,
+    });
+    setAchModalOpen(true);
+  };
+
+  const handleAchImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setAchUploading(true);
+      const compressedFile = await compressImageIfNeeded(file);
+      const res = await uploadImage(compressedFile);
+      const url = res.url || res.fileUrl || res.imageUrl || res.path || '';
+      setAchForm((prev) => ({ ...prev, imageUrl: url }));
+    } catch (err) {
+      alert(err.message || 'Gagal mengunggah foto apresiasi.');
+    } finally {
+      setAchUploading(false);
+    }
+  };
+
+  const handleAchSubmit = async (e) => {
+    e.preventDefault();
+    if (!achForm.memberName.trim() || !achForm.title.trim()) {
+      alert('Nama anggota dan judul pencapaian wajib diisi.');
+      return;
+    }
+
+    try {
+      setAchSubmitting(true);
+      if (editingAch) {
+        await updateAchievement(editingAch._id, achForm);
+      } else {
+        await createAchievement(achForm);
+      }
+      setAchModalOpen(false);
+      await loadAchievements();
+    } catch (err) {
+      alert(err.message || 'Gagal menyimpan apresiasi.');
+    } finally {
+      setAchSubmitting(false);
+    }
+  };
 
   // ── Password Form State ──
   const [passForm, setPassForm] = useState({
@@ -115,6 +253,7 @@ const AdminSettingsPage = () => {
     };
 
     loadSettings();
+    loadAchievements();
   }, []);
 
   // ── Handle Password Submission ──
@@ -331,6 +470,13 @@ const AdminSettingsPage = () => {
             style={{ color: '#f97316' }}
           />{' '}
           Pengumuman Ulang Tahun
+        </button>
+        <button
+          className={`admin-tab-btn ${activeTab === 'apresiasi' ? 'active' : ''}`}
+          onClick={() => setActiveTab('apresiasi')}
+        >
+          <i className="fa-solid fa-trophy" style={{ color: '#f59e0b' }} />{' '}
+          Apresiasi Anggota
         </button>
         <button
           className={`admin-tab-btn ${activeTab === 'visimisi' ? 'active' : ''}`}
@@ -1713,6 +1859,500 @@ const AdminSettingsPage = () => {
               </ul>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── TAB: APRESIASI ANGGOTA ── */}
+      {activeTab === 'apresiasi' && (
+        <div>
+          <div className="admin-card">
+            <div
+              className="admin-card__header"
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '1rem',
+              }}
+            >
+              <div>
+                <h2 className="admin-card__title">
+                  <i
+                    className="fa-solid fa-trophy"
+                    style={{ color: '#f59e0b' }}
+                  />{' '}
+                  Apresiasi & Banner Pencapaian Anggota
+                </h2>
+                <p
+                  style={{
+                    fontSize: '0.83rem',
+                    color: '#64748b',
+                    margin: '4px 0 0',
+                  }}
+                >
+                  Kelola kartu ucapan apresiasi atas pencapaian anggota (Wisuda,
+                  Sidang Skripsi, Pernikahan, Rangking, dsb.).
+                </p>
+              </div>
+              <button
+                className="admin-btn admin-btn--primary"
+                onClick={handleOpenAddAchModal}
+              >
+                <i className="fa-solid fa-plus" /> Tambah Apresiasi
+              </button>
+            </div>
+
+            <div className="admin-card__body">
+              {achLoading ? (
+                <div className="admin-loading-container">
+                  <i className="fa-solid fa-spinner fa-spin admin-spinner" />
+                  <p>Memuat data apresiasi anggota...</p>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns:
+                      'repeat(auto-fill, minmax(280px, 1fr))',
+                    gap: '1.25rem',
+                  }}
+                >
+                  {/* Dashed "+ Tambah Apresiasi Baru" Card */}
+                  <div
+                    onClick={handleOpenAddAchModal}
+                    style={{
+                      border: '2px dashed #cbd5e1',
+                      borderRadius: 'var(--radius-md)',
+                      minHeight: '230px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      backgroundColor: '#f8fafc',
+                      transition: 'all 0.2s ease',
+                      padding: '1.5rem',
+                      textAlign: 'center',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#3b82f6';
+                      e.currentTarget.style.backgroundColor =
+                        'rgba(59, 130, 246, 0.04)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#cbd5e1';
+                      e.currentTarget.style.backgroundColor = '#f8fafc';
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        color: '#3b82f6',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.25rem',
+                        marginBottom: '0.75rem',
+                      }}
+                    >
+                      <i className="fa-solid fa-plus" />
+                    </div>
+                    <h4
+                      style={{
+                        margin: 0,
+                        fontSize: '0.95rem',
+                        fontWeight: 800,
+                        color: '#1e293b',
+                      }}
+                    >
+                      + Tambah Apresiasi Baru
+                    </h4>
+                    <p
+                      style={{
+                        margin: '4px 0 0',
+                        fontSize: '0.78rem',
+                        color: '#64748b',
+                      }}
+                    >
+                      Klik di sini untuk menambah kartu pencapaian anggota baru.
+                    </p>
+                  </div>
+
+                  {/* Existing Achievement Cards */}
+                  {(Array.isArray(achievements) ? achievements : []).map(
+                    (item) => {
+                      const catObj = ACH_CATEGORY_OPTIONS.find(
+                        (c) => c.value === item.category
+                      );
+
+                      return (
+                        <div
+                          key={item._id}
+                          style={{
+                            backgroundColor: '#ffffff',
+                            borderRadius: 'var(--radius-md)',
+                            border: '1px solid #e2e8f0',
+                            overflow: 'hidden',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                          }}
+                        >
+                          <div
+                            style={{
+                              position: 'relative',
+                              height: '140px',
+                              backgroundColor: '#0f172a',
+                            }}
+                          >
+                            <img
+                              src={item.imageUrl || '/assets/potensi_umkm.png'}
+                              alt={item.memberName}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                              }}
+                              onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src =
+                                  '/assets/potensi_umkm.png';
+                              }}
+                            />
+                            <span
+                              style={{
+                                position: 'absolute',
+                                top: '0.5rem',
+                                right: '0.5rem',
+                                padding: '0.2rem 0.6rem',
+                                borderRadius: '50px',
+                                fontSize: '0.7rem',
+                                fontWeight: 800,
+                                backgroundColor: item.isActive
+                                  ? 'rgba(16, 185, 129, 0.95)'
+                                  : 'rgba(239, 68, 68, 0.95)',
+                                color: '#ffffff',
+                              }}
+                            >
+                              {item.isActive ? '● Aktif' : '○ Nonaktif'}
+                            </span>
+                          </div>
+
+                          <div
+                            style={{
+                              padding: '1rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              flexGrow: 1,
+                            }}
+                          >
+                            <h4
+                              style={{
+                                fontSize: '0.95rem',
+                                fontWeight: 900,
+                                color: 'var(--primary-deep)',
+                                margin: '0 0 0.25rem',
+                                lineHeight: 1.3,
+                              }}
+                            >
+                              {item.title}
+                            </h4>
+
+                            <div
+                              style={{
+                                fontSize: '0.82rem',
+                                fontWeight: 800,
+                                color: '#0ea5e9',
+                                marginBottom: '0.5rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                              }}
+                            >
+                              <i className="fa-solid fa-user-check" />{' '}
+                              {item.memberName}
+                            </div>
+
+                            <p
+                              style={{
+                                fontSize: '0.78rem',
+                                color: '#64748b',
+                                fontStyle: 'italic',
+                                margin: '0 0 1rem',
+                                flexGrow: 1,
+                              }}
+                            >
+                              "{item.message}"
+                            </p>
+
+                            <div
+                              style={{
+                                display: 'flex',
+                                gap: '0.4rem',
+                                borderTop: '1px solid #f1f5f9',
+                                paddingTop: '0.75rem',
+                              }}
+                            >
+                              <button
+                                className={`admin-btn admin-btn--sm ${item.isActive ? 'admin-btn--outline' : 'admin-btn--primary'}`}
+                                style={{
+                                  flex: 1,
+                                  fontSize: '0.75rem',
+                                  padding: '0.3rem 0.5rem',
+                                }}
+                                onClick={async () => {
+                                  try {
+                                    await toggleAchievementStatus(item._id);
+                                    await loadAchievements();
+                                  } catch (err) {
+                                    alert(err.message);
+                                  }
+                                }}
+                              >
+                                {item.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                              </button>
+
+                              <button
+                                className="admin-btn admin-btn--outline admin-btn--sm"
+                                title="Edit"
+                                onClick={() => handleOpenEditAchModal(item)}
+                              >
+                                <i className="fa-solid fa-pen-to-square" />
+                              </button>
+
+                              <button
+                                className="admin-btn admin-btn--danger admin-btn--sm"
+                                title="Hapus"
+                                onClick={async () => {
+                                  if (
+                                    window.confirm(
+                                      `Hapus apresiasi untuk ${item.memberName}?`
+                                    )
+                                  ) {
+                                    try {
+                                      await deleteAchievement(item._id);
+                                      await loadAchievements();
+                                    } catch (err) {
+                                      alert(err.message);
+                                    }
+                                  }
+                                }}
+                              >
+                                <i className="fa-solid fa-trash" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Modal Form Add / Edit */}
+          {achModalOpen && (
+            <div className="admin-modal-backdrop">
+              <div className="admin-modal" style={{ maxWidth: '580px' }}>
+                <div className="admin-modal__header">
+                  <h3 className="admin-modal__title">
+                    <i
+                      className="fa-solid fa-trophy"
+                      style={{ marginRight: '8px', color: '#f59e0b' }}
+                    />
+                    {editingAch
+                      ? 'Edit Apresiasi Anggota'
+                      : 'Tambah Apresiasi Baru'}
+                  </h3>
+                  <button
+                    className="admin-modal__close"
+                    onClick={() => setAchModalOpen(false)}
+                  >
+                    &times;
+                  </button>
+                </div>
+
+                <form onSubmit={handleAchSubmit}>
+                  <div
+                    className="admin-modal__body"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '1.25rem',
+                    }}
+                  >
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">Nama Anggota *</label>
+                      <input
+                        type="text"
+                        required
+                        className="admin-form-control"
+                        placeholder="Contoh: Ahmad Rizky, S.T."
+                        value={achForm.memberName}
+                        onChange={(e) =>
+                          setAchForm({ ...achForm, memberName: e.target.value })
+                        }
+                      />
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">
+                        Judul Pencapaian *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        className="admin-form-control"
+                        placeholder="Contoh: Lulus Sidang Skripsi & Gelar Sarjana Teknik"
+                        value={achForm.title}
+                        onChange={(e) =>
+                          setAchForm({ ...achForm, title: e.target.value })
+                        }
+                      />
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">Tanggal Momen</label>
+                      <input
+                        type="text"
+                        className="admin-form-control"
+                        placeholder="Contoh: 15 Agustus 2026"
+                        value={achForm.date}
+                        onChange={(e) =>
+                          setAchForm({ ...achForm, date: e.target.value })
+                        }
+                      />
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">
+                        Ucapan & Doa Apresiasi
+                      </label>
+                      <textarea
+                        rows="3"
+                        className="admin-form-control"
+                        placeholder="Masukkan ucapan apresiasi & doa kebanggaan dari Karang Taruna..."
+                        value={achForm.message}
+                        onChange={(e) =>
+                          setAchForm({ ...achForm, message: e.target.value })
+                        }
+                        style={{ width: '100%', resize: 'vertical' }}
+                      />
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">
+                        Foto Anggota / Momen
+                      </label>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '0.75rem',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <input
+                          type="text"
+                          className="admin-form-control"
+                          placeholder="URL Foto atau unggah gambar..."
+                          value={achForm.imageUrl}
+                          onChange={(e) =>
+                            setAchForm({ ...achForm, imageUrl: e.target.value })
+                          }
+                          style={{ flex: 1 }}
+                        />
+                        <label
+                          className="admin-btn admin-btn--outline"
+                          style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}
+                        >
+                          <i className="fa-solid fa-upload" />{' '}
+                          {achUploading ? 'Mengunggah...' : 'Unggah Foto'}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAchImageUpload}
+                            style={{ display: 'none' }}
+                            disabled={achUploading}
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">
+                        Nomor WhatsApp Anggota (Opsional)
+                      </label>
+                      <input
+                        type="text"
+                        className="admin-form-control"
+                        placeholder="Contoh: 081234567890 (untuk ucapan via WA)"
+                        value={achForm.whatsapp}
+                        onChange={(e) =>
+                          setAchForm({ ...achForm, whatsapp: e.target.value })
+                        }
+                      />
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        paddingTop: '0.25rem',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        id="achIsActiveCheck"
+                        checked={achForm.isActive}
+                        onChange={(e) =>
+                          setAchForm({ ...achForm, isActive: e.target.checked })
+                        }
+                        style={{
+                          width: '16px',
+                          height: '16px',
+                          cursor: 'pointer',
+                        }}
+                      />
+                      <label
+                        htmlFor="achIsActiveCheck"
+                        style={{
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          color: '#334155',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Tampilkan Banner di Beranda (Status Aktif)
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="admin-modal__footer">
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn--outline"
+                      onClick={() => setAchModalOpen(false)}
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      className="admin-btn admin-btn--primary"
+                      disabled={achSubmitting || achUploading}
+                    >
+                      {achSubmitting ? 'Menyimpan...' : 'Simpan Apresiasi'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

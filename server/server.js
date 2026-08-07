@@ -21,6 +21,7 @@ const partnerRoutes = require('./routes/partner.routes');
 const umkmRoutes = require('./routes/umkm.routes');
 const messageRoutes = require('./routes/message.routes');
 const financeRoutes = require('./routes/finance.routes');
+const achievementRoutes = require('./routes/achievement.routes');
 const path = require('path');
 
 const app = express();
@@ -47,6 +48,7 @@ app.use('/api/program', programRoutes);
 app.use('/api/partner', partnerRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/finance', financeRoutes);
+app.use('/api/achievements', achievementRoutes);
 
 // --------------- Models for Dynamic Social Media OG Preview ---------------
 const Umkm = require('./models/Umkm');
