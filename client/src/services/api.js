@@ -1374,3 +1374,66 @@ export const deleteFinanceTransaction = async (id) => {
   if (!res.ok) throw new Error(data.error || 'Gagal menghapus transaksi kas.');
   return data;
 };
+
+// --------------- Achievements / Apresiasi Anggota API Service ---------------
+
+export const fetchActiveAchievements = async () => {
+  try {
+    const res = await fetch(`${API_BASE}/achievements/active`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (_err) {
+    console.warn('API offline (fetchActiveAchievements).');
+    return [];
+  }
+};
+
+export const fetchAllAchievements = async () => {
+  const res = await fetchWithAuth(`${API_BASE}/achievements`);
+  const data = await res.json();
+  if (!res.ok)
+    throw new Error(data.error || 'Gagal mengambil data apresiasi anggota.');
+  return data;
+};
+
+export const createAchievement = async (payload) => {
+  const res = await fetchWithAuth(`${API_BASE}/achievements`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok)
+    throw new Error(data.error || 'Gagal menambahkan data apresiasi anggota.');
+  return data;
+};
+
+export const updateAchievement = async (id, payload) => {
+  const res = await fetchWithAuth(`${API_BASE}/achievements/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok)
+    throw new Error(data.error || 'Gagal merubah data apresiasi anggota.');
+  return data;
+};
+
+export const toggleAchievementStatus = async (id) => {
+  const res = await fetchWithAuth(`${API_BASE}/achievements/${id}/toggle`, {
+    method: 'PATCH',
+  });
+  const data = await res.json();
+  if (!res.ok)
+    throw new Error(data.error || 'Gagal merubah status apresiasi anggota.');
+  return data;
+};
+
+export const deleteAchievement = async (id) => {
+  const res = await fetchWithAuth(`${API_BASE}/achievements/${id}`, {
+    method: 'DELETE',
+  });
+  const data = await res.json();
+  if (!res.ok)
+    throw new Error(data.error || 'Gagal menghapus data apresiasi anggota.');
+  return data;
+};

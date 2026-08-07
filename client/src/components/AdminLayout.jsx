@@ -73,6 +73,12 @@ const ALL_NAV_ITEMS = [
     roles: ['superadmin', 'admin'],
   },
   {
+    to: '/admin/apresiasi',
+    icon: 'fa-trophy',
+    label: 'Apresiasi Anggota',
+    roles: ['superadmin', 'admin'],
+  },
+  {
     to: '/admin/settings',
     icon: 'fa-gear',
     label: 'Pengaturan',

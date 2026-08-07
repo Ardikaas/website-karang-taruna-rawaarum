@@ -37,6 +37,7 @@ import AdminPengurusPage from './pages/admin/AdminPengurusPage';
 import AdminProgramPage from './pages/admin/AdminProgramPage';
 import AdminPartnerPage from './pages/admin/AdminPartnerPage';
 import AdminPesanPage from './pages/admin/AdminPesanPage';
+import AdminApresiasiPage from './pages/admin/AdminApresiasiPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminLayout from './components/AdminLayout';
 import { AuthProvider } from './context/AuthContext';
@@ -367,6 +368,16 @@ const App = () => {
               <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                 <AdminLayout>
                   <AdminPartnerPage />
+                </AdminLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/apresiasi"
+            element={
+              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                <AdminLayout>
+                  <AdminApresiasiPage />
                 </AdminLayout>
               </ProtectedRoute>
             }

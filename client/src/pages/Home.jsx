@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import Hero from '../components/Hero';
 import VideoBanner from '../components/VideoBanner';
 import BirthdayBanner from '../components/BirthdayBanner';
+import AchievementBanner from '../components/AchievementBanner';
 import Pilars from '../components/Pilars';
 import VisiMisi from '../components/VisiMisi';
 import Struktur from '../components/Struktur';
@@ -13,7 +14,11 @@ import Kemitraan from '../components/Kemitraan';
 import InfoCard from '../components/InfoCard';
 
 import { HERO_SLIDES } from '../constants/mockData';
-import { fetchRecentItems, fetchSiteSettings } from '../services/api';
+import {
+  fetchRecentItems,
+  fetchSiteSettings,
+  fetchActiveAchievements,
+} from '../services/api';
 
 const SLIDE_INTERVAL_MS = 6000;
 
@@ -22,6 +27,7 @@ const Home = ({ onOpenRegModal }) => {
   const slideInterval = useRef(null);
   const [recentItems, setRecentItems] = useState([]);
   const [siteSettings, setSiteSettings] = useState(null);
+  const [achievements, setAchievements] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,16 +36,18 @@ const Home = ({ onOpenRegModal }) => {
       setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
     }, SLIDE_INTERVAL_MS);
 
-    // Fetch recent info items and site settings for preview section
+    // Fetch recent info items, site settings, and active achievements
     const loadHomeData = async () => {
       setLoading(true);
       try {
-        const [items, settings] = await Promise.all([
+        const [items, settings, achs] = await Promise.all([
           fetchRecentItems(),
           fetchSiteSettings(),
+          fetchActiveAchievements(),
         ]);
         setRecentItems(items);
         setSiteSettings(settings);
+        setAchievements(achs || []);
       } catch (_err) {
         // Fallback gracefully on API error
       } finally {
@@ -71,8 +79,11 @@ const Home = ({ onOpenRegModal }) => {
       />
       <VideoBanner />
 
-      {/* Birthday Announcement Banner (Placed Directly Below Video Banner) */}
+      {/* Birthday Announcement Banner */}
       <BirthdayBanner data={siteSettings?.birthdayAnnouncement} />
+
+      {/* Achievement & Apresiasi Banner Carousel */}
+      <AchievementBanner items={achievements} />
 
       <Pilars onOpenRegModal={onOpenRegModal} />
       <VisiMisi />
