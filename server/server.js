@@ -61,7 +61,7 @@ const stripHtml = (html = '') => {
 
 const getAbsoluteImageUrl = (imgPath) => {
   if (!imgPath)
-    return 'https://tunasarum.devlabfortirta.my.id/assets/karang-taruna-seeklogo.png';
+    return 'https://kttunasarum.com/assets/karang-taruna-seeklogo.png';
   if (imgPath.startsWith('http://') || imgPath.startsWith('https://'))
     return imgPath;
 
@@ -73,7 +73,7 @@ const getAbsoluteImageUrl = (imgPath) => {
   }
 
   if (!formatted.startsWith('/')) formatted = `/${formatted}`;
-  return `https://tunasarum.devlabfortirta.my.id${formatted}`;
+  return `https://kttunasarum.com${formatted}`;
 };
 
 // --------------- Dynamic Open Graph Preview Routes ---------------
@@ -93,7 +93,7 @@ app.get(['/umkm/:id', '/umkm/:slug/:id'], async (req, res, next) => {
       item.imageUrl || (Array.isArray(item.images) && item.images[0]);
     const imageUrl = getAbsoluteImageUrl(rawImage);
     const slug = req.params.slug || 'detail';
-    const pageUrl = `https://tunasarum.devlabfortirta.my.id/umkm/${slug}/${umkmId}`;
+    const pageUrl = `https://kttunasarum.com/umkm/${slug}/${umkmId}`;
 
     res.send(`<!DOCTYPE html>
 <html lang="id">
@@ -144,7 +144,7 @@ app.get(['/informasi/:id', '/info/:id'], async (req, res, next) => {
       stripHtml(item.description).substring(0, 160) ||
       'Informasi resmi Karang Taruna Kelurahan Rawa Arum, Kec. Grogol, Kota Cilegon.';
     const imageUrl = getAbsoluteImageUrl(item.imageUrl);
-    const pageUrl = `https://tunasarum.devlabfortirta.my.id/informasi/${infoId}`;
+    const pageUrl = `https://kttunasarum.com/informasi/${infoId}`;
 
     res.send(`<!DOCTYPE html>
 <html lang="id">

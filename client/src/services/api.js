@@ -86,6 +86,26 @@ export const fetchInfoItemById = async (id) => {
   }
 };
 
+/**
+ * Increment info item view count.
+ * Uses sessionStorage deduplication to prevent duplicate counts on page refresh or double mounts.
+ */
+export const incrementInfoView = async (id) => {
+  if (!id) return null;
+  const storageKey = `viewed_info_${id}`;
+  if (sessionStorage.getItem(storageKey)) {
+    return null;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/info/${id}/view`, { method: 'POST' });
+    if (!res.ok) return null;
+    sessionStorage.setItem(storageKey, 'true');
+    return await res.json();
+  } catch (_err) {
+    return null;
+  }
+};
+
 // --------------- Dedicated UMKM API Service ---------------
 
 export const fetchUmkms = async (
@@ -118,6 +138,26 @@ export const fetchUmkmById = async (id) => {
     return await res.json();
   } catch (_err) {
     console.warn('API offline (fetchUmkmById).');
+    return null;
+  }
+};
+
+/**
+ * Increment UMKM view count.
+ * Uses sessionStorage deduplication to prevent duplicate counts on page refresh or double mounts.
+ */
+export const incrementUmkmView = async (id) => {
+  if (!id) return null;
+  const storageKey = `viewed_umkm_${id}`;
+  if (sessionStorage.getItem(storageKey)) {
+    return null;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/umkm/${id}/view`, { method: 'POST' });
+    if (!res.ok) return null;
+    sessionStorage.setItem(storageKey, 'true');
+    return await res.json();
+  } catch (_err) {
     return null;
   }
 };
@@ -173,9 +213,9 @@ export const toggleVerifyUmkm = async (id) => {
 };
 
 /**
- * Fetch the latest info items for the Home page preview (limited to 2).
+ * Fetch the latest info items for the Home page preview (limited to 4).
  *
- * @returns {Promise<Array>} Top 2 recent items.
+ * @returns {Promise<Array>} Top 4 recent items.
  */
 export const fetchRecentItems = async () => {
   try {
@@ -186,7 +226,14 @@ export const fetchRecentItems = async () => {
     }
 
     const data = await res.json();
-    return data.slice(0, 2);
+    const sorted = [...data].sort((a, b) => {
+      const timeA =
+        new Date(a.createdAt || a.updatedAt || a.date).getTime() || 0;
+      const timeB =
+        new Date(b.createdAt || b.updatedAt || b.date).getTime() || 0;
+      return timeB - timeA;
+    });
+    return sorted.slice(0, 4);
   } catch (_err) {
     console.warn('API offline (fetchRecentItems). Using fallback data.');
     return MOCK_RECENT_ITEMS;

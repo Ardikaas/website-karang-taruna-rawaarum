@@ -41,6 +41,26 @@ const getInfoItemById = async (req, res) => {
 };
 
 /**
+ * @desc    Increment view count for an info item
+ * @route   POST /api/info/:id/view
+ */
+const incrementInfoViewCount = async (req, res) => {
+  try {
+    const item = await InfoItem.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { viewsCount: 1 } },
+      { new: true }
+    ).select('viewsCount');
+    if (!item) {
+      return res.status(404).json({ error: 'Informasi tidak ditemukan.' });
+    }
+    res.json({ viewsCount: item.viewsCount });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
  * @desc    Create a new info item
  * @route   POST /api/info
  * @access  Protected (admin)
@@ -248,6 +268,7 @@ const deleteInfoItem = async (req, res) => {
 module.exports = {
   getInfoItems,
   getInfoItemById,
+  incrementInfoViewCount,
   createInfoItem,
   updateInfoItem,
   deleteInfoItem,

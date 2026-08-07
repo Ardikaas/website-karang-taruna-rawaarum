@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getUmkms,
   getUmkmById,
+  incrementUmkmViewCount,
   createUmkm,
   updateUmkm,
   deleteUmkm,
@@ -13,6 +14,7 @@ const { verifyToken } = require('../middleware/auth.middleware');
 // Public endpoints
 router.get('/', getUmkms);
 router.get('/:id', getUmkmById);
+router.post('/:id/view', incrementUmkmViewCount);
 
 // Protected Admin / Pengurus endpoints
 router.post('/', verifyToken, createUmkm);

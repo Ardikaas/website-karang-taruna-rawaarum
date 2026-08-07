@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   fetchInfoItemById,
   fetchInfoItems,
+  incrementInfoView,
   formatImageUrl,
 } from '../services/api';
 import { useToast } from '../context/ToastContext';
@@ -65,6 +66,8 @@ const InfoDetailPage = () => {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
+    let intervalId;
+
     const loadDetail = async () => {
       setLoading(true);
       setNotFound(false);
@@ -79,6 +82,15 @@ const InfoDetailPage = () => {
       setItem(data);
       document.title = `${data.title} - Karang Taruna Kelurahan Rawa Arum`;
 
+      // Track view (deduplicated by session)
+      incrementInfoView(id).then((res) => {
+        if (res && res.viewsCount !== undefined) {
+          setItem((prev) =>
+            prev ? { ...prev, viewsCount: res.viewsCount } : prev
+          );
+        }
+      });
+
       // Fetch related items of same category or recent
       try {
         const all = await fetchInfoItems(
@@ -86,7 +98,14 @@ const InfoDetailPage = () => {
         );
         const filtered = all
           .filter((i) => String(i._id) !== String(data._id))
-          .slice(0, 2);
+          .sort((a, b) => {
+            const timeA =
+              new Date(a.createdAt || a.updatedAt || a.date).getTime() || 0;
+            const timeB =
+              new Date(b.createdAt || b.updatedAt || b.date).getTime() || 0;
+            return timeB - timeA;
+          })
+          .slice(0, 4);
         setRelatedItems(filtered);
       } catch (_err) {
         setRelatedItems([]);
@@ -97,7 +116,21 @@ const InfoDetailPage = () => {
 
     if (id) {
       loadDetail();
+
+      // Polling views count update secara real-time (setiap 12 detik)
+      intervalId = setInterval(async () => {
+        const updated = await fetchInfoItemById(id);
+        if (updated?.viewsCount !== undefined) {
+          setItem((prev) =>
+            prev ? { ...prev, viewsCount: updated.viewsCount } : prev
+          );
+        }
+      }, 12000);
     }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [id]);
 
   const handleShare = () => {
@@ -357,6 +390,26 @@ const InfoDetailPage = () => {
             >
               <i className="fa-regular fa-calendar" />
               Dipublikasikan: {item.date}
+            </span>
+            <span
+              style={{
+                fontSize: '0.82rem',
+                color: 'var(--primary-deep)',
+                background: 'rgba(11, 37, 69, 0.05)',
+                padding: '0.2rem 0.65rem',
+                borderRadius: '50px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+              title="Jumlah Pembaca Real-time"
+            >
+              <i
+                className="fa-solid fa-eye"
+                style={{ color: 'var(--accent)' }}
+              />
+              {(item.viewsCount || 0).toLocaleString('id-ID')} Dilihat
             </span>
           </div>
 
@@ -703,7 +756,7 @@ const InfoDetailPage = () => {
                 Informasi & Berita Terkait
               </h3>
             </div>
-            <div className="grid-informasi">
+            <div className="grid-informasi-4">
               {relatedItems.map((rel) => (
                 <InfoCard key={rel._id} item={rel} />
               ))}

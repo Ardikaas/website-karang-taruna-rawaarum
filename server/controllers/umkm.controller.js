@@ -45,11 +45,7 @@ const getUmkms = async (req, res) => {
  */
 const getUmkmById = async (req, res) => {
   try {
-    const item = await Umkm.findByIdAndUpdate(
-      req.params.id,
-      { $inc: { viewsCount: 1 } },
-      { new: true }
-    )
+    const item = await Umkm.findById(req.params.id)
       .populate('ownerUser', 'name email role phone avatar')
       .populate('createdBy', 'name email role');
 
@@ -58,6 +54,28 @@ const getUmkmById = async (req, res) => {
     }
 
     res.json(item);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * @desc    Increment view count for a single UMKM item
+ * @route   POST /api/umkm/:id/view
+ */
+const incrementUmkmViewCount = async (req, res) => {
+  try {
+    const item = await Umkm.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { viewsCount: 1 } },
+      { new: true }
+    ).select('viewsCount');
+
+    if (!item) {
+      return res.status(404).json({ error: 'Data UMKM tidak ditemukan.' });
+    }
+
+    res.json({ viewsCount: item.viewsCount });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -237,6 +255,7 @@ const toggleVerifyUmkm = async (req, res) => {
 module.exports = {
   getUmkms,
   getUmkmById,
+  incrementUmkmViewCount,
   createUmkm,
   updateUmkm,
   deleteUmkm,

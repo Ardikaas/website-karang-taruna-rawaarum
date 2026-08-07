@@ -101,7 +101,10 @@ const Home = ({ onOpenRegModal }) => {
               ></i>
             </div>
           ) : (
-            <div className="grid-informasi" style={{ marginBottom: '3.5rem' }}>
+            <div
+              className="grid-informasi-4"
+              style={{ marginBottom: '3.5rem' }}
+            >
               {recentItems.map((item) => (
                 <InfoCard key={item._id} item={item} />
               ))}

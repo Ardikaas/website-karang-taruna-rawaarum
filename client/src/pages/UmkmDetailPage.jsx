@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { fetchUmkmById, fetchUmkms } from '../services/api';
+import { fetchUmkmById, fetchUmkms, incrementUmkmView } from '../services/api';
 import InfoCard from '../components/InfoCard';
 import DocPreviewModal from '../components/DocPreviewModal';
 import { getUmkmDetailUrl } from '../utils/slugify';
@@ -19,6 +19,8 @@ const UmkmDetailPage = () => {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    let intervalId;
 
     const loadData = async () => {
       setLoading(true);
@@ -46,12 +48,28 @@ const UmkmDetailPage = () => {
 
       document.title = `${data.title} - Showcase UMKM Rawa Arum`;
 
+      // Track view (deduplicated by session)
+      incrementUmkmView(id).then((res) => {
+        if (res && res.viewsCount !== undefined) {
+          setItem((prev) =>
+            prev ? { ...prev, viewsCount: res.viewsCount } : prev
+          );
+        }
+      });
+
       // Load related UMKM items
       try {
         const all = await fetchUmkms();
         const filtered = all
           .filter((i) => String(i._id) !== String(data._id))
-          .slice(0, 2);
+          .sort((a, b) => {
+            const timeA =
+              new Date(a.createdAt || a.updatedAt || a.date).getTime() || 0;
+            const timeB =
+              new Date(b.createdAt || b.updatedAt || b.date).getTime() || 0;
+            return timeB - timeA;
+          })
+          .slice(0, 4);
         setRelatedItems(filtered);
       } catch (_err) {
         setRelatedItems([]);
@@ -62,7 +80,21 @@ const UmkmDetailPage = () => {
 
     if (id) {
       loadData();
+
+      // Polling views count secara real-time (setiap 12 detik)
+      intervalId = setInterval(async () => {
+        const updated = await fetchUmkmById(id);
+        if (updated?.viewsCount !== undefined) {
+          setItem((prev) =>
+            prev ? { ...prev, viewsCount: updated.viewsCount } : prev
+          );
+        }
+      }, 12000);
     }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [id]);
 
   // Auto-slide gallery photos every 4 seconds
@@ -358,6 +390,26 @@ const UmkmDetailPage = () => {
                 }
               />
               {isJasa ? 'UMKM Jasa & Layanan' : 'UMKM Produk & Kuliner'}
+            </span>
+            <span
+              style={{
+                background: 'rgba(11, 37, 69, 0.06)',
+                color: 'var(--primary-deep)',
+                fontWeight: 700,
+                fontSize: '0.75rem',
+                padding: '0.3rem 0.85rem',
+                borderRadius: '50px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+              title="Jumlah Pengunjung Real-time"
+            >
+              <i
+                className="fa-solid fa-eye"
+                style={{ color: 'var(--accent)' }}
+              />
+              {(item.viewsCount || 0).toLocaleString('id-ID')} Dilihat
             </span>
           </div>
 
@@ -1102,7 +1154,7 @@ const UmkmDetailPage = () => {
             >
               Jelajahi UMKM Rawa Arum Lainnya
             </h3>
-            <div className="grid-informasi">
+            <div className="grid-informasi-4">
               {relatedItems.map((rel) => (
                 <InfoCard
                   key={rel._id}

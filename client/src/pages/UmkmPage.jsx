@@ -99,11 +99,6 @@ const UmkmPage = () => {
                   key={item._id}
                   item={item}
                   linkTo={getUmkmDetailUrl(item)}
-                  customBtnText={
-                    item.categoryType === 'jasa'
-                      ? 'Lihat Detail Jasa'
-                      : 'Lihat Detail UMKM'
-                  }
                 />
               ))
             ) : (
