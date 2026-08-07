@@ -247,7 +247,6 @@ const AdminKontenPage = () => {
     setForm({ ...INITIAL_FORM });
     setModalMode('create');
     setFormError('');
-    setShowManualUrl(false);
     setShowModal(true);
   };
 
@@ -278,7 +277,6 @@ const AdminKontenPage = () => {
     setActiveId(item._id);
     setModalMode('edit');
     setFormError('');
-    setShowManualUrl(false);
     setShowModal(true);
   };
 
