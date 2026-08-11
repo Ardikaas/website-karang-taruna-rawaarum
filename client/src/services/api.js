@@ -166,6 +166,35 @@ export const incrementUmkmView = async (id) => {
   }
 };
 
+/**
+ * Increment WhatsApp click count for a UMKM (and optionally a specific catalog item).
+ * Uses sessionStorage deduplication keyed by umkmId + itemId combo per session.
+ * - "Hubungi via WhatsApp" (general) => key: `wa_click_{umkmId}_general`
+ * - "Pesan Menu Ini" (specific item) => key: `wa_click_{umkmId}_{itemId}`
+ * Different items on the same UMKM page each get their own unique dedup key.
+ */
+export const incrementUmkmClick = async (umkmId, itemId = null) => {
+  if (!umkmId) return null;
+  const dedupSuffix = itemId || 'general';
+  const storageKey = `wa_click_${umkmId}_${dedupSuffix}`;
+  if (sessionStorage.getItem(storageKey)) {
+    return null;
+  }
+  try {
+    const body = itemId ? JSON.stringify({ itemId }) : '{}';
+    const res = await fetch(`${API_BASE}/umkm/${umkmId}/click`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    });
+    if (!res.ok) return null;
+    sessionStorage.setItem(storageKey, 'true');
+    return await res.json();
+  } catch (_err) {
+    return null;
+  }
+};
+
 export const createUmkm = async (payload) => {
   const res = await fetch(`${API_BASE}/umkm`, {
     method: 'POST',

@@ -252,10 +252,45 @@ const toggleVerifyUmkm = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Increment WhatsApp click counter for UMKM and optional specific item
+ * @route   POST /api/umkm/:id/click
+ * @body    { itemId?: string }
+ */
+const incrementUmkmClickCount = async (req, res) => {
+  try {
+    const { itemId } = req.body || {};
+    const item = await Umkm.findById(req.params.id);
+
+    if (!item) {
+      return res.status(404).json({ error: 'Data UMKM tidak ditemukan.' });
+    }
+
+    item.whatsappClicksCount = (item.whatsappClicksCount || 0) + 1;
+
+    if (itemId && Array.isArray(item.itemsList)) {
+      const targetSub = item.itemsList.id(itemId);
+      if (targetSub) {
+        targetSub.clicksCount = (targetSub.clicksCount || 0) + 1;
+      }
+    }
+
+    await item.save();
+
+    res.json({
+      whatsappClicksCount: item.whatsappClicksCount,
+      itemsList: item.itemsList,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
   getUmkms,
   getUmkmById,
   incrementUmkmViewCount,
+  incrementUmkmClickCount,
   createUmkm,
   updateUmkm,
   deleteUmkm,

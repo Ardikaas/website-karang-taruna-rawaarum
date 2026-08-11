@@ -6,6 +6,7 @@ const UmkmItemSchema = new Schema({
   price: { type: String, default: '' },
   description: { type: String, default: '' },
   isAvailable: { type: Boolean, default: true },
+  clicksCount: { type: Number, default: 0 },
 });
 
 const CertificationDocSchema = new Schema({
@@ -58,6 +59,7 @@ const UmkmSchema = new Schema(
     itemsList: [UmkmItemSchema],
 
     viewsCount: { type: Number, default: 0 },
+    whatsappClicksCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

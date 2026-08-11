@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { fetchUmkmById, fetchUmkms, incrementUmkmView } from '../services/api';
+import {
+  fetchUmkmById,
+  fetchUmkms,
+  incrementUmkmView,
+  incrementUmkmClick,
+} from '../services/api';
 import InfoCard from '../components/InfoCard';
 import DocPreviewModal from '../components/DocPreviewModal';
 import { getUmkmDetailUrl } from '../utils/slugify';
@@ -812,6 +817,7 @@ const UmkmDetailPage = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn"
+                onClick={() => incrementUmkmClick(id)}
                 style={{
                   width: '100%',
                   background: 'linear-gradient(135deg, #25d366, #128c7e)',
@@ -965,6 +971,7 @@ const UmkmDetailPage = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn btn-outline"
+                    onClick={() => incrementUmkmClick(id, sub._id)}
                     style={{
                       borderRadius: '50px',
                       padding: '0.4rem 0.9rem',

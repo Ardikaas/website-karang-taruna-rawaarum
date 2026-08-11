@@ -4,6 +4,7 @@ const {
   getUmkms,
   getUmkmById,
   incrementUmkmViewCount,
+  incrementUmkmClickCount,
   createUmkm,
   updateUmkm,
   deleteUmkm,
@@ -15,6 +16,7 @@ const { verifyToken } = require('../middleware/auth.middleware');
 router.get('/', getUmkms);
 router.get('/:id', getUmkmById);
 router.post('/:id/view', incrementUmkmViewCount);
+router.post('/:id/click', incrementUmkmClickCount);
 
 // Protected Admin / Pengurus endpoints
 router.post('/', verifyToken, createUmkm);
