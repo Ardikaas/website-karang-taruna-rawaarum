@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import Hero from '../components/Hero';
 import WeatherBanner from '../components/WeatherBanner';
 import VideoBanner from '../components/VideoBanner';
+import HolidayStrip from '../components/HolidayStrip';
 import BirthdayBanner from '../components/BirthdayBanner';
 import AchievementBanner from '../components/AchievementBanner';
 import Pilars from '../components/Pilars';
@@ -80,6 +81,7 @@ const Home = ({ onOpenRegModal }) => {
       />
       <WeatherBanner />
       <VideoBanner />
+      <HolidayStrip />
 
       {/* Birthday Announcement Banner */}
       <BirthdayBanner data={siteSettings?.birthdayAnnouncement} />

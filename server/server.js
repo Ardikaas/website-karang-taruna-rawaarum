@@ -22,6 +22,7 @@ const umkmRoutes = require('./routes/umkm.routes');
 const messageRoutes = require('./routes/message.routes');
 const financeRoutes = require('./routes/finance.routes');
 const achievementRoutes = require('./routes/achievement.routes');
+const holidayRoutes = require('./routes/holiday.routes');
 const weatherRoutes = require('./routes/weather.routes');
 const { recordWeatherSnapshot } = require('./controllers/weather.controller');
 const path = require('path');
@@ -51,6 +52,7 @@ app.use('/api/partner', partnerRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/achievements', achievementRoutes);
+app.use('/api/holidays', holidayRoutes);
 app.use('/api/weather', weatherRoutes);
 
 // --------------- Models for Dynamic Social Media OG Preview ---------------

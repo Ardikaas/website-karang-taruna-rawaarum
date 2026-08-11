@@ -15,6 +15,7 @@ import {
   MOCK_FINANCE_TRANSACTIONS,
   MOCK_FINANCE_SUMMARY,
   MOCK_WEATHER_DATA,
+  MOCK_HOLIDAYS,
 } from '../constants/mockData';
 import { structureData } from '../constants/structureData';
 import { compressImageIfNeeded } from '../utils/imageCompressor';
@@ -1718,4 +1719,100 @@ export const fetchWeatherHistory = async (rangeMode = 'day', offset = 0) => {
   } catch (_err) {
     return [];
   }
+};
+
+// ============================================================
+// HOLIDAY EVENT STRIP BANNER (Hari Besar)
+// ============================================================
+
+/**
+ * Fetch currently active holiday events for public strip banner display.
+ */
+export const fetchActiveHolidays = async () => {
+  try {
+    const res = await fetch(`${API_BASE}/holidays/active`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (_err) {
+    console.warn('API offline (fetchActiveHolidays). Using fallback data.');
+    return MOCK_HOLIDAYS.filter((h) => h.isActive);
+  }
+};
+
+/**
+ * Fetch all holiday events for admin management.
+ */
+export const fetchAllHolidays = async () => {
+  try {
+    const res = await fetch(`${API_BASE}/holidays`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error('Gagal memuat data hari besar');
+    return await res.json();
+  } catch (_err) {
+    console.warn('API offline (fetchAllHolidays). Using fallback data.');
+    return MOCK_HOLIDAYS;
+  }
+};
+
+/**
+ * Create a new holiday event.
+ */
+export const createHoliday = async (data) => {
+  const res = await fetch(`${API_BASE}/holidays`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Gagal membuat data hari besar');
+  }
+  return await res.json();
+};
+
+/**
+ * Update a holiday event.
+ */
+export const updateHoliday = async (id, data) => {
+  const res = await fetch(`${API_BASE}/holidays/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Gagal memperbarui data hari besar');
+  }
+  return await res.json();
+};
+
+/**
+ * Toggle active status of a holiday event.
+ */
+export const toggleHolidayStatus = async (id) => {
+  const res = await fetch(`${API_BASE}/holidays/${id}/toggle`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Gagal mengubah status hari besar');
+  }
+  return await res.json();
+};
+
+/**
+ * Delete a holiday event.
+ */
+export const deleteHoliday = async (id) => {
+  const res = await fetch(`${API_BASE}/holidays/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Gagal menghapus data hari besar');
+  }
+  return await res.json();
 };

@@ -344,3 +344,23 @@ export const MOCK_DETAILED_WEATHER = {
 };
 
 export const MOCK_WEATHER_DATA = MOCK_DETAILED_WEATHER;
+
+export const MOCK_HOLIDAYS = [
+  {
+    _id: 'mock-hol-1',
+    title: 'HUT Republik Indonesia ke-81',
+    subtitle:
+      'Dirgahayu Republik Indonesia! Bersatu Berdaulat, Nusantara Baru Indonesia Maju 🇮🇩',
+    startDate: new Date(
+      new Date().setDate(new Date().getDate() - 1)
+    ).toISOString(),
+    endDate: new Date(
+      new Date().setDate(new Date().getDate() + 7)
+    ).toISOString(),
+    theme: 'merah-putih',
+    customColor: '',
+    bannerImageUrl: '',
+    emoji: '🇮🇩',
+    isActive: true,
+  },
+];

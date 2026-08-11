@@ -4,12 +4,18 @@ import {
   fetchSiteSettings,
   updateSiteSettings,
   uploadImage,
+  formatImageUrl,
   fetchPengurus,
   fetchAllAchievements,
   createAchievement,
   updateAchievement,
   toggleAchievementStatus,
   deleteAchievement,
+  fetchAllHolidays,
+  createHoliday,
+  updateHoliday,
+  toggleHolidayStatus,
+  deleteHoliday,
 } from '../../services/api';
 import { getAvatarPhoto } from '../../constants/structureData';
 import { compressImageIfNeeded } from '../../utils/imageCompressor';
@@ -51,7 +57,7 @@ const BIRTHDAY_TEMPLATE_MESSAGES = [
 ];
 
 const AdminSettingsPage = () => {
-  const [activeTab, setActiveTab] = useState('hero'); // 'hero' | 'birthday' | 'apresiasi' | 'visimisi' | 'contact' | 'security'
+  const [activeTab, setActiveTab] = useState('hero'); // 'hero' | 'birthday' | 'apresiasi' | 'holidays' | 'visimisi' | 'contact' | 'security'
   const [pengurusList, setPengurusList] = useState([]);
 
   // ── Apresiasi Anggota State ──
@@ -72,6 +78,174 @@ const AdminSettingsPage = () => {
     whatsapp: '',
     isActive: true,
   });
+
+  // ── Holiday Events (Hari Besar) State ──
+  const HOLIDAY_THEME_OPTIONS = [
+    { value: 'merah-putih', label: '🇮🇩 Merah Putih (Nasional)' },
+    { value: 'religi-hijau', label: '🌙 Religi Hijau (Keagamaan Islam)' },
+    { value: 'natal', label: '🎄 Natal (Keagamaan Kristen)' },
+    { value: 'tahun-baru', label: '🎆 Tahun Baru' },
+    { value: 'kartini', label: '🌸 Kartini / Feminin' },
+    { value: 'custom', label: '🎨 Warna Custom' },
+  ];
+
+  const [holidayEvents, setHolidayEvents] = useState([]);
+  const [holLoading, setHolLoading] = useState(false);
+  const [holModalOpen, setHolModalOpen] = useState(false);
+  const [editingHol, setEditingHol] = useState(null);
+  const [holSubmitting, setHolSubmitting] = useState(false);
+  const [holUploading, setHolUploading] = useState(false);
+  const [particleUploading, setParticleUploading] = useState(false);
+  const [holForm, setHolForm] = useState({
+    title: '',
+    subtitle: '',
+    startDate: '',
+    endDate: '',
+    theme: 'merah-putih',
+    customColor: '#0b2545',
+    bannerImageUrl: '',
+    particleImages: [],
+    emoji: '🎉',
+    isActive: true,
+  });
+
+  const loadHolidayEvents = async () => {
+    try {
+      setHolLoading(true);
+      const data = await fetchAllHolidays();
+      setHolidayEvents(data || []);
+    } catch (_err) {
+      // quiet fallback
+    } finally {
+      setHolLoading(false);
+    }
+  };
+
+  const handleOpenAddHolModal = () => {
+    setEditingHol(null);
+    const today = new Date().toISOString().slice(0, 10);
+    setHolForm({
+      title: '',
+      subtitle: '',
+      startDate: today,
+      endDate: today,
+      theme: 'merah-putih',
+      customColor: '#0b2545',
+      bannerImageUrl: '',
+      particleImages: [],
+      emoji: '🎉',
+      isActive: true,
+    });
+    setHolModalOpen(true);
+  };
+
+  const handleOpenEditHolModal = (item) => {
+    setEditingHol(item);
+    setHolForm({
+      title: item.title || '',
+      subtitle: item.subtitle || '',
+      startDate: item.startDate ? item.startDate.slice(0, 10) : '',
+      endDate: item.endDate ? item.endDate.slice(0, 10) : '',
+      theme: item.theme || 'merah-putih',
+      customColor: item.customColor || '#0b2545',
+      bannerImageUrl: item.bannerImageUrl || '',
+      particleImages: Array.isArray(item.particleImages)
+        ? item.particleImages
+        : [],
+      emoji: item.emoji || '🎉',
+      isActive: item.isActive !== undefined ? item.isActive : true,
+    });
+    setHolModalOpen(true);
+  };
+
+  const handleSaveHoliday = async (e) => {
+    e.preventDefault();
+    if (!holForm.startDate || !holForm.endDate) return;
+    try {
+      setHolSubmitting(true);
+      if (editingHol) {
+        await updateHoliday(editingHol._id, holForm);
+      } else {
+        await createHoliday(holForm);
+      }
+      setHolModalOpen(false);
+      await loadHolidayEvents();
+    } catch (_err) {
+      // quiet fallback
+    } finally {
+      setHolSubmitting(false);
+    }
+  };
+
+  const handleToggleHoliday = async (id) => {
+    try {
+      await toggleHolidayStatus(id);
+      await loadHolidayEvents();
+    } catch (_err) {
+      // quiet fallback
+    }
+  };
+
+  const handleHolImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setHolUploading(true);
+      const compressedFile = await compressImageIfNeeded(file);
+      const res = await uploadImage(compressedFile);
+      const url = res.url || res.fileUrl || res.imageUrl || res.path || '';
+      setHolForm((prev) => ({ ...prev, bannerImageUrl: url }));
+    } catch (err) {
+      alert(err.message || 'Gagal mengunggah gambar banner.');
+    } finally {
+      setHolUploading(false);
+    }
+  };
+
+  const handleParticleImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    try {
+      setParticleUploading(true);
+      const uploadPromises = files.map(async (file) => {
+        const compressed = await compressImageIfNeeded(file);
+        const res = await uploadImage(compressed);
+        return res.url || res.fileUrl || res.imageUrl || res.path || '';
+      });
+      const uploadedUrls = await Promise.all(uploadPromises);
+      const validUrls = uploadedUrls.filter(Boolean);
+
+      setHolForm((prev) => ({
+        ...prev,
+        particleImages: [...(prev.particleImages || []), ...validUrls],
+      }));
+    } catch (err) {
+      alert(err.message || 'Gagal mengunggah gambar elemen terbang.');
+    } finally {
+      setParticleUploading(false);
+    }
+  };
+
+  const handleDeleteParticleImage = (indexToDelete) => {
+    setHolForm((prev) => ({
+      ...prev,
+      particleImages: (prev.particleImages || []).filter(
+        (_, idx) => idx !== indexToDelete
+      ),
+    }));
+  };
+
+  const handleDeleteHoliday = async (id) => {
+    if (!window.confirm('Yakin ingin menghapus data hari besar ini?')) return;
+    try {
+      await deleteHoliday(id);
+      await loadHolidayEvents();
+    } catch (_err) {
+      // quiet fallback
+    }
+  };
 
   const loadAchievements = async () => {
     try {
@@ -254,7 +428,16 @@ const AdminSettingsPage = () => {
 
     loadSettings();
     loadAchievements();
+    loadHolidayEvents();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'holidays') {
+      loadHolidayEvents();
+    } else if (activeTab === 'apresiasi') {
+      loadAchievements();
+    }
+  }, [activeTab]);
 
   // ── Handle Password Submission ──
   const handlePasswordSubmit = async (e) => {
@@ -295,6 +478,9 @@ const AdminSettingsPage = () => {
     setSettingsSuccess('');
 
     // Validation for Birthday Announcement Tab
+    if (activeTab === 'holidays') {
+      loadHolidayEvents();
+    }
     if (activeTab === 'birthday') {
       const bday = settings.birthdayAnnouncement;
       if (!bday?.name || bday.name.trim() === '') {
@@ -477,6 +663,16 @@ const AdminSettingsPage = () => {
         >
           <i className="fa-solid fa-trophy" style={{ color: '#f59e0b' }} />{' '}
           Apresiasi Anggota
+        </button>
+        <button
+          className={`admin-tab-btn ${activeTab === 'holidays' ? 'active' : ''}`}
+          onClick={() => setActiveTab('holidays')}
+        >
+          <i
+            className="fa-solid fa-calendar-star"
+            style={{ color: '#dc2626' }}
+          />{' '}
+          Hari Besar
         </button>
         <button
           className={`admin-tab-btn ${activeTab === 'visimisi' ? 'active' : ''}`}
@@ -2347,6 +2543,703 @@ const AdminSettingsPage = () => {
                       disabled={achSubmitting || achUploading}
                     >
                       {achSubmitting ? 'Menyimpan...' : 'Simpan Apresiasi'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══════════ TAB: Hari Besar ══════════ */}
+      {activeTab === 'holidays' && (
+        <div className="admin-settings-card">
+          <div
+            className="admin-card-header"
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '0.75rem',
+            }}
+          >
+            <div>
+              <h3>
+                <i className="fa-solid fa-calendar-star" /> Kelola Hari Besar
+              </h3>
+              <p
+                style={{
+                  fontSize: '0.82rem',
+                  color: 'var(--text-muted)',
+                  marginTop: '0.25rem',
+                }}
+              >
+                Tampilkan strip banner dekoratif di halaman utama saat hari
+                besar nasional atau keagamaan.
+              </p>
+            </div>
+            <button
+              className="admin-btn admin-btn--primary"
+              onClick={handleOpenAddHolModal}
+            >
+              <i className="fa-solid fa-plus" /> Tambah Hari Besar
+            </button>
+          </div>
+
+          {holLoading ? (
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+              <i
+                className="fa-solid fa-circle-notch fa-spin"
+                style={{ fontSize: '1.5rem', color: 'var(--accent)' }}
+              ></i>
+            </div>
+          ) : holidayEvents.length === 0 ? (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '2.5rem 1rem',
+                color: 'var(--text-muted)',
+              }}
+            >
+              <i
+                className="fa-solid fa-calendar-xmark"
+                style={{
+                  fontSize: '2.5rem',
+                  marginBottom: '0.75rem',
+                  display: 'block',
+                  opacity: 0.4,
+                }}
+              ></i>
+              <p style={{ fontSize: '0.9rem', fontWeight: 600 }}>
+                Belum ada data hari besar
+              </p>
+              <p style={{ fontSize: '0.78rem' }}>
+                Klik tombol "Tambah Hari Besar" untuk menambahkan event.
+              </p>
+            </div>
+          ) : (
+            <div className="admin-table-wrapper" style={{ marginTop: '1rem' }}>
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Event</th>
+                    <th>Tema</th>
+                    <th>Tanggal</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {holidayEvents.map((ev) => {
+                    const now = new Date();
+                    const start = new Date(ev.startDate);
+                    const end = new Date(ev.endDate);
+                    const isLive = ev.isActive && now >= start && now <= end;
+                    const formatDate = (d) =>
+                      new Date(d).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      });
+
+                    return (
+                      <tr key={ev._id}>
+                        <td>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                            }}
+                          >
+                            <span style={{ fontSize: '1.3rem' }}>
+                              {ev.emoji || '🎉'}
+                            </span>
+                            <div>
+                              <strong style={{ fontSize: '0.85rem' }}>
+                                {ev.title}
+                              </strong>
+                              {ev.subtitle && (
+                                <div
+                                  style={{
+                                    fontSize: '0.72rem',
+                                    color: 'var(--text-muted)',
+                                  }}
+                                >
+                                  {ev.subtitle}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span
+                            className="admin-badge"
+                            style={{
+                              background: 'var(--bg-main)',
+                              color: 'var(--text-secondary)',
+                              fontSize: '0.72rem',
+                              padding: '0.2rem 0.5rem',
+                              borderRadius: '8px',
+                            }}
+                          >
+                            {ev.theme}
+                          </span>
+                        </td>
+                        <td
+                          style={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}
+                        >
+                          {formatDate(ev.startDate)} — {formatDate(ev.endDate)}
+                        </td>
+                        <td>
+                          {isLive ? (
+                            <span
+                              className="admin-badge admin-badge--success"
+                              style={{ fontSize: '0.72rem' }}
+                            >
+                              <i
+                                className="fa-solid fa-circle"
+                                style={{ fontSize: '0.5rem' }}
+                              />{' '}
+                              LIVE
+                            </span>
+                          ) : ev.isActive ? (
+                            <span
+                              className="admin-badge admin-badge--warning"
+                              style={{ fontSize: '0.72rem' }}
+                            >
+                              Dijadwalkan
+                            </span>
+                          ) : (
+                            <span
+                              className="admin-badge admin-badge--muted"
+                              style={{ fontSize: '0.72rem' }}
+                            >
+                              Nonaktif
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <div
+                            style={{
+                              display: 'flex',
+                              gap: '0.35rem',
+                              flexWrap: 'wrap',
+                            }}
+                          >
+                            <button
+                              className="admin-btn admin-btn--sm admin-btn--outline"
+                              onClick={() => handleOpenEditHolModal(ev)}
+                              title="Edit"
+                            >
+                              <i className="fa-solid fa-pen" />
+                            </button>
+                            <button
+                              className={`admin-btn admin-btn--sm ${ev.isActive ? 'admin-btn--warning' : 'admin-btn--success'}`}
+                              onClick={() => handleToggleHoliday(ev._id)}
+                              title={ev.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                            >
+                              <i
+                                className={`fa-solid ${ev.isActive ? 'fa-eye-slash' : 'fa-eye'}`}
+                              />
+                            </button>
+                            <button
+                              className="admin-btn admin-btn--sm admin-btn--danger"
+                              onClick={() => handleDeleteHoliday(ev._id)}
+                              title="Hapus"
+                            >
+                              <i className="fa-solid fa-trash" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Modal Form Tambah/Edit Hari Besar */}
+          {holModalOpen && (
+            <div className="admin-modal-overlay">
+              <div className="admin-modal" style={{ maxWidth: '540px' }}>
+                <div className="admin-modal__header">
+                  <h4 className="admin-modal__title">
+                    <i
+                      className="fa-solid fa-calendar-star"
+                      style={{ color: 'var(--accent)', marginRight: '0.5rem' }}
+                    />
+                    {editingHol ? 'Edit Hari Besar' : 'Tambah Hari Besar'}
+                  </h4>
+                  <button
+                    type="button"
+                    className="admin-modal__close"
+                    onClick={() => setHolModalOpen(false)}
+                    title="Tutup"
+                  >
+                    <i className="fa-solid fa-xmark" />
+                  </button>
+                </div>
+                <form onSubmit={handleSaveHoliday}>
+                  <div className="admin-modal__body">
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">
+                        Judul Event (Opsional)
+                      </label>
+                      <input
+                        type="text"
+                        className="admin-input"
+                        placeholder="Contoh: Hari Kemerdekaan RI ke-81 (kosongkan jika sudah ada di gambar banner)"
+                        value={holForm.title}
+                        onChange={(e) =>
+                          setHolForm({ ...holForm, title: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">
+                        Subtitle / Ucapan (Opsional)
+                      </label>
+                      <input
+                        type="text"
+                        className="admin-input"
+                        placeholder="Contoh: Dirgahayu Republik Indonesia 🇮🇩"
+                        value={holForm.subtitle}
+                        onChange={(e) =>
+                          setHolForm({ ...holForm, subtitle: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: '0.85rem',
+                      }}
+                    >
+                      <div className="admin-form-group">
+                        <label className="admin-form-label">
+                          Tanggal Mulai *
+                        </label>
+                        <input
+                          type="date"
+                          className="admin-input"
+                          value={holForm.startDate}
+                          onChange={(e) =>
+                            setHolForm({
+                              ...holForm,
+                              startDate: e.target.value,
+                            })
+                          }
+                          required
+                        />
+                      </div>
+                      <div className="admin-form-group">
+                        <label className="admin-form-label">
+                          Tanggal Selesai *
+                        </label>
+                        <input
+                          type="date"
+                          className="admin-input"
+                          value={holForm.endDate}
+                          onChange={(e) =>
+                            setHolForm({ ...holForm, endDate: e.target.value })
+                          }
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">
+                        Tema Visual Gradien
+                      </label>
+                      {holForm.bannerImageUrl ? (
+                        <div
+                          style={{
+                            padding: '0.65rem 0.85rem',
+                            background: '#f1f5f9',
+                            borderRadius: '8px',
+                            border: '1px solid #cbd5e1',
+                            fontSize: '0.82rem',
+                            color: '#64748b',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                          }}
+                        >
+                          <i
+                            className="fa-solid fa-circle-info"
+                            style={{ color: 'var(--accent)' }}
+                          />
+                          <em>
+                            Tema visual gradien dinonaktifkan karena Anda
+                            menggunakan Gambar Banner kustom.
+                          </em>
+                        </div>
+                      ) : (
+                        <select
+                          className="admin-input"
+                          value={holForm.theme}
+                          onChange={(e) =>
+                            setHolForm({ ...holForm, theme: e.target.value })
+                          }
+                        >
+                          {HOLIDAY_THEME_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                    {!holForm.bannerImageUrl && holForm.theme === 'custom' && (
+                      <div className="admin-form-group">
+                        <label className="admin-form-label">Warna Custom</label>
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: '0.5rem',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <input
+                            type="color"
+                            value={holForm.customColor}
+                            onChange={(e) =>
+                              setHolForm({
+                                ...holForm,
+                                customColor: e.target.value,
+                              })
+                            }
+                            style={{
+                              width: '48px',
+                              height: '40px',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              padding: '2px',
+                            }}
+                          />
+                          <input
+                            type="text"
+                            className="admin-input"
+                            value={holForm.customColor}
+                            onChange={(e) =>
+                              setHolForm({
+                                ...holForm,
+                                customColor: e.target.value,
+                              })
+                            }
+                            style={{ flex: 1 }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <div className="admin-form-group">
+                      <label className="admin-form-label">
+                        <i
+                          className="fa-solid fa-wand-magic-sparkles"
+                          style={{ color: 'var(--accent)' }}
+                        />{' '}
+                        Elemen Terbang PNG / Particles (Opsional)
+                      </label>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.6rem',
+                        }}
+                      >
+                        {holForm.particleImages &&
+                        holForm.particleImages.length > 0 ? (
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexWrap: 'wrap',
+                              gap: '0.6rem',
+                            }}
+                          >
+                            {holForm.particleImages.map((imgUrl, idx) => (
+                              <div
+                                key={idx}
+                                style={{
+                                  position: 'relative',
+                                  width: '48px',
+                                  height: '48px',
+                                  borderRadius: '8px',
+                                  border: '1px solid #cbd5e1',
+                                  background: '#f8fafc',
+                                  padding: '4px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <img
+                                  src={formatImageUrl(imgUrl)}
+                                  alt={`Particle ${idx + 1}`}
+                                  style={{
+                                    maxWidth: '100%',
+                                    maxHeight: '100%',
+                                    objectFit: 'contain',
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteParticleImage(idx)}
+                                  style={{
+                                    position: 'absolute',
+                                    top: '-6px',
+                                    right: '-6px',
+                                    background: 'rgba(239, 68, 68, 0.9)',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: '50%',
+                                    width: '18px',
+                                    height: '18px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.65rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
+                                  title="Hapus elemen"
+                                >
+                                  <i className="fa-solid fa-xmark" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: '0.78rem',
+                              color: 'var(--text-muted)',
+                            }}
+                          >
+                            Belum ada gambar elemen terbang PNG. (Bisa upload
+                            lebih dari 1 gambar PNG transparan).
+                          </span>
+                        )}
+
+                        <label
+                          className="admin-btn admin-btn--outline admin-btn--sm"
+                          style={{
+                            cursor: 'pointer',
+                            alignSelf: 'flex-start',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            margin: 0,
+                          }}
+                        >
+                          <i
+                            className={`fa-solid ${particleUploading ? 'fa-spinner fa-spin' : 'fa-plus'}`}
+                          />
+                          {particleUploading
+                            ? 'Mengunggah PNG...'
+                            : '+ Upload Gambar Elemen Terbang (PNG Transparan)'}
+                          <input
+                            type="file"
+                            accept="image/png,image/webp,image/gif"
+                            multiple
+                            onChange={handleParticleImageUpload}
+                            style={{ display: 'none' }}
+                            disabled={particleUploading}
+                          />
+                        </label>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: '0.72rem',
+                          color: '#64748b',
+                          marginTop: '0.25rem',
+                          display: 'block',
+                        }}
+                      >
+                        💡 Upload file <strong>PNG transparan</strong> (bisa
+                        upload banyak sekaligus) yang akan terbang/melayang
+                        beraneka ragam di atas banner.
+                      </span>
+                    </div>
+                    <div
+                      className="admin-form-group"
+                      style={{ marginBottom: 0 }}
+                    >
+                      <label className="admin-form-label">
+                        <i
+                          className="fa-solid fa-image"
+                          style={{ color: 'var(--accent)' }}
+                        />{' '}
+                        Gambar Banner (Opsional)
+                      </label>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '0.75rem',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        {holForm.bannerImageUrl ? (
+                          <div
+                            style={{
+                              position: 'relative',
+                              width: '100px',
+                              height: '56px',
+                              borderRadius: '8px',
+                              overflow: 'hidden',
+                              border: '1px solid #cbd5e1',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                            }}
+                          >
+                            <img
+                              src={formatImageUrl(holForm.bannerImageUrl)}
+                              alt="Banner Preview"
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setHolForm((prev) => ({
+                                  ...prev,
+                                  bannerImageUrl: '',
+                                }))
+                              }
+                              style={{
+                                position: 'absolute',
+                                top: '3px',
+                                right: '3px',
+                                background: 'rgba(239, 68, 68, 0.9)',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: '22px',
+                                height: '22px',
+                                cursor: 'pointer',
+                                fontSize: '0.7rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                              title="Hapus gambar"
+                            >
+                              <i className="fa-solid fa-xmark" />
+                            </button>
+                          </div>
+                        ) : null}
+
+                        <label
+                          className="admin-btn admin-btn--outline"
+                          style={{
+                            cursor: 'pointer',
+                            margin: 0,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                          }}
+                        >
+                          <i
+                            className={`fa-solid ${holUploading ? 'fa-spinner fa-spin' : 'fa-upload'}`}
+                          />
+                          {holUploading
+                            ? 'Mengunggah...'
+                            : holForm.bannerImageUrl
+                              ? 'Ganti Gambar Banner'
+                              : 'Upload File Gambar Banner'}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleHolImageUpload}
+                            style={{ display: 'none' }}
+                            disabled={holUploading}
+                          />
+                        </label>
+                      </div>
+                      <div
+                        style={{
+                          marginTop: '0.65rem',
+                          padding: '0.75rem 0.85rem',
+                          background: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          fontSize: '0.78rem',
+                          color: '#475569',
+                        }}
+                      >
+                        <strong
+                          style={{
+                            color: '#1e293b',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            marginBottom: '0.35rem',
+                          }}
+                        >
+                          <i
+                            className="fa-solid fa-circle-info"
+                            style={{ color: 'var(--accent)' }}
+                          />{' '}
+                          Rekomendasi Ukuran Gambar Banner (Rasio 8:1 - 10:1):
+                        </strong>
+                        <ul
+                          style={{
+                            paddingLeft: '1.1rem',
+                            margin: 0,
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          <li>
+                            <strong>Desktop / Smart TV (Besar):</strong> 1920 ×
+                            240 px
+                          </li>
+                          <li>
+                            <strong>Laptop / PC (Normal):</strong> 1280 × 160 px
+                          </li>
+                          <li>
+                            <strong>Tablet / HP (Kecil):</strong> 768 × 120 px
+                            atau 480 × 100 px
+                          </li>
+                        </ul>
+                        <span
+                          style={{
+                            fontSize: '0.72rem',
+                            color: '#64748b',
+                            marginTop: '0.35rem',
+                            display: 'block',
+                          }}
+                        >
+                          💡{' '}
+                          <em>
+                            Format: JPG, PNG, WEBP. Gambar akan menyesuaikan
+                            (crop center cover) secara otomatis di layar kecil.
+                            Posisikan subjek utama di bagian tengah.
+                          </em>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="admin-modal__footer">
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn--outline"
+                      onClick={() => setHolModalOpen(false)}
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      className="admin-btn admin-btn--primary"
+                      disabled={holSubmitting}
+                    >
+                      {holSubmitting ? 'Menyimpan...' : 'Simpan Hari Besar'}
                     </button>
                   </div>
                 </form>

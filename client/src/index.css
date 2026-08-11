@@ -5104,7 +5104,8 @@ textarea.form-control {
   color: rgba(255, 255, 255, 0.7);
 }
 
-.admin-form-control {
+.admin-form-control,
+.admin-input {
   width: 100%;
   padding: 0.75rem 1rem;
   border-radius: 8px;
@@ -5113,26 +5114,31 @@ textarea.form-control {
   color: #1e293b;
   font-size: 0.9rem;
   outline: none;
+  font-family: inherit;
   transition: all 0.2s ease;
 }
 
-.admin-login-card__form .admin-form-control {
+.admin-login-card__form .admin-form-control,
+.admin-login-card__form .admin-input {
   background-color: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
 }
 
-.admin-login-card__form .admin-form-control:focus {
+.admin-login-card__form .admin-form-control:focus,
+.admin-login-card__form .admin-input:focus {
   border-color: var(--accent);
   background-color: rgba(255, 255, 255, 0.08);
 }
 
-.admin-form-control:focus {
+.admin-form-control:focus,
+.admin-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-light);
 }
 
-textarea.admin-form-control {
+textarea.admin-form-control,
+textarea.admin-input {
   resize: vertical;
   min-height: 100px;
 }
@@ -9517,5 +9523,226 @@ input::-ms-clear {
 
   .banner-heading {
     font-size: 1.85rem;
+  }
+}
+
+/* ==========================================================================
+   HOLIDAY EVENT STRIP BANNER (Hari Besar)
+   ========================================================================== */
+
+.holiday-strip-wrapper {
+  width: 100%;
+}
+
+.holiday-strip {
+  position: relative;
+  width: 100%;
+  padding: 0.85rem 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.holiday-strip-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  position: relative;
+  z-index: 3;
+}
+
+.holiday-emoji-left,
+.holiday-emoji-right {
+  font-size: 1.6rem;
+  line-height: 1;
+  animation: holidayEmojiBounce 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.holiday-emoji-right {
+  animation-delay: 0.3s;
+}
+
+.holiday-text-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  text-align: center;
+}
+
+.holiday-title {
+  font-family: var(--font-headers);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.holiday-subtitle {
+  font-size: 0.72rem;
+  font-weight: 600;
+  opacity: 0.9;
+  letter-spacing: 0.02em;
+}
+
+/* --- Floating Particles --- */
+.holiday-particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+  overflow: hidden;
+}
+
+.holiday-particle {
+  position: absolute;
+  top: -20%;
+  opacity: 0;
+  animation: holidayParticleFloat 4.5s ease-in-out infinite;
+}
+
+.holiday-particle--right {
+  animation-name: holidayParticleFloatRight;
+}
+
+@keyframes holidayParticleFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) rotate(0deg) scale(0.6);
+  }
+  20% {
+    opacity: 0.85;
+  }
+  80% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(60px) rotate(180deg) scale(0.3);
+  }
+}
+
+@keyframes holidayParticleFloatRight {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) rotate(0deg) scale(0.5);
+  }
+  25% {
+    opacity: 0.7;
+  }
+  75% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(55px) rotate(-150deg) scale(0.25);
+  }
+}
+
+@keyframes holidayEmojiBounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.1);
+  }
+}
+
+/* --- Shimmer Overlay --- */
+.holiday-shimmer {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
+  z-index: 2;
+  animation: holidayShimmerSlide 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes holidayShimmerSlide {
+  0% {
+    left: -50%;
+  }
+  100% {
+    left: 150%;
+  }
+}
+
+/* --- Responsive: Mobile (320px - 768px) --- */
+@media (max-width: 768px) {
+  .holiday-strip {
+    padding: 0.65rem 0;
+  }
+
+  .holiday-strip-content {
+    gap: 0.6rem;
+  }
+
+  .holiday-emoji-left,
+  .holiday-emoji-right {
+    font-size: 1.2rem;
+  }
+
+  .holiday-title {
+    font-size: 0.82rem;
+  }
+
+  .holiday-subtitle {
+    font-size: 0.65rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .holiday-strip {
+    padding: 0.5rem 0;
+  }
+
+  .holiday-emoji-left,
+  .holiday-emoji-right {
+    font-size: 1rem;
+  }
+
+  .holiday-title {
+    font-size: 0.72rem;
+  }
+
+  .holiday-subtitle {
+    font-size: 0.6rem;
+  }
+
+  .holiday-particle {
+    display: none;
+  }
+}
+
+/* --- Responsive: Ultra-wide (> 1600px) --- */
+@media (min-width: 1650px) {
+  .holiday-strip {
+    padding: 1.1rem 0;
+  }
+
+  .holiday-title {
+    font-size: 1.2rem;
+  }
+
+  .holiday-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .holiday-emoji-left,
+  .holiday-emoji-right {
+    font-size: 2rem;
   }
 }
