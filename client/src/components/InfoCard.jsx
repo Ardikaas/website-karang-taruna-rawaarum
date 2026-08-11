@@ -13,7 +13,10 @@ const InfoCard = ({ item, linkTo, customBtnText }) => {
   const isWarningBadge =
     item.type === 'pengumuman' ||
     (item.badge && item.badge.toLowerCase() === 'penting');
-  const badgeClass = isWarningBadge ? 'warning' : '';
+  const isBeritaBadge =
+    item.type === 'berita' ||
+    (item.badge && item.badge.toLowerCase() === 'berita');
+  const badgeClass = isWarningBadge ? 'warning' : isBeritaBadge ? 'berita' : '';
 
   // Priority link: custom linkTo -> /informasi/:id -> /:type
   const targetId = item._id || item.id;

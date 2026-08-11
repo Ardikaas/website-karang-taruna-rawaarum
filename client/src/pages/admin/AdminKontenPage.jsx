@@ -28,6 +28,7 @@ const INITIAL_FORM = {
 };
 
 const TYPE_IMAGE_MAP = {
+  berita: '/assets/info_kegiatan.png',
   loker: '/assets/lowongan_kerja.png',
   umkm: '/assets/potensi_umkm.png',
   pengumuman: '/assets/pengumuman.png',
@@ -251,9 +252,13 @@ const AdminKontenPage = () => {
   };
 
   const handleOpenEdit = (item) => {
-    const isStandardType = ['kegiatan', 'loker', 'umkm', 'pengumuman'].includes(
-      item.type
-    );
+    const isStandardType = [
+      'berita',
+      'kegiatan',
+      'loker',
+      'umkm',
+      'pengumuman',
+    ].includes(item.type);
     setForm({
       title: item.title,
       description: item.description,
@@ -350,6 +355,9 @@ const AdminKontenPage = () => {
     } else if (payload.type === 'pengumuman') {
       payload.linkText = 'Lihat Pengumuman';
       payload.badge = 'Penting';
+    } else if (payload.type === 'berita') {
+      payload.linkText = 'Baca Berita';
+      payload.badge = 'Berita';
     } else {
       payload.linkText = 'Lihat Kegiatan';
       payload.badge = 'Kegiatan';
@@ -419,7 +427,7 @@ const AdminKontenPage = () => {
     ),
   ];
   const categoryTabs = isPengurus
-    ? ['all', 'kegiatan']
+    ? ['all', 'berita', 'kegiatan']
     : ['all', ...allUniqueTypes];
 
   const filteredItems = (items || [])
@@ -432,7 +440,7 @@ const AdminKontenPage = () => {
       }
       // If pengurus, restrict access ONLY to content created by themselves
       if (isPengurus) {
-        if (typeStr !== 'kegiatan') return false;
+        if (typeStr !== 'kegiatan' && typeStr !== 'berita') return false;
         const createdById =
           typeof item.createdBy === 'object'
             ? item.createdBy?._id
@@ -936,6 +944,7 @@ const AdminKontenPage = () => {
                     onChange={(e) => setForm({ ...form, type: e.target.value })}
                     style={{ borderRadius: '8px', padding: '0.65rem 0.9rem' }}
                   >
+                    <option value="berita">Berita Terkini</option>
                     <option value="kegiatan">Kegiatan &amp; Agenda</option>
                     {!isPengurus && (
                       <option value="loker">Lowongan Kerja (Loker)</option>

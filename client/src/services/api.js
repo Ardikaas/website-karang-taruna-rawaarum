@@ -9,6 +9,7 @@
 import {
   MOCK_LOKER,
   MOCK_UMKM,
+  MOCK_BERITA,
   MOCK_KEGIATAN,
   MOCK_PENGUMUMAN,
   MOCK_RECENT_ITEMS,
@@ -26,6 +27,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5555/api';
 const FALLBACK_MAP = {
   loker: MOCK_LOKER,
   umkm: MOCK_UMKM,
+  berita: MOCK_BERITA,
   kegiatan: MOCK_KEGIATAN,
   pengumuman: MOCK_PENGUMUMAN,
 };

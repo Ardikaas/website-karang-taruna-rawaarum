@@ -28,6 +28,8 @@ export const MOCK_LOKER = [];
 
 export const MOCK_UMKM = [];
 
+export const MOCK_BERITA = [];
+
 export const MOCK_KEGIATAN = [];
 
 export const MOCK_PENGUMUMAN = [];

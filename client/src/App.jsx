@@ -49,6 +49,8 @@ const SCROLL_THRESHOLD = 50;
 const HOME_SECTIONS = ['home', 'pilar', 'program', 'kemitraan', 'kontak'];
 
 const App = () => {
+  const location = useLocation();
+
   // --------------- Global UI State ---------------
   const [activeSection, setActiveSection] = useState('home');
   const [scrolled, setScrolled] = useState(false);
@@ -77,7 +79,7 @@ const App = () => {
     const handleScroll = () => {
       setScrolled(window.scrollY > SCROLL_THRESHOLD);
 
-      if (window.location.pathname === '/') {
+      if (location.pathname === '/') {
         let current = 'home';
         for (const sectionId of HOME_SECTIONS) {
           const el = document.getElementById(sectionId);
@@ -95,9 +97,11 @@ const App = () => {
       }
     };
 
+    handleScroll();
+
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [location.pathname]);
 
   // --------------- Form Handlers ---------------
   const handleRegisterSubmit = async (e) => {
@@ -141,7 +145,6 @@ const App = () => {
   };
 
   // --------------- Render ---------------
-  const location = useLocation();
   const isDashboardOrAuthPath =
     location.pathname.startsWith('/admin') ||
     location.pathname.startsWith('/pengurus') ||
