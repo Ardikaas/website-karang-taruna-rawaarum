@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 import Hero from '../components/Hero';
+import WeatherBanner from '../components/WeatherBanner';
 import VideoBanner from '../components/VideoBanner';
 import BirthdayBanner from '../components/BirthdayBanner';
 import AchievementBanner from '../components/AchievementBanner';
@@ -77,6 +78,7 @@ const Home = ({ onOpenRegModal }) => {
         slides={HERO_SLIDES}
         onDotClick={handleDotClick}
       />
+      <WeatherBanner />
       <VideoBanner />
 
       {/* Birthday Announcement Banner */}

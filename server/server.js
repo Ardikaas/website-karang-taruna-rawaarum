@@ -22,6 +22,8 @@ const umkmRoutes = require('./routes/umkm.routes');
 const messageRoutes = require('./routes/message.routes');
 const financeRoutes = require('./routes/finance.routes');
 const achievementRoutes = require('./routes/achievement.routes');
+const weatherRoutes = require('./routes/weather.routes');
+const { recordWeatherSnapshot } = require('./controllers/weather.controller');
 const path = require('path');
 
 const app = express();
@@ -49,6 +51,7 @@ app.use('/api/partner', partnerRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/achievements', achievementRoutes);
+app.use('/api/weather', weatherRoutes);
 
 // --------------- Models for Dynamic Social Media OG Preview ---------------
 const Umkm = require('./models/Umkm');
@@ -204,6 +207,12 @@ const PORT = process.env.PORT || 5555;
 const startServer = async () => {
   try {
     await connectDB();
+
+    // Trigger initial snapshot & schedule 30-minute background collector timer
+    setTimeout(() => {
+      recordWeatherSnapshot();
+    }, 5000);
+    setInterval(recordWeatherSnapshot, 30 * 60 * 1000);
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

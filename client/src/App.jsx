@@ -23,6 +23,7 @@ import ProgramPage from './pages/ProgramPage';
 import LoginPage from './pages/LoginPage';
 import InfoDetailPage from './pages/InfoDetailPage';
 import KeuanganPage from './pages/KeuanganPage';
+import CuacaPage from './pages/CuacaPage';
 import PengurusProfilePage from './pages/pengurus/PengurusProfilePage';
 
 // Admin Pages & Layout
@@ -178,6 +179,7 @@ const App = () => {
           <Route path="/kemitraan" element={<KemitraanPage />} />
           <Route path="/kontak" element={<KontakPage />} />
           <Route path="/keuangan" element={<KeuanganPage />} />
+          <Route path="/cuaca" element={<CuacaPage />} />
 
           {/* Auth & Pengurus Routes */}
           <Route path="/login" element={<LoginPage />} />

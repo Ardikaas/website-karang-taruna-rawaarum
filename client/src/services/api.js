@@ -14,6 +14,7 @@ import {
   MOCK_RECENT_ITEMS,
   MOCK_FINANCE_TRANSACTIONS,
   MOCK_FINANCE_SUMMARY,
+  MOCK_WEATHER_DATA,
 } from '../constants/mockData';
 import { structureData } from '../constants/structureData';
 import { compressImageIfNeeded } from '../utils/imageCompressor';
@@ -1436,4 +1437,285 @@ export const deleteAchievement = async (id) => {
   if (!res.ok)
     throw new Error(data.error || 'Gagal menghapus data apresiasi anggota.');
   return data;
+};
+
+// --------------- Weather Service (Kelurahan Rawa Arum) ---------------
+
+const getCompassDirection = (deg) => {
+  const directions = [
+    'Utara (U)',
+    'Timur Laut (TL)',
+    'Timur (T)',
+    'Tenggara (TG)',
+    'Selatan (S)',
+    'Barat Daya (BD)',
+    'Barat (B)',
+    'Barat Laut (BL)',
+  ];
+  const index = Math.round(deg / 45) % 8;
+  return directions[index];
+};
+
+const getWeatherConditionText = (code) => {
+  if (code === 0) return 'Cerah / Terang';
+  if (code >= 1 && code <= 3) return 'Cerah Berawan';
+  if (code === 45 || code === 48) return 'Kabut / Embun';
+  if (code >= 51 && code <= 67) return 'Hujan Gerimis';
+  if (code >= 71 && code <= 77) return 'Salju / Dingin';
+  if (code >= 80 && code <= 82) return 'Hujan Deras';
+  if (code >= 95) return 'Badai & Petir';
+  return 'Berawan';
+};
+
+/**
+ * Fetch realtime weather data for Kelurahan Rawa Arum (Cilegon) from Open-Meteo API.
+ * Falls back gracefully to mock weather data if unreachable or offline.
+ */
+export const fetchWeatherRawaArum = async () => {
+  try {
+    const lat = -5.9922;
+    const lon = 106.0125;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,direct_normal_irradiance,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia%2FJakarta`;
+
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('API Cuaca tidak merespon.');
+    const json = await res.json();
+    const curr = json.current;
+    const daily = json.daily;
+
+    const irradiance = curr.direct_normal_irradiance || 400;
+    const lux = Math.round(irradiance * 120);
+
+    const tomorrowMax = daily?.temperature_2m_max?.[1]
+      ? Math.round(daily.temperature_2m_max[1])
+      : 31;
+    const tomorrowMin = daily?.temperature_2m_min?.[1]
+      ? Math.round(daily.temperature_2m_min[1])
+      : 24;
+    const tomorrowCode =
+      daily?.weather_code?.[1] !== undefined ? daily.weather_code[1] : 1;
+
+    return {
+      location: 'Kelurahan Rawa Arum, Cilegon',
+      temperature: Math.round(curr.temperature_2m),
+      feelsLike: Math.round(curr.apparent_temperature),
+      conditionText: getWeatherConditionText(curr.weather_code),
+      weatherCode: curr.weather_code,
+      humidity: curr.relative_humidity_2m,
+      windSpeed: Math.round(curr.wind_speed_10m),
+      windDirection: getCompassDirection(curr.wind_direction_10m),
+      windDegree: curr.wind_direction_10m,
+      lux: lux > 0 ? lux : 35000,
+      uvIndex: Math.round(curr.uv_index || 5),
+      pressure: Math.round(curr.surface_pressure || 1012),
+      airQuality: 'Sangat Baik (AQI 28)',
+      tomorrowForecast: {
+        tempMax: tomorrowMax,
+        tempMin: tomorrowMin,
+        conditionText: getWeatherConditionText(tomorrowCode),
+        weatherCode: tomorrowCode,
+      },
+      updatedAt: new Date().toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    };
+  } catch (_err) {
+    return {
+      ...MOCK_WEATHER_DATA,
+      updatedAt: new Date().toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    };
+  }
+};
+
+/**
+ * Fetch detailed weather, hourly ticker, 7-day forecast, and real-time Air Quality AQI for CuacaPage.
+ */
+export const fetchDetailedWeatherRawaArum = async () => {
+  try {
+    const lat = -5.9922;
+    const lon = 106.0125;
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,direct_normal_irradiance,uv_index,visibility&hourly=temperature_2m,relative_humidity_2m,weather_code,precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,wind_speed_10m_max&timezone=Asia%2FJakarta`;
+
+    const airUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi,pm2_5,pm10`;
+
+    const [weatherRes, airRes] = await Promise.all([
+      fetch(weatherUrl).catch(() => null),
+      fetch(airUrl).catch(() => null),
+    ]);
+
+    if (!weatherRes || !weatherRes.ok)
+      throw new Error('API Cuaca tidak merespon.');
+    const json = await weatherRes.json();
+    const curr = json.current;
+    const daily = json.daily;
+    const hourly = json.hourly;
+
+    // Real Air Quality AQI from Open-Meteo Air Quality API
+    let airQualityText = 'AQI Normal';
+    if (airRes && airRes.ok) {
+      const airJson = await airRes.json();
+      if (airJson.current && airJson.current.us_aqi !== undefined) {
+        const aqiVal = Math.round(airJson.current.us_aqi);
+        const category =
+          aqiVal <= 50 ? 'Sangat Baik' : aqiVal <= 100 ? 'Sedang' : 'Sensitif';
+        airQualityText = `AQI ${aqiVal} (${category})`;
+      }
+    }
+
+    const irradiance =
+      curr.direct_normal_irradiance !== undefined
+        ? curr.direct_normal_irradiance
+        : 0;
+    const lux = Math.round(irradiance * 120);
+    const visKm =
+      curr.visibility !== undefined
+        ? (curr.visibility / 1000).toFixed(1)
+        : '10.0';
+    const visText = `${visKm} km (${parseFloat(visKm) >= 8 ? 'Jernih' : 'Terbatas'})`;
+
+    // Format hourly items (next 24 hours)
+    const currentHourIdx = new Date().getHours();
+    const hourlyItems = [];
+    if (hourly && hourly.time) {
+      for (let i = currentHourIdx; i < currentHourIdx + 24; i++) {
+        if (hourly.time[i]) {
+          const timeStr = hourly.time[i];
+          const hourNum = new Date(timeStr).getHours();
+          const code =
+            hourly.weather_code[i] !== undefined ? hourly.weather_code[i] : 0;
+          hourlyItems.push({
+            time: `${String(hourNum).padStart(2, '0')}:00`,
+            temp: Math.round(hourly.temperature_2m[i]),
+            humidity: Math.round(hourly.relative_humidity_2m[i]),
+            pop:
+              hourly.precipitation_probability[i] !== undefined
+                ? Math.round(hourly.precipitation_probability[i])
+                : 0,
+            weatherCode: code,
+            conditionText: getWeatherConditionText(code),
+          });
+        }
+      }
+    }
+
+    // Format 7-day daily forecast items
+    const dailyItems = [];
+    const dayNames = [
+      'Minggu',
+      'Senin',
+      'Selasa',
+      'Rabu',
+      'Kamis',
+      'Jumat',
+      'Sabtu',
+    ];
+    if (daily && daily.time) {
+      for (let i = 0; i < daily.time.length; i++) {
+        const dObj = new Date(daily.time[i]);
+        const dayLabel =
+          i === 0 ? 'Hari Ini' : i === 1 ? 'Besok' : dayNames[dObj.getDay()];
+        const dateFormatted = `${dObj.getDate()} ${dObj.toLocaleDateString('id-ID', { month: 'short' })}`;
+        const code =
+          daily.weather_code[i] !== undefined ? daily.weather_code[i] : 0;
+
+        const sunriseTime = daily.sunrise?.[i]
+          ? new Date(daily.sunrise[i]).toLocaleTimeString('id-ID', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          : '-';
+        const sunsetTime = daily.sunset?.[i]
+          ? new Date(daily.sunset[i]).toLocaleTimeString('id-ID', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          : '-';
+
+        dailyItems.push({
+          dayLabel,
+          dateFormatted,
+          tempMax: Math.round(daily.temperature_2m_max[i]),
+          tempMin: Math.round(daily.temperature_2m_min[i]),
+          weatherCode: code,
+          conditionText: getWeatherConditionText(code),
+          uvIndexMax:
+            daily.uv_index_max?.[i] !== undefined
+              ? Math.round(daily.uv_index_max[i])
+              : 0,
+          windSpeedMax:
+            daily.wind_speed_10m_max?.[i] !== undefined
+              ? Math.round(daily.wind_speed_10m_max[i])
+              : 0,
+          sunrise: sunriseTime,
+          sunset: sunsetTime,
+        });
+      }
+    }
+
+    // Real Sunrise & Sunset for Today
+    const todaySunrise = daily?.sunrise?.[0]
+      ? new Date(daily.sunrise[0]).toLocaleTimeString('id-ID', {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : '-';
+    const todaySunset = daily?.sunset?.[0]
+      ? new Date(daily.sunset[0]).toLocaleTimeString('id-ID', {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : '-';
+
+    return {
+      location: 'Kelurahan Rawa Arum, Cilegon',
+      district: 'Kecamatan Grogol, Kota Cilegon, Banten',
+      temperature: Math.round(curr.temperature_2m),
+      feelsLike: Math.round(curr.apparent_temperature),
+      conditionText: getWeatherConditionText(curr.weather_code),
+      weatherCode: curr.weather_code,
+      humidity: Math.round(curr.relative_humidity_2m),
+      dewPoint: Math.round(
+        curr.temperature_2m - (100 - curr.relative_humidity_2m) / 5
+      ),
+      windSpeed: Math.round(curr.wind_speed_10m),
+      windDirection: getCompassDirection(curr.wind_direction_10m),
+      windDegree: Math.round(curr.wind_direction_10m),
+      lux: lux,
+      uvIndex: Math.round(curr.uv_index),
+      pressure: Math.round(curr.surface_pressure),
+      visibility: visText,
+      airQuality: airQualityText,
+      sunrise: todaySunrise,
+      sunset: todaySunset,
+      hourlyForecast: hourlyItems,
+      dailyForecast: dailyItems,
+      updatedAt: new Date().toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }),
+    };
+  } catch (_err) {
+    return null;
+  }
+};
+
+/**
+ * Fetch weather history snapshots recorded in MongoDB with range & period offset filters.
+ */
+export const fetchWeatherHistory = async (rangeMode = 'day', offset = 0) => {
+  try {
+    const res = await fetch(
+      `${API_BASE}/weather/history?rangeMode=${rangeMode}&offset=${offset}`
+    );
+    if (!res.ok) throw new Error('API History error');
+    const json = await res.json();
+    return json.data || [];
+  } catch (_err) {
+    return [];
+  }
 };
