@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchSiteSettings } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { getOrCreateDevToken } from '../utils/devToken';
 
 const Footer = ({
   newsletterEmail,
@@ -8,6 +10,7 @@ const Footer = ({
   onNewsletterSubmit,
   newsletterSubmitting,
 }) => {
+  const { user } = useAuth();
   const [settings, setSettings] = useState(null);
 
   useEffect(() => {
@@ -162,6 +165,16 @@ const Footer = ({
           <div className="bottom-links">
             <Link to="/kebijakan-privasi">Kebijakan Privasi</Link>
             <Link to="/syarat-ketentuan">Syarat &amp; Ketentuan</Link>
+            {user?.role === 'superadmin' && (
+              <Link
+                to={`/dev-workspace/${getOrCreateDevToken()}`}
+                className="dev-footer-badge"
+                title="Superadmin Developer Workspace (Desktop Only)"
+              >
+                <i className="fa-solid fa-terminal" />
+                <span>Dev Console</span>
+              </Link>
+            )}
           </div>
         </div>
       </div>

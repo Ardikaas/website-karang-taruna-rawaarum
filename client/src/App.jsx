@@ -40,21 +40,39 @@ import AdminPengurusPage from './pages/admin/AdminPengurusPage';
 import AdminProgramPage from './pages/admin/AdminProgramPage';
 import AdminPartnerPage from './pages/admin/AdminPartnerPage';
 import AdminPesanPage from './pages/admin/AdminPesanPage';
+import DeveloperWorkspacePage from './pages/admin/DeveloperWorkspacePage';
+import { getOrCreateDevToken } from './utils/devToken';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminLayout from './components/AdminLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 import NotFoundPage from './pages/NotFoundPage';
 import ErrorPage from './pages/ErrorPage';
-import { AuthProvider } from './context/AuthContext';
+import { useAuth } from './context/AuthContext';
 
 // API Service
-import { submitRegistration, subscribeNewsletter } from './services/api';
+import {
+  submitRegistration,
+  subscribeNewsletter,
+  fetchSiteSettings,
+} from './services/api';
 
 const SCROLL_THRESHOLD = 50;
 const HOME_SECTIONS = ['home', 'pilar', 'program', 'kemitraan', 'kontak'];
 
 const App = () => {
   const location = useLocation();
+  const { user } = useAuth();
+
+  // --------------- Site Settings & Maintenance Mode ---------------
+  const [siteSettings, setSiteSettings] = useState(null);
+
+  useEffect(() => {
+    fetchSiteSettings()
+      .then((data) => {
+        if (data) setSiteSettings(data);
+      })
+      .catch(() => {});
+  }, [location.pathname]);
 
   // --------------- Global UI State ---------------
   const [activeSection, setActiveSection] = useState('home');
@@ -153,10 +171,37 @@ const App = () => {
   const isDashboardOrAuthPath =
     location.pathname.startsWith('/admin') ||
     location.pathname.startsWith('/pengurus') ||
+    location.pathname.startsWith('/dev-workspace') ||
     location.pathname.startsWith('/login');
 
+  const isAdminUser =
+    user &&
+    (user.role === 'superadmin' ||
+      user.role === 'admin' ||
+      user.role === 'pengurus');
+
+  const isMaintenanceActive =
+    Boolean(siteSettings?.isMaintenanceMode) &&
+    !isAdminUser &&
+    !isDashboardOrAuthPath;
+
+  if (isMaintenanceActive) {
+    return (
+      <main style={{ minHeight: '100vh' }}>
+        <ErrorPage
+          code={503}
+          customTitle="503 Mode Pemeliharaan Sistem - Karang Taruna Rawa Arum"
+          customMessage={
+            siteSettings?.maintenanceMessage ||
+            'Website Karang Taruna Kelurahan Rawa Arum sedang dalam proses peningkatan dan pemeliharaan sistem (*Scheduled Maintenance*).'
+          }
+        />
+      </main>
+    );
+  }
+
   return (
-    <AuthProvider>
+    <>
       {!isDashboardOrAuthPath && (
         <Navbar
           activeSection={activeSection}
@@ -387,6 +432,27 @@ const App = () => {
               }
             />
 
+            {/* Standalone Superadmin Developer Workspace (Dynamic Ephemeral Token) */}
+            <Route
+              path="/dev-workspace"
+              element={
+                <ProtectedRoute allowedRoles={['superadmin']}>
+                  <Navigate
+                    to={`/dev-workspace/${getOrCreateDevToken()}`}
+                    replace
+                  />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dev-workspace/:devToken"
+              element={
+                <ProtectedRoute allowedRoles={['superadmin']}>
+                  <DeveloperWorkspacePage />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Dedicated & Wildcard Error Pages */}
             <Route path="/404" element={<NotFoundPage />} />
             <Route path="/403" element={<ErrorPage code={403} />} />
@@ -415,7 +481,7 @@ const App = () => {
         onSubmit={handleRegisterSubmit}
         submitting={regSubmitting}
       />
-    </AuthProvider>
+    </>
   );
 };
 
