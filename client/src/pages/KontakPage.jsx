@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { fetchSiteSettings, sendContactMessage } from '../services/api';
+import SEO from '../components/SEO';
+import { buildBreadcrumbSchema } from '../constants/seoData';
 
 const KontakPage = () => {
   const [settings, setSettings] = useState(null);
@@ -85,6 +87,25 @@ const KontakPage = () => {
 
   return (
     <div className="subpage-layout">
+      <SEO
+        title="Kontak & Sekretariat Karang Taruna Kelurahan Rawa Arum Cilegon"
+        description="Hubungi sekretariat Karang Taruna Kelurahan Rawa Arum, Kec. Grogol, Kota Cilegon. Kirim pesan kemitraan, permohonan kolaborasi, atau layanan pengaduan pemuda."
+        keywords="Kontak Karang Taruna Rawa Arum, Alamat Karang Taruna Cilegon, WhatsApp Karang Taruna Rawa Arum, Sekretariat Pemuda Rawa Arum"
+        canonicalUrl="/kontak"
+        schema={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'ContactPage',
+              name: 'Kontak & Sekretariat Karang Taruna Rawa Arum',
+              description:
+                'Kontak resmi sekretariat dan formulir komunikasi Karang Taruna Kelurahan Rawa Arum.',
+              url: 'https://kttunasarum.com/kontak',
+            },
+            buildBreadcrumbSchema([{ name: 'Kontak', url: '/kontak' }]),
+          ],
+        }}
+      />
       {/* Background glow patterns */}
       <div className="subpage-bg-glow"></div>
 

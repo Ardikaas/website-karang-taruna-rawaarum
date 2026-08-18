@@ -1,4 +1,9 @@
 const Message = require('../models/Message');
+const {
+  isValidObjectId,
+  sanitizeObject,
+  safeErrorMessage,
+} = require('../utils/security');
 
 /**
  * @desc    Submit a new contact message
@@ -7,7 +12,8 @@ const Message = require('../models/Message');
  */
 const createMessage = async (req, res) => {
   try {
-    const { name, email, phone, subject, message } = req.body;
+    const sanitizedBody = sanitizeObject(req.body);
+    const { name, email, phone, subject, message } = sanitizedBody;
 
     if (!name || !email || !phone || !message) {
       return res
@@ -29,7 +35,7 @@ const createMessage = async (req, res) => {
       data: saved,
     });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: err.message || 'Gagal mengirim pesan.' });
   }
 };
 
@@ -45,7 +51,9 @@ const getMessages = async (req, res) => {
     const list = await Message.find(query).sort({ createdAt: -1 });
     res.json(list);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal mengambil pesan.') });
   }
 };
 
@@ -56,7 +64,12 @@ const getMessages = async (req, res) => {
  */
 const getMessageById = async (req, res) => {
   try {
-    const item = await Message.findById(req.params.id);
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID pesan tidak valid.' });
+    }
+
+    const item = await Message.findById(id);
     if (!item) {
       return res.status(404).json({ error: 'Pesan tidak ditemukan.' });
     }
@@ -68,7 +81,9 @@ const getMessageById = async (req, res) => {
 
     res.json(item);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal mengambil pesan.') });
   }
 };
 
@@ -79,6 +94,11 @@ const getMessageById = async (req, res) => {
  */
 const updateMessageStatus = async (req, res) => {
   try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID pesan tidak valid.' });
+    }
+
     const { status } = req.body;
     const allowed = ['unread', 'read', 'replied', 'archived'];
 
@@ -87,7 +107,7 @@ const updateMessageStatus = async (req, res) => {
     }
 
     const updated = await Message.findByIdAndUpdate(
-      req.params.id,
+      id,
       { status },
       { new: true, runValidators: true }
     );
@@ -98,7 +118,9 @@ const updateMessageStatus = async (req, res) => {
 
     res.json(updated);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res
+      .status(400)
+      .json({ error: err.message || 'Gagal mengubah status pesan.' });
   }
 };
 
@@ -109,13 +131,20 @@ const updateMessageStatus = async (req, res) => {
  */
 const deleteMessage = async (req, res) => {
   try {
-    const deleted = await Message.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID pesan tidak valid.' });
+    }
+
+    const deleted = await Message.findByIdAndDelete(id);
     if (!deleted) {
       return res.status(404).json({ error: 'Pesan tidak ditemukan.' });
     }
-    res.json({ message: 'Pesan berhasil dihapus.', id: req.params.id });
+    res.json({ message: 'Pesan berhasil dihapus.', id });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal menghapus pesan.') });
   }
 };
 

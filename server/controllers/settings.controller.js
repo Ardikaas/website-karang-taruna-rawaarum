@@ -1,11 +1,12 @@
 const SiteSettings = require('../models/SiteSettings');
+const { sanitizeObject, safeErrorMessage } = require('../utils/security');
 
 /**
  * @desc    Get site settings (single document)
  * @route   GET /api/settings
  * @access  Public
  */
-const getSettings = async (req, res) => {
+const getSettings = async (_req, res) => {
   try {
     let settings = await SiteSettings.findOne();
     if (!settings) {
@@ -14,13 +15,15 @@ const getSettings = async (req, res) => {
           'Mewujudkan pemuda yang bertakwa, berakhlak mulia, dan berpengetahuan luas.',
           'Meningkatkan jiwa kewirausahaan dan kemandirian ekonomi pemuda kelurahan.',
           'Mendorong aksi tanggap sosial, pelestarian lingkungan, dan kemanusiaan.',
-          'Mempererat tali silaturahmi dan solidaritas antar pemuda se-Kelurahan Rawa Arum.'
-        ]
+          'Mempererat tali silaturahmi dan solidaritas antar pemuda se-Kelurahan Rawa Arum.',
+        ],
       });
     }
     res.json(settings);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal memuat pengaturan situs.') });
   }
 };
 
@@ -31,16 +34,19 @@ const getSettings = async (req, res) => {
  */
 const updateSettings = async (req, res) => {
   try {
+    const sanitizedBody = sanitizeObject(req.body);
     let settings = await SiteSettings.findOne();
     if (!settings) {
-      settings = new SiteSettings(req.body);
+      settings = new SiteSettings(sanitizedBody);
     } else {
-      Object.assign(settings, req.body);
+      Object.assign(settings, sanitizedBody);
     }
     const saved = await settings.save();
     res.json(saved);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res
+      .status(400)
+      .json({ error: err.message || 'Gagal menyimpan pengaturan situs.' });
   }
 };
 

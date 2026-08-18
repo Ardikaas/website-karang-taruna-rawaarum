@@ -5,6 +5,7 @@ import {
   updateProgram,
   deleteProgram,
 } from '../../services/api';
+import { sanitizeHtml } from '../../utils/sanitizeHtml';
 
 const INITIAL_FORM = {
   title: '',
@@ -597,7 +598,9 @@ const AdminProgramPage = () => {
                             overflow: 'hidden',
                             whiteSpace: 'nowrap',
                           }}
-                          dangerouslySetInnerHTML={{ __html: item.description }}
+                          dangerouslySetInnerHTML={{
+                            __html: sanitizeHtml(item.description),
+                          }}
                         ></div>
                       </td>
                       <td>

@@ -43,6 +43,7 @@ const InfoItemSchema = new Schema(
         image: { type: String },
       },
     ],
+    viewsCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

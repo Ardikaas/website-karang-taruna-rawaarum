@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { sanitizeHtml } from '../utils/sanitizeHtml';
 
 /**
  * Reusable InfoCard component for rendering content items across Home,
@@ -13,14 +14,17 @@ const InfoCard = ({ item, linkTo, customBtnText }) => {
   const isWarningBadge =
     item.type === 'pengumuman' ||
     (item.badge && item.badge.toLowerCase() === 'penting');
-  const badgeClass = isWarningBadge ? 'warning' : '';
+  const isBeritaBadge =
+    item.type === 'berita' ||
+    (item.badge && item.badge.toLowerCase() === 'berita');
+  const badgeClass = isWarningBadge ? 'warning' : isBeritaBadge ? 'berita' : '';
 
   // Priority link: custom linkTo -> /informasi/:id -> /:type
   const targetId = item._id || item.id;
   const detailLink =
     linkTo ||
     (targetId ? `/informasi/${targetId}` : `/${item.type || 'kegiatan'}`);
-  const btnLabel = customBtnText || item.linkText || 'Lihat Detail';
+  const btnLabel = customBtnText || 'Selengkapnya';
 
   return (
     <article className="info-card">
@@ -61,17 +65,20 @@ const InfoCard = ({ item, linkTo, customBtnText }) => {
       </Link>
 
       <div className="info-content">
-        {item.date && (
-          <div className="info-meta">
-            <span>
-              <i
-                className="fa-regular fa-calendar"
-                style={{ marginRight: '6px' }}
-              />
+        <div className="info-meta">
+          {item.date && (
+            <span className="info-meta-item">
+              <i className="fa-regular fa-calendar" />
               {item.date}
             </span>
-          </div>
-        )}
+          )}
+          {item.viewsCount !== undefined && item.viewsCount !== null && (
+            <span className="info-meta-item views-badge" title="Jumlah Dilihat">
+              <i className="fa-solid fa-eye" />
+              {(item.viewsCount || 0).toLocaleString('id-ID')}
+            </span>
+          )}
+        </div>
 
         <Link
           to={detailLink}
@@ -82,7 +89,9 @@ const InfoCard = ({ item, linkTo, customBtnText }) => {
 
         <p
           className="info-desc"
-          dangerouslySetInnerHTML={{ __html: item.description || '' }}
+          dangerouslySetInnerHTML={{
+            __html: sanitizeHtml(item.description || ''),
+          }}
         />
 
         <Link to={detailLink} className="info-btn">

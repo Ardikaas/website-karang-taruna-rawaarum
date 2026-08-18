@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchPrograms } from '../services/api';
+import { sanitizeHtml } from '../utils/sanitizeHtml';
 
 const DEFAULT_PROGRAMS = [
   {
@@ -51,6 +52,9 @@ const DEFAULT_PROGRAMS = [
 const Roadmap = () => {
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const scrollRef = useRef(null);
+  const isInteracting = useRef(false);
+  const activeIdx = useRef(0);
 
   useEffect(() => {
     const loadPrograms = async () => {
@@ -68,6 +72,27 @@ const Roadmap = () => {
 
   const displayPrograms = programs.length > 0 ? programs : DEFAULT_PROGRAMS;
 
+  useEffect(() => {
+    if (loading || displayPrograms.length === 0) return;
+
+    const interval = setInterval(() => {
+      if (window.innerWidth >= 992) return;
+      if (isInteracting.current) return;
+
+      activeIdx.current = (activeIdx.current + 1) % displayPrograms.length;
+      if (scrollRef.current) {
+        const container = scrollRef.current;
+        const itemWidth = container.scrollWidth / displayPrograms.length;
+        container.scrollTo({
+          left: activeIdx.current * itemWidth,
+          behavior: 'smooth',
+        });
+      }
+    }, 3800);
+
+    return () => clearInterval(interval);
+  }, [loading, displayPrograms.length]);
+
   const getItemYear = (item, idx) => {
     if (item.year) return item.year;
     if (item.status && /^\d{4}$/.test(item.status.trim()))
@@ -84,123 +109,152 @@ const Roadmap = () => {
           <div className="title-underline"></div>
         </div>
 
-        {/* Clean Vertical Timeline Stage */}
-        <div className="sm-timeline-wrapper">
-          {/* Straight Vertical Spine Line */}
-          <div className="sm-straight-spine"></div>
+        {/* Horizontal Scroll Stage */}
+        <div
+          className="sm-horizontal-scroll-container"
+          ref={scrollRef}
+          onMouseEnter={() => {
+            isInteracting.current = true;
+          }}
+          onMouseLeave={() => {
+            isInteracting.current = false;
+          }}
+          onTouchStart={() => {
+            isInteracting.current = true;
+          }}
+          onTouchEnd={() => {
+            setTimeout(() => {
+              isInteracting.current = false;
+            }, 3000);
+          }}
+        >
+          <div className="sm-horizontal-timeline">
+            {/* Continuous Horizontal Spine Line */}
+            <div className="sm-horizontal-spine"></div>
 
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '4rem' }}>
-              <i
-                className="fa-solid fa-spinner fa-spin"
-                style={{ color: 'var(--accent)', fontSize: '2rem' }}
-              ></i>
-            </div>
-          ) : (
-            displayPrograms.map((item, idx) => {
-              const displayYear = getItemYear(item, idx);
-              const isEven = idx % 2 === 0;
+            {loading ? (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '3rem 5rem',
+                  width: '100%',
+                }}
+              >
+                <i
+                  className="fa-solid fa-spinner fa-spin"
+                  style={{ color: 'var(--accent)', fontSize: '2rem' }}
+                ></i>
+              </div>
+            ) : (
+              displayPrograms.map((item, idx) => {
+                const displayYear = getItemYear(item, idx);
+                const isEven = idx % 2 === 0;
 
-              return (
-                <div
-                  key={item._id || idx}
-                  className={`sm-timeline-row ${
-                    isEven ? 'row-left' : 'row-right'
-                  }`}
-                >
-                  {/* Left Column */}
-                  <div className="sm-side sm-side-left">
-                    {isEven ? (
-                      <div className="sm-content-card">
-                        <div className="sm-card-head">
-                          <div className="sm-icon-circle">
-                            <i
-                              className={`fa-solid ${
-                                item.icon || 'fa-chart-line'
-                              }`}
-                            ></i>
+                return (
+                  <div
+                    key={item._id || idx}
+                    className={`sm-horizontal-column ${
+                      isEven ? 'col-top-card' : 'col-bottom-card'
+                    }`}
+                  >
+                    {/* Top Section */}
+                    <div className="sm-h-top">
+                      {isEven ? (
+                        <div className="sm-content-card">
+                          <div className="sm-card-head">
+                            <div className="sm-icon-circle">
+                              <i
+                                className={`fa-solid ${
+                                  item.icon || 'fa-chart-line'
+                                }`}
+                              ></i>
+                            </div>
+                            <div>
+                              <span className="sm-cat-label">
+                                {item.category || 'Program'}
+                              </span>
+                              <h3 className="sm-card-title">{item.title}</h3>
+                            </div>
                           </div>
-                          <div>
-                            <span className="sm-cat-label">
-                              {item.category || 'Program'}
-                            </span>
-                            <h3 className="sm-card-title">{item.title}</h3>
-                          </div>
+
+                          <div
+                            className="sm-card-desc"
+                            dangerouslySetInnerHTML={{
+                              __html: sanitizeHtml(item.description),
+                            }}
+                          ></div>
+
+                          {item.target && (
+                            <div className="sm-card-target">
+                              <i className="fa-solid fa-bullseye"></i>{' '}
+                              <strong>Target:</strong> {item.target}
+                            </div>
+                          )}
                         </div>
+                      ) : (
+                        <div className="sm-pill-wrapper">
+                          <span className="sm-pill-badge sm-year-pill">
+                            {displayYear}
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
-                        <div
-                          className="sm-card-desc"
-                          dangerouslySetInnerHTML={{ __html: item.description }}
-                        ></div>
+                    {/* Center Node & Vertical Connector Line */}
+                    <div className="sm-h-center">
+                      <div className="sm-h-connector"></div>
+                      <div className="sm-node-dot">
+                        <div className="sm-node-inner"></div>
+                      </div>
+                    </div>
 
-                        {item.target && (
-                          <div className="sm-card-target">
-                            <i className="fa-solid fa-bullseye"></i>{' '}
-                            <strong>Target:</strong> {item.target}
+                    {/* Bottom Section */}
+                    <div className="sm-h-bottom">
+                      {isEven ? (
+                        <div className="sm-pill-wrapper">
+                          <span className="sm-pill-badge sm-year-pill">
+                            {displayYear}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="sm-content-card">
+                          <div className="sm-card-head">
+                            <div className="sm-icon-circle">
+                              <i
+                                className={`fa-solid ${
+                                  item.icon || 'fa-chart-line'
+                                }`}
+                              ></i>
+                            </div>
+                            <div>
+                              <span className="sm-cat-label">
+                                {item.category || 'Program'}
+                              </span>
+                              <h3 className="sm-card-title">{item.title}</h3>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="sm-pill-wrapper align-end">
-                        <span className="sm-pill-badge sm-year-pill">
-                          {displayYear}
-                        </span>
-                      </div>
-                    )}
-                  </div>
 
-                  {/* Center Node & Horizontal Connector Line */}
-                  <div className="sm-center-col">
-                    <div className="sm-connector-line"></div>
-                    <div className="sm-node-dot">
-                      <div className="sm-node-inner"></div>
+                          <div
+                            className="sm-card-desc"
+                            dangerouslySetInnerHTML={{
+                              __html: sanitizeHtml(item.description),
+                            }}
+                          ></div>
+
+                          {item.target && (
+                            <div className="sm-card-target">
+                              <i className="fa-solid fa-bullseye"></i>{' '}
+                              <strong>Target:</strong> {item.target}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  {/* Right Column */}
-                  <div className="sm-side sm-side-right">
-                    {isEven ? (
-                      <div className="sm-pill-wrapper align-start">
-                        <span className="sm-pill-badge sm-year-pill">
-                          {displayYear}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="sm-content-card">
-                        <div className="sm-card-head">
-                          <div className="sm-icon-circle">
-                            <i
-                              className={`fa-solid ${
-                                item.icon || 'fa-chart-line'
-                              }`}
-                            ></i>
-                          </div>
-                          <div>
-                            <span className="sm-cat-label">
-                              {item.category || 'Program'}
-                            </span>
-                            <h3 className="sm-card-title">{item.title}</h3>
-                          </div>
-                        </div>
-
-                        <div
-                          className="sm-card-desc"
-                          dangerouslySetInnerHTML={{ __html: item.description }}
-                        ></div>
-
-                        {item.target && (
-                          <div className="sm-card-target">
-                            <i className="fa-solid fa-bullseye"></i>{' '}
-                            <strong>Target:</strong> {item.target}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          )}
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
     </section>

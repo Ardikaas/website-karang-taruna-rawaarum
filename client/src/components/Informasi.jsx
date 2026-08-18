@@ -35,9 +35,10 @@ const Informasi = ({
           <div className="info-filters">
             {[
               { label: 'Semua', value: 'all' },
+              { label: 'Berita', value: 'berita' },
+              { label: 'Kegiatan', value: 'kegiatan' },
               { label: 'Loker', value: 'loker' },
               { label: 'UMKM', value: 'umkm' },
-              { label: 'Kegiatan', value: 'kegiatan' },
               { label: 'Penting', value: 'pengumuman' },
             ].map((btn) => (
               <button

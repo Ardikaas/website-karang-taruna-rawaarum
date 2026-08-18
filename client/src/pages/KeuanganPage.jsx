@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { fetchFinanceTransactions, fetchFinanceSummary } from '../services/api';
 import { structureData } from '../constants/structureData';
+import SEO from '../components/SEO';
+import { buildBreadcrumbSchema } from '../constants/seoData';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -170,6 +172,27 @@ const KeuanganPage = () => {
 
   return (
     <div className="keuangan-page">
+      <SEO
+        title="Laporan Transparansi Kas & Keuangan Karang Taruna Rawa Arum"
+        description="Portal transparansi publik kas dan keuangan Karang Taruna Kelurahan Rawa Arum. Akses laporan kas masuk, alokasi anggaran, rincian pengeluaran program, dan bukti nota."
+        keywords="Laporan Keuangan Karang Taruna, Kas Karang Taruna Rawa Arum, Transparansi Dana Kelurahan Cilegon, Akuntabilitas Karang Taruna"
+        canonicalUrl="/keuangan"
+        schema={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'WebPage',
+              name: 'Laporan Transparansi Kas & Keuangan Karang Taruna Rawa Arum',
+              description:
+                'Portal transparansi publik keuangan kas Karang Taruna Kelurahan Rawa Arum, Kota Cilegon.',
+              url: 'https://kttunasarum.com/keuangan',
+            },
+            buildBreadcrumbSchema([
+              { name: 'Transparansi Keuangan', url: '/keuangan' },
+            ]),
+          ],
+        }}
+      />
       <div className="container">
         {/* Kop Surat Header Cetak Laporan (Khusus Media Print) */}
         <div className="print-only-kop">

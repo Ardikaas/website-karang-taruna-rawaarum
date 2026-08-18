@@ -2,8 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 import Hero from '../components/Hero';
+import WeatherBanner from '../components/WeatherBanner';
 import VideoBanner from '../components/VideoBanner';
+import HolidayStrip from '../components/HolidayStrip';
 import BirthdayBanner from '../components/BirthdayBanner';
+import AchievementBanner from '../components/AchievementBanner';
 import Pilars from '../components/Pilars';
 import VisiMisi from '../components/VisiMisi';
 import Struktur from '../components/Struktur';
@@ -13,7 +16,16 @@ import Kemitraan from '../components/Kemitraan';
 import InfoCard from '../components/InfoCard';
 
 import { HERO_SLIDES } from '../constants/mockData';
-import { fetchRecentItems, fetchSiteSettings } from '../services/api';
+import {
+  fetchRecentItems,
+  fetchSiteSettings,
+  fetchActiveAchievements,
+} from '../services/api';
+import SEO from '../components/SEO';
+import {
+  ORGANIZATION_SCHEMA,
+  buildBreadcrumbSchema,
+} from '../constants/seoData';
 
 const SLIDE_INTERVAL_MS = 6000;
 
@@ -22,6 +34,7 @@ const Home = ({ onOpenRegModal }) => {
   const slideInterval = useRef(null);
   const [recentItems, setRecentItems] = useState([]);
   const [siteSettings, setSiteSettings] = useState(null);
+  const [achievements, setAchievements] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,16 +43,18 @@ const Home = ({ onOpenRegModal }) => {
       setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
     }, SLIDE_INTERVAL_MS);
 
-    // Fetch recent info items and site settings for preview section
+    // Fetch recent info items, site settings, and active achievements
     const loadHomeData = async () => {
       setLoading(true);
       try {
-        const [items, settings] = await Promise.all([
+        const [items, settings, achs] = await Promise.all([
           fetchRecentItems(),
           fetchSiteSettings(),
+          fetchActiveAchievements(),
         ]);
         setRecentItems(items);
         setSiteSettings(settings);
+        setAchievements(achs || []);
       } catch (_err) {
         // Fallback gracefully on API error
       } finally {
@@ -64,15 +79,29 @@ const Home = ({ onOpenRegModal }) => {
 
   return (
     <>
+      <SEO
+        title="Karang Taruna Kelurahan Rawa Arum - Wadah Generasi Muda Berkarya & Berdaya"
+        description="Portal resmi Karang Taruna Kelurahan Rawa Arum, Kec. Grogol, Kota Cilegon. Wadah kepemudaan, inovasi sosial, direktori UMKM, informasi lowongan kerja, dan kegiatan kemasyarakatan."
+        canonicalUrl="/"
+        schema={{
+          '@context': 'https://schema.org',
+          '@graph': [ORGANIZATION_SCHEMA, buildBreadcrumbSchema([])],
+        }}
+      />
       <Hero
         currentSlide={currentSlide}
         slides={HERO_SLIDES}
         onDotClick={handleDotClick}
       />
+      <WeatherBanner />
       <VideoBanner />
+      <HolidayStrip />
 
-      {/* Birthday Announcement Banner (Placed Directly Below Video Banner) */}
+      {/* Birthday Announcement Banner */}
       <BirthdayBanner data={siteSettings?.birthdayAnnouncement} />
+
+      {/* Achievement & Apresiasi Banner Carousel */}
+      <AchievementBanner items={achievements} />
 
       <Pilars onOpenRegModal={onOpenRegModal} />
       <VisiMisi />
@@ -101,7 +130,10 @@ const Home = ({ onOpenRegModal }) => {
               ></i>
             </div>
           ) : (
-            <div className="grid-informasi" style={{ marginBottom: '3.5rem' }}>
+            <div
+              className="grid-informasi-4"
+              style={{ marginBottom: '3.5rem' }}
+            >
               {recentItems.map((item) => (
                 <InfoCard key={item._id} item={item} />
               ))}

@@ -1,10 +1,11 @@
 /* eslint-disable no-console */
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const HolidayEvent = require('../models/HolidayEvent');
 
 /**
  * Clean Seeder Utility
- * Seeds default Super Admin account if no users exist in the database.
+ * Seeds default Super Admin account and initial HolidayEvent if empty.
  */
 const seedDatabase = async () => {
   try {
@@ -24,8 +25,33 @@ const seedDatabase = async () => {
     } else {
       console.log('User accounts already exist. Skipping Super Admin seeding.');
     }
+
+    const holidayCount = await HolidayEvent.countDocuments();
+    if (holidayCount === 0) {
+      console.log('Seeding default active HolidayEvent...');
+      const now = new Date();
+      const start = new Date(now);
+      start.setDate(start.getDate() - 2);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(now);
+      end.setDate(end.getDate() + 14);
+      end.setHours(23, 59, 59, 999);
+
+      await HolidayEvent.create({
+        title: 'HUT Republik Indonesia ke-81',
+        subtitle:
+          'Dirgahayu Republik Indonesia! Bersatu Berdaulat, Nusantara Baru Indonesia Maju 🇮🇩',
+        startDate: start,
+        endDate: end,
+        theme: 'merah-putih',
+        emoji: '🇮🇩',
+        isActive: true,
+      });
+      console.log('Default active HolidayEvent seeded successfully.');
+    }
   } catch (err) {
-    console.error('Error seeding Super Admin account:', err.message);
+    console.error('Error seeding database:', err.message);
   }
 };
 

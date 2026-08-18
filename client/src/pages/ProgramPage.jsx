@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { fetchPrograms } from '../services/api';
+import SEO from '../components/SEO';
+import { buildBreadcrumbSchema } from '../constants/seoData';
+import { sanitizeHtml } from '../utils/sanitizeHtml';
 
 const ProgramPage = () => {
   const [programs, setPrograms] = useState([]);
@@ -25,6 +28,25 @@ const ProgramPage = () => {
 
   return (
     <div className="subpage-layout">
+      <SEO
+        title="Program Kerja Strategis Karang Taruna Kelurahan Rawa Arum"
+        description="Daftar pilar dan program kerja strategis Karang Taruna Rawa Arum dalam bidang sosial kemasyarakatan, pendidikan, ekonomi kreatif, lingkungan hidup, dan kepemudaan."
+        keywords="Program Kerja Karang Taruna, Pilar Karang Taruna Rawa Arum, Agenda Kepemudaan Cilegon, Aksi Sosial Rawa Arum"
+        canonicalUrl="/program"
+        schema={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'AboutPage',
+              name: 'Program Kerja Karang Taruna Rawa Arum',
+              description:
+                'Program kerja strategis dan pilar pengabdian Karang Taruna Kelurahan Rawa Arum, Kota Cilegon.',
+              url: 'https://kttunasarum.com/program',
+            },
+            buildBreadcrumbSchema([{ name: 'Program Kerja', url: '/program' }]),
+          ],
+        }}
+      />
       <div className="subpage-bg-glow"></div>
 
       <div className="container subpage-container">
@@ -123,7 +145,9 @@ const ProgramPage = () => {
                       lineHeight: '1.6',
                       marginBottom: '1.25rem',
                     }}
-                    dangerouslySetInnerHTML={{ __html: item.description }}
+                    dangerouslySetInnerHTML={{
+                      __html: sanitizeHtml(item.description),
+                    }}
                   ></p>
 
                   <div

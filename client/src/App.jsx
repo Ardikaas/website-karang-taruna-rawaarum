@@ -23,6 +23,9 @@ import ProgramPage from './pages/ProgramPage';
 import LoginPage from './pages/LoginPage';
 import InfoDetailPage from './pages/InfoDetailPage';
 import KeuanganPage from './pages/KeuanganPage';
+import CuacaPage from './pages/CuacaPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsConditionPage from './pages/TermsConditionPage';
 import PengurusProfilePage from './pages/pengurus/PengurusProfilePage';
 
 // Admin Pages & Layout
@@ -39,6 +42,9 @@ import AdminPartnerPage from './pages/admin/AdminPartnerPage';
 import AdminPesanPage from './pages/admin/AdminPesanPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminLayout from './components/AdminLayout';
+import ErrorBoundary from './components/ErrorBoundary';
+import NotFoundPage from './pages/NotFoundPage';
+import ErrorPage from './pages/ErrorPage';
 import { AuthProvider } from './context/AuthContext';
 
 // API Service
@@ -48,6 +54,8 @@ const SCROLL_THRESHOLD = 50;
 const HOME_SECTIONS = ['home', 'pilar', 'program', 'kemitraan', 'kontak'];
 
 const App = () => {
+  const location = useLocation();
+
   // --------------- Global UI State ---------------
   const [activeSection, setActiveSection] = useState('home');
   const [scrolled, setScrolled] = useState(false);
@@ -76,7 +84,7 @@ const App = () => {
     const handleScroll = () => {
       setScrolled(window.scrollY > SCROLL_THRESHOLD);
 
-      if (window.location.pathname === '/') {
+      if (location.pathname === '/') {
         let current = 'home';
         for (const sectionId of HOME_SECTIONS) {
           const el = document.getElementById(sectionId);
@@ -94,9 +102,11 @@ const App = () => {
       }
     };
 
+    handleScroll();
+
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [location.pathname]);
 
   // --------------- Form Handlers ---------------
   const handleRegisterSubmit = async (e) => {
@@ -140,7 +150,6 @@ const App = () => {
   };
 
   // --------------- Render ---------------
-  const location = useLocation();
   const isDashboardOrAuthPath =
     location.pathname.startsWith('/admin') ||
     location.pathname.startsWith('/pengurus') ||
@@ -159,219 +168,235 @@ const App = () => {
       )}
 
       <main style={{ minHeight: isDashboardOrAuthPath ? '100vh' : '80vh' }}>
-        <Routes>
-          {/* Public Routes */}
-          <Route
-            path="/"
-            element={<Home onOpenRegModal={() => setRegModalOpen(true)} />}
-          />
-          <Route path="/program" element={<ProgramPage />} />
-          <Route path="/loker" element={<LokerPage />} />
-          <Route path="/kegiatan" element={<KegiatanPage />} />
-          <Route path="/pengumuman" element={<PengumumanPage />} />
-          <Route path="/umkm" element={<UmkmPage />} />
-          <Route path="/umkm/:id" element={<UmkmDetailPage />} />
-          <Route path="/umkm/:slug/:id" element={<UmkmDetailPage />} />
-          <Route path="/informasi/:id" element={<InfoDetailPage />} />
-          <Route path="/info/:id" element={<InfoDetailPage />} />
-          <Route path="/struktur" element={<StrukturPage />} />
-          <Route path="/kemitraan" element={<KemitraanPage />} />
-          <Route path="/kontak" element={<KontakPage />} />
-          <Route path="/keuangan" element={<KeuanganPage />} />
+        <ErrorBoundary>
+          <Routes>
+            {/* Public Routes */}
+            <Route
+              path="/"
+              element={<Home onOpenRegModal={() => setRegModalOpen(true)} />}
+            />
+            <Route path="/program" element={<ProgramPage />} />
+            <Route path="/loker" element={<LokerPage />} />
+            <Route path="/kegiatan" element={<KegiatanPage />} />
+            <Route path="/pengumuman" element={<PengumumanPage />} />
+            <Route path="/umkm" element={<UmkmPage />} />
+            <Route path="/umkm/:id" element={<UmkmDetailPage />} />
+            <Route path="/umkm/:slug/:id" element={<UmkmDetailPage />} />
+            <Route path="/informasi/:id" element={<InfoDetailPage />} />
+            <Route path="/info/:id" element={<InfoDetailPage />} />
+            <Route path="/struktur" element={<StrukturPage />} />
+            <Route path="/kemitraan" element={<KemitraanPage />} />
+            <Route path="/kontak" element={<KontakPage />} />
+            <Route path="/keuangan" element={<KeuanganPage />} />
+            <Route path="/cuaca" element={<CuacaPage />} />
+            <Route path="/kebijakan-privasi" element={<PrivacyPolicyPage />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="/syarat-ketentuan" element={<TermsConditionPage />} />
+            <Route path="/terms-conditions" element={<TermsConditionPage />} />
 
-          {/* Auth & Pengurus Routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/pengurus"
-            element={<Navigate to="/pengurus/profile" replace />}
-          />
-          <Route
-            path="/pengurus/dashboard"
-            element={<Navigate to="/pengurus/profile" replace />}
-          />
-          <Route
-            path="/pengurus/profile"
-            element={
-              <ProtectedRoute
-                allowedRoles={['superadmin', 'admin', 'pengurus']}
-              >
-                <AdminLayout>
-                  <PengurusProfilePage />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/pengurus/konten"
-            element={
-              <ProtectedRoute
-                allowedRoles={['superadmin', 'admin', 'pengurus']}
-              >
-                <AdminLayout>
-                  <AdminKontenPage />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/pengurus/umkm"
-            element={
-              <ProtectedRoute
-                allowedRoles={['superadmin', 'admin', 'pengurus']}
-              >
-                <AdminLayout>
-                  <AdminUmkmPage />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/pengurus/pesan"
-            element={
-              <ProtectedRoute
-                allowedRoles={['superadmin', 'admin', 'pengurus']}
-              >
-                <AdminLayout>
-                  <AdminPesanPage />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/pengurus/keuangan"
-            element={
-              <ProtectedRoute
-                allowedRoles={['superadmin', 'admin', 'pengurus']}
-              >
-                <AdminLayout>
-                  <AdminKeuanganPage />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin"
-            element={<Navigate to="/admin/dashboard" replace />}
-          />
-          <Route
-            path="/admin/dashboard"
-            element={
-              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
-                <AdminLayout>
-                  <AdminDashboardPage />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/konten"
-            element={
-              <ProtectedRoute
-                allowedRoles={['superadmin', 'admin', 'pengurus']}
-              >
-                <AdminLayout>
-                  <AdminKontenPage />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/umkm"
-            element={
-              <ProtectedRoute
-                allowedRoles={['superadmin', 'admin', 'pengurus']}
-              >
-                <AdminLayout>
-                  <AdminUmkmPage />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/pesan"
-            element={
-              <ProtectedRoute
-                allowedRoles={['superadmin', 'admin', 'pengurus']}
-              >
-                <AdminLayout>
-                  <AdminPesanPage />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/keuangan"
-            element={
-              <ProtectedRoute
-                allowedRoles={['superadmin', 'admin', 'pengurus']}
-              >
-                <AdminLayout>
-                  <AdminKeuanganPage />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/anggota"
-            element={
-              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
-                <AdminLayout>
-                  <AdminAnggotaPage />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/subscriber"
-            element={
-              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
-                <AdminLayout>
-                  <AdminSubscriberPage />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/settings"
-            element={
-              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
-                <AdminLayout>
-                  <AdminSettingsPage />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/pengurus"
-            element={
-              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
-                <AdminLayout>
-                  <AdminPengurusPage />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/program"
-            element={
-              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
-                <AdminLayout>
-                  <AdminProgramPage />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/kemitraan"
-            element={
-              <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
-                <AdminLayout>
-                  <AdminPartnerPage />
-                </AdminLayout>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
+            {/* Auth & Pengurus Routes */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/pengurus"
+              element={<Navigate to="/pengurus/profile" replace />}
+            />
+            <Route
+              path="/pengurus/dashboard"
+              element={<Navigate to="/pengurus/profile" replace />}
+            />
+            <Route
+              path="/pengurus/profile"
+              element={
+                <ProtectedRoute
+                  allowedRoles={['superadmin', 'admin', 'pengurus']}
+                >
+                  <AdminLayout>
+                    <PengurusProfilePage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pengurus/konten"
+              element={
+                <ProtectedRoute
+                  allowedRoles={['superadmin', 'admin', 'pengurus']}
+                >
+                  <AdminLayout>
+                    <AdminKontenPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pengurus/umkm"
+              element={
+                <ProtectedRoute
+                  allowedRoles={['superadmin', 'admin', 'pengurus']}
+                >
+                  <AdminLayout>
+                    <AdminUmkmPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pengurus/pesan"
+              element={
+                <ProtectedRoute
+                  allowedRoles={['superadmin', 'admin', 'pengurus']}
+                >
+                  <AdminLayout>
+                    <AdminPesanPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pengurus/keuangan"
+              element={
+                <ProtectedRoute
+                  allowedRoles={['superadmin', 'admin', 'pengurus']}
+                >
+                  <AdminLayout>
+                    <AdminKeuanganPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={<Navigate to="/admin/dashboard" replace />}
+            />
+            <Route
+              path="/admin/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                  <AdminLayout>
+                    <AdminDashboardPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/konten"
+              element={
+                <ProtectedRoute
+                  allowedRoles={['superadmin', 'admin', 'pengurus']}
+                >
+                  <AdminLayout>
+                    <AdminKontenPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/umkm"
+              element={
+                <ProtectedRoute
+                  allowedRoles={['superadmin', 'admin', 'pengurus']}
+                >
+                  <AdminLayout>
+                    <AdminUmkmPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/pesan"
+              element={
+                <ProtectedRoute
+                  allowedRoles={['superadmin', 'admin', 'pengurus']}
+                >
+                  <AdminLayout>
+                    <AdminPesanPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/keuangan"
+              element={
+                <ProtectedRoute
+                  allowedRoles={['superadmin', 'admin', 'pengurus']}
+                >
+                  <AdminLayout>
+                    <AdminKeuanganPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/anggota"
+              element={
+                <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                  <AdminLayout>
+                    <AdminAnggotaPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/subscriber"
+              element={
+                <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                  <AdminLayout>
+                    <AdminSubscriberPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/settings"
+              element={
+                <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                  <AdminLayout>
+                    <AdminSettingsPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/pengurus"
+              element={
+                <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                  <AdminLayout>
+                    <AdminPengurusPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/program"
+              element={
+                <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                  <AdminLayout>
+                    <AdminProgramPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/kemitraan"
+              element={
+                <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+                  <AdminLayout>
+                    <AdminPartnerPage />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Dedicated & Wildcard Error Pages */}
+            <Route path="/404" element={<NotFoundPage />} />
+            <Route path="/403" element={<ErrorPage code={403} />} />
+            <Route path="/500" element={<ErrorPage code={500} />} />
+            <Route path="/400" element={<ErrorPage code={400} />} />
+            <Route path="/503" element={<ErrorPage code={503} />} />
+            <Route path="/error" element={<ErrorPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </ErrorBoundary>
       </main>
 
       {!isDashboardOrAuthPath && (

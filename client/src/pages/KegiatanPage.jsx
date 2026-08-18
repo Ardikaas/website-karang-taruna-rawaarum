@@ -2,17 +2,27 @@ import { useState, useEffect } from 'react';
 
 import { fetchInfoItems } from '../services/api';
 import InfoCard from '../components/InfoCard';
+import SEO from '../components/SEO';
+import { buildBreadcrumbSchema } from '../constants/seoData';
 
 const KegiatanPage = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('all');
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      const data = await fetchInfoItems('kegiatan');
-      setItems(data);
+      const [kegiatanData, beritaData] = await Promise.all([
+        fetchInfoItems('kegiatan'),
+        fetchInfoItems('berita'),
+      ]);
+      const combined = [
+        ...(Array.isArray(beritaData) ? beritaData : []),
+        ...(Array.isArray(kegiatanData) ? kegiatanData : []),
+      ];
+      setItems(combined);
       setLoading(false);
     };
 
@@ -20,35 +30,83 @@ const KegiatanPage = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  const filteredItems = items.filter(
-    (item) =>
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredItems = items.filter((item) => {
+    const matchesTab = activeTab === 'all' || item.type === activeTab;
+    const matchesSearch =
+      (item.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.description || '')
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+    return matchesTab && matchesSearch;
+  });
 
   return (
     <section
       className="informasi-section"
       style={{ paddingTop: '140px', minHeight: '80vh' }}
     >
+      <SEO
+        title="Berita & Dokumentasi Kegiatan Pemuda Karang Taruna Rawa Arum"
+        description="Dokumentasi aksi nyata, agenda kegiatan sosial, olahraga, seni budaya, dan berita terkini Karang Taruna Kelurahan Rawa Arum, Kota Cilegon."
+        keywords="Kegiatan Pemuda Rawa Arum, Berita Rawa Arum, Acara Karang Taruna Cilegon, Aksi Sosial Rawa Arum, Pemuda Cilegon"
+        canonicalUrl="/kegiatan"
+        schema={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'CollectionPage',
+              name: 'Berita & Dokumentasi Kegiatan Karang Taruna Rawa Arum',
+              description:
+                'Dokumentasi berita dan kegiatan Karang Taruna Kelurahan Rawa Arum, Kec. Grogol, Kota Cilegon.',
+              url: 'https://kttunasarum.com/kegiatan',
+            },
+            buildBreadcrumbSchema([
+              { name: 'Kegiatan & Berita', url: '/kegiatan' },
+            ]),
+          ],
+        }}
+      />
       <div className="container">
         <div className="section-header" data-watermark="ACTIVITIES">
-          <span className="section-tag">Aksi Pemuda Rawa Arum</span>
-          <h2 className="section-title">Dokumentasi & Berita Kegiatan</h2>
+          <span className="section-tag">Aksi & Informasi Pemuda</span>
+          <h2 className="section-title">Berita & Dokumentasi Kegiatan</h2>
           <div className="title-underline"></div>
         </div>
 
-        {/* Search Control */}
-        <div className="info-controls">
+        {/* Search & Filter Controls */}
+        <div
+          className="info-controls"
+          style={{
+            flexDirection: 'column',
+            gap: '1rem',
+            alignItems: 'stretch',
+          }}
+        >
           <div className="info-search-wrapper">
             <i className="fa-solid fa-magnifying-glass info-search-icon"></i>
             <input
               type="text"
               className="info-search-input"
-              placeholder="Cari berita kegiatan sosial, seni, olahraga..."
+              placeholder="Cari berita atau agenda kegiatan sosial, seni, olahraga..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+          </div>
+
+          <div className="info-filters">
+            {[
+              { label: 'Semua', value: 'all' },
+              { label: 'Berita Terkini', value: 'berita' },
+              { label: 'Agenda & Kegiatan', value: 'kegiatan' },
+            ].map((btn) => (
+              <button
+                key={btn.value}
+                className={`filter-btn ${activeTab === btn.value ? 'active' : ''}`}
+                onClick={() => setActiveTab(btn.value)}
+              >
+                {btn.label}
+              </button>
+            ))}
           </div>
         </div>
 

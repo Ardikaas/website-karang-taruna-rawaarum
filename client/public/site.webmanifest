@@ -1,0 +1,17 @@
+{
+  "name": "Karang Taruna Kelurahan Rawa Arum",
+  "short_name": "KT Rawa Arum",
+  "description": "Portal resmi Karang Taruna Kelurahan Rawa Arum, Kec. Grogol, Kota Cilegon, Banten",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08172c",
+  "theme_color": "#0b2545",
+  "icons": [
+    {
+      "src": "/assets/karang-taruna-seeklogo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

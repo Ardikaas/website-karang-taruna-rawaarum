@@ -22,6 +22,36 @@ const Navbar = ({
     setOpenDropdown(null);
   };
 
+  const renderAuthItem = (extraClass = '') =>
+    isAuthenticated ? (
+      <Link
+        to={profileRoute}
+        className={`user-profile-chip-nav ${extraClass}`}
+        onClick={closeAll}
+        title={`Profil: ${user?.name || user?.username || 'Pengurus'}`}
+      >
+        <div className="profile-chip-avatar">
+          {user?.imageUrl ? (
+            <img src={user.imageUrl} alt={user.name || 'User'} />
+          ) : (
+            <i className="fa-solid fa-user" />
+          )}
+        </div>
+        <span className="profile-chip-name">
+          {user?.name || user?.username || 'Pengurus'}
+        </span>
+      </Link>
+    ) : (
+      <Link
+        to="/login"
+        className={`btn-login-nav ${extraClass}`}
+        onClick={closeAll}
+      >
+        <i className="fa-solid fa-right-to-bracket" />
+        <span>Masuk</span>
+      </Link>
+    );
+
   return (
     <>
       {mobileMenuOpen && <div className="nav-backdrop" onClick={closeAll} />}
@@ -151,34 +181,19 @@ const Navbar = ({
             >
               Kontak
             </Link>
+
+            {/* Mobile Drawer Auth Button (Shown inside mobile drawer) */}
+            <div className="mobile-nav-auth-wrapper">
+              {renderAuthItem('mobile-auth-btn')}
+            </div>
           </nav>
 
-          {/* Actions */}
+          {/* Header Actions */}
           <div className="nav-actions">
-            {isAuthenticated ? (
-              <Link
-                to={profileRoute}
-                className="user-profile-chip-nav"
-                onClick={closeAll}
-                title={`Profil: ${user?.name || user?.username || 'Pengurus'}`}
-              >
-                <div className="profile-chip-avatar">
-                  {user?.imageUrl ? (
-                    <img src={user.imageUrl} alt={user.name || 'User'} />
-                  ) : (
-                    <i className="fa-solid fa-user" />
-                  )}
-                </div>
-                <span className="profile-chip-name">
-                  {user?.name || user?.username || 'Pengurus'}
-                </span>
-              </Link>
-            ) : (
-              <Link to="/login" className="btn-login-nav" onClick={closeAll}>
-                <i className="fa-solid fa-right-to-bracket" />
-                <span>Masuk</span>
-              </Link>
-            )}
+            {/* Desktop Auth Button (Hidden on mobile) */}
+            <div className="desktop-nav-auth-wrapper">
+              {renderAuthItem('desktop-auth-btn')}
+            </div>
 
             <button
               className={`mobile-toggle ${mobileMenuOpen ? 'active' : ''}`}

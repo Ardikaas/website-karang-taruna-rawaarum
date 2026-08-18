@@ -1,4 +1,10 @@
 const InfoItem = require('../models/InfoItem');
+const {
+  isValidObjectId,
+  sanitizeInput,
+  sanitizeObject,
+  safeErrorMessage,
+} = require('../utils/security');
 
 /**
  * @desc    Get all info items, optionally filtered by type
@@ -8,14 +14,20 @@ const InfoItem = require('../models/InfoItem');
 const getInfoItems = async (req, res) => {
   try {
     const { type } = req.query;
-    const query = type && type !== 'all' ? { type } : {};
+    const query = {};
+    if (type && typeof type === 'string' && type !== 'all') {
+      query.type = sanitizeInput(type.toLowerCase());
+    }
+
     const items = await InfoItem.find(query)
       .populate('createdBy', 'name email role')
       .sort({ createdAt: -1 });
 
     res.json(items);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal mengambil data informasi.'),
+    });
   }
 };
 
@@ -25,7 +37,12 @@ const getInfoItems = async (req, res) => {
  */
 const getInfoItemById = async (req, res) => {
   try {
-    const item = await InfoItem.findById(req.params.id).populate(
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID informasi tidak valid.' });
+    }
+
+    const item = await InfoItem.findById(id).populate(
       'createdBy',
       'name email role'
     );
@@ -36,17 +53,47 @@ const getInfoItemById = async (req, res) => {
     }
     res.json(item);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal mengambil detail informasi.'),
+    });
+  }
+};
+
+/**
+ * @desc    Increment view count for an info item
+ * @route   POST /api/info/:id/view
+ */
+const incrementInfoViewCount = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID informasi tidak valid.' });
+    }
+
+    const item = await InfoItem.findByIdAndUpdate(
+      id,
+      { $inc: { viewsCount: 1 } },
+      { new: true }
+    ).select('viewsCount');
+    if (!item) {
+      return res.status(404).json({ error: 'Informasi tidak ditemukan.' });
+    }
+    res.json({ viewsCount: item.viewsCount });
+  } catch (err) {
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal memperbarui jumlah tayangan.'),
+    });
   }
 };
 
 /**
  * @desc    Create a new info item
  * @route   POST /api/info
- * @access  Protected (admin)
+ * @access  Protected (admin, pengurus)
  */
 const createInfoItem = async (req, res) => {
   try {
+    const sanitizedBody = sanitizeObject(req.body);
     const {
       title,
       description,
@@ -65,12 +112,12 @@ const createInfoItem = async (req, res) => {
       certifications,
       priceRange,
       itemsList,
-    } = req.body;
+    } = sanitizedBody;
 
     if (!title || !description || !type || !date || !imageUrl || !badge) {
       return res
         .status(400)
-        .json({ error: 'Please provide all required fields' });
+        .json({ error: 'Harap lengkapi semua field yang wajib diisi.' });
     }
 
     // Role-based restrictions: Pengurus can ONLY create 'kegiatan' and 'umkm'
@@ -87,7 +134,7 @@ const createInfoItem = async (req, res) => {
     const newItem = new InfoItem({
       title,
       description,
-      type,
+      type: type.toLowerCase(),
       date,
       imageUrl,
       badge,
@@ -108,17 +155,25 @@ const createInfoItem = async (req, res) => {
 
     res.status(201).json(savedItem);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res
+      .status(400)
+      .json({ error: err.message || 'Gagal membuat informasi baru.' });
   }
 };
 
 /**
  * @desc    Update an info item by ID
  * @route   PUT /api/info/:id
- * @access  Protected (admin)
+ * @access  Protected (admin, pengurus)
  */
 const updateInfoItem = async (req, res) => {
   try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID informasi tidak valid.' });
+    }
+
+    const sanitizedBody = sanitizeObject(req.body);
     const {
       title,
       description,
@@ -137,9 +192,9 @@ const updateInfoItem = async (req, res) => {
       certifications,
       priceRange,
       itemsList,
-    } = req.body;
+    } = sanitizedBody;
 
-    const existing = await InfoItem.findById(req.params.id);
+    const existing = await InfoItem.findById(id);
     if (!existing) {
       return res.status(404).json({ error: 'Info item tidak ditemukan.' });
     }
@@ -149,7 +204,7 @@ const updateInfoItem = async (req, res) => {
       const allowedTypes = ['kegiatan', 'umkm'];
       if (
         !allowedTypes.includes(existing.type.toLowerCase()) ||
-        !allowedTypes.includes(type.toLowerCase())
+        (type && !allowedTypes.includes(type.toLowerCase()))
       ) {
         return res.status(403).json({
           error:
@@ -169,16 +224,14 @@ const updateInfoItem = async (req, res) => {
       }
     }
 
-    const updatePayload = {
-      title,
-      description,
-      type,
-      date,
-      imageUrl,
-      badge,
-      linkText,
-    };
-
+    const updatePayload = {};
+    if (title) updatePayload.title = title;
+    if (description) updatePayload.description = description;
+    if (type) updatePayload.type = type.toLowerCase();
+    if (date) updatePayload.date = date;
+    if (imageUrl) updatePayload.imageUrl = imageUrl;
+    if (badge) updatePayload.badge = badge;
+    if (linkText !== undefined) updatePayload.linkText = linkText;
     if (contactType !== undefined) updatePayload.contactType = contactType;
     if (contactUrl !== undefined) updatePayload.contactUrl = contactUrl;
     if (whatsappText !== undefined) updatePayload.whatsappText = whatsappText;
@@ -191,26 +244,32 @@ const updateInfoItem = async (req, res) => {
     if (priceRange !== undefined) updatePayload.priceRange = priceRange;
     if (itemsList !== undefined) updatePayload.itemsList = itemsList;
 
-    const updated = await InfoItem.findByIdAndUpdate(
-      req.params.id,
-      updatePayload,
-      { new: true, runValidators: true }
-    );
+    const updated = await InfoItem.findByIdAndUpdate(id, updatePayload, {
+      new: true,
+      runValidators: true,
+    });
 
     res.json(updated);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res
+      .status(400)
+      .json({ error: err.message || 'Gagal memperbarui informasi.' });
   }
 };
 
 /**
  * @desc    Delete an info item by ID
  * @route   DELETE /api/info/:id
- * @access  Protected (admin)
+ * @access  Protected (admin, pengurus)
  */
 const deleteInfoItem = async (req, res) => {
   try {
-    const existing = await InfoItem.findById(req.params.id);
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID informasi tidak valid.' });
+    }
+
+    const existing = await InfoItem.findById(id);
     if (!existing) {
       return res.status(404).json({ error: 'Info item tidak ditemukan.' });
     }
@@ -237,17 +296,20 @@ const deleteInfoItem = async (req, res) => {
       }
     }
 
-    await InfoItem.findByIdAndDelete(req.params.id);
+    await InfoItem.findByIdAndDelete(id);
 
-    res.json({ message: 'Info item berhasil dihapus.', id: req.params.id });
+    res.json({ message: 'Info item berhasil dihapus.', id });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal menghapus informasi.') });
   }
 };
 
 module.exports = {
   getInfoItems,
   getInfoItemById,
+  incrementInfoViewCount,
   createInfoItem,
   updateInfoItem,
   deleteInfoItem,

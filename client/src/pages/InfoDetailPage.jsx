@@ -1,13 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   fetchInfoItemById,
   fetchInfoItems,
+  fetchUmkms,
+  incrementInfoView,
   formatImageUrl,
 } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import InfoCard from '../components/InfoCard';
 import DocPreviewModal from '../components/DocPreviewModal';
+import SEO from '../components/SEO';
+import { buildBreadcrumbSchema } from '../constants/seoData';
+import { sanitizeHtml } from '../utils/sanitizeHtml';
 
 const InfoDetailPage = () => {
   const { id } = useParams();
@@ -16,12 +21,31 @@ const InfoDetailPage = () => {
 
   const [item, setItem] = useState(null);
   const [relatedItems, setRelatedItems] = useState([]);
+  const [featuredUmkms, setFeaturedUmkms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [previewDoc, setPreviewDoc] = useState(null);
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+
+  // Instant scroll reset before paint
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
+
+  useEffect(() => {
+    fetchUmkms()
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const shuffled = [...data]
+            .sort(() => 0.5 - Math.random())
+            .slice(0, 3);
+          setFeaturedUmkms(shuffled);
+        }
+      })
+      .catch(() => {});
+  }, []);
   const [firstAspect, setFirstAspect] = useState(null);
 
   // Construct images gallery array (imageUrl + images[])
@@ -63,41 +87,101 @@ const InfoDetailPage = () => {
   }, [gallery.length, isHovered]);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    let intervalId;
+    const startTime = Date.now();
+    const MIN_LOADING_TIME = 1400; // Mandatory loading screen display for ~1.4 seconds
 
     const loadDetail = async () => {
       setLoading(true);
       setNotFound(false);
 
-      const data = await fetchInfoItemById(id);
-      if (!data) {
+      try {
+        const data = await fetchInfoItemById(id);
+
+        let filteredRelated = [];
+        if (data) {
+          try {
+            let all = await fetchInfoItems(
+              data.type !== 'all' ? data.type : null
+            );
+            let filtered = (all || [])
+              .filter((i) => String(i._id) !== String(data._id))
+              .sort((a, b) => {
+                const timeA =
+                  new Date(a.createdAt || a.updatedAt || a.date).getTime() || 0;
+                const timeB =
+                  new Date(b.createdAt || b.updatedAt || b.date).getTime() || 0;
+                return timeB - timeA;
+              });
+
+            if (filtered.length === 0) {
+              const fallbackAll = await fetchInfoItems();
+              filtered = (fallbackAll || [])
+                .filter((i) => String(i._id) !== String(data._id))
+                .sort((a, b) => {
+                  const timeA =
+                    new Date(a.createdAt || a.updatedAt || a.date).getTime() ||
+                    0;
+                  const timeB =
+                    new Date(b.createdAt || b.updatedAt || b.date).getTime() ||
+                    0;
+                  return timeB - timeA;
+                });
+            }
+            filteredRelated = filtered.slice(0, 4);
+          } catch (_err) {
+            filteredRelated = [];
+          }
+        }
+
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, MIN_LOADING_TIME - elapsedTime);
+
+        setTimeout(() => {
+          if (!data) {
+            setNotFound(true);
+            setLoading(false);
+            return;
+          }
+
+          setItem(data);
+          setRelatedItems(filteredRelated);
+          document.title = `${data.title} - Karang Taruna Kelurahan Rawa Arum`;
+
+          // Track view (deduplicated by session)
+          incrementInfoView(id).then((res) => {
+            if (res && res.viewsCount !== undefined) {
+              setItem((prev) =>
+                prev ? { ...prev, viewsCount: res.viewsCount } : prev
+              );
+            }
+          });
+
+          setLoading(false);
+        }, remainingTime);
+      } catch (_err) {
         setNotFound(true);
         setLoading(false);
-        return;
       }
-
-      setItem(data);
-      document.title = `${data.title} - Karang Taruna Kelurahan Rawa Arum`;
-
-      // Fetch related items of same category or recent
-      try {
-        const all = await fetchInfoItems(
-          data.type !== 'all' ? data.type : null
-        );
-        const filtered = all
-          .filter((i) => String(i._id) !== String(data._id))
-          .slice(0, 2);
-        setRelatedItems(filtered);
-      } catch (_err) {
-        setRelatedItems([]);
-      }
-
-      setLoading(false);
     };
 
     if (id) {
       loadDetail();
+
+      // Polling views count update secara real-time (setiap 12 detik)
+      intervalId = setInterval(async () => {
+        const updated = await fetchInfoItemById(id);
+        if (updated?.viewsCount !== undefined) {
+          setItem((prev) =>
+            prev ? { ...prev, viewsCount: updated.viewsCount } : prev
+          );
+        }
+      }, 12000);
     }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [id]);
 
   const handleShare = () => {
@@ -168,27 +252,32 @@ const InfoDetailPage = () => {
 
   if (loading) {
     return (
-      <div
-        className="subpage-layout"
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '60vh',
-        }}
-      >
-        <i
-          className="fa-solid fa-circle-notch fa-spin"
-          style={{
-            fontSize: '2.5rem',
-            color: 'var(--accent)',
-            marginBottom: '1rem',
-          }}
-        />
-        <p style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
-          Memuat detail informasi...
-        </p>
+      <div className="info-detail-loading-wrapper">
+        <div className="info-detail-loading-screen">
+          <div className="info-loading-content">
+            <div className="info-loading-logo-wrapper">
+              <div className="info-loading-ring"></div>
+              <img
+                src="/assets/karang-taruna-seeklogo.png"
+                alt="Logo Karang Taruna Rawa Arum"
+                className="info-loading-logo"
+                loading="eager"
+                decoding="sync"
+              />
+            </div>
+
+            <div className="info-loading-text-group">
+              <h2 className="info-loading-brand">KARANG TARUNA TUNAS ARUM</h2>
+              <p className="info-loading-subtitle">
+                Website Resmi Kelurahan Rawa Arum
+              </p>
+
+              <span className="info-loading-caption">
+                Memuat berita &amp; informasi publik...
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -246,8 +335,72 @@ const InfoDetailPage = () => {
     );
   }
 
+  const cleanDescription =
+    (item.description || '')
+      .replace(/<[^>]*>?/gm, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 160) ||
+    'Informasi resmi Karang Taruna Kelurahan Rawa Arum, Kec. Grogol, Kota Cilegon.';
+  const pageCanonical = `/informasi/${item._id}`;
+  const headerImageUrl = item.imageUrl
+    ? formatImageUrl(item.imageUrl)
+    : 'https://kttunasarum.com/assets/karang-taruna-seeklogo.png';
+
+  const typeNameMap = {
+    loker: 'Lowongan Kerja',
+    kegiatan: 'Kegiatan Pemuda',
+    pengumuman: 'Pengumuman',
+    berita: 'Berita',
+  };
+  const categoryLabel = typeNameMap[item.type] || 'Informasi';
+
   return (
     <div className="subpage-layout">
+      <SEO
+        title={`${item.title} - Karang Taruna Kelurahan Rawa Arum`}
+        description={cleanDescription}
+        keywords={`${item.title}, Karang Taruna Rawa Arum, Berita Rawa Arum, Info Cilegon, ${categoryLabel}`}
+        ogImage={headerImageUrl}
+        ogType="article"
+        canonicalUrl={pageCanonical}
+        schema={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'NewsArticle',
+              headline: item.title,
+              description: cleanDescription,
+              image: [headerImageUrl],
+              datePublished: item.createdAt || new Date().toISOString(),
+              dateModified: item.updatedAt || new Date().toISOString(),
+              author: {
+                '@type': 'Organization',
+                name: 'Karang Taruna Kelurahan Rawa Arum',
+              },
+              publisher: {
+                '@type': 'Organization',
+                name: 'Karang Taruna Kelurahan Rawa Arum',
+                logo: {
+                  '@type': 'ImageObject',
+                  url: 'https://kttunasarum.com/assets/karang-taruna-seeklogo.png',
+                },
+              },
+              mainEntityOfPage: {
+                '@type': 'WebPage',
+                '@id': `https://kttunasarum.com${pageCanonical}`,
+              },
+            },
+            buildBreadcrumbSchema([
+              {
+                name: categoryLabel,
+                url: `/${item.type === 'berita' ? 'kegiatan' : item.type || 'kegiatan'}`,
+              },
+              { name: item.title, url: pageCanonical },
+            ]),
+          ],
+        }}
+      />
       <div className="container" style={{ maxWidth: '920px' }}>
         {/* Breadcrumb & Navigation */}
         <div
@@ -357,6 +510,26 @@ const InfoDetailPage = () => {
             >
               <i className="fa-regular fa-calendar" />
               Dipublikasikan: {item.date}
+            </span>
+            <span
+              style={{
+                fontSize: '0.82rem',
+                color: 'var(--primary-deep)',
+                background: 'rgba(11, 37, 69, 0.05)',
+                padding: '0.2rem 0.65rem',
+                borderRadius: '50px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+              title="Jumlah Pembaca Real-time"
+            >
+              <i
+                className="fa-solid fa-eye"
+                style={{ color: 'var(--accent)' }}
+              />
+              {(item.viewsCount || 0).toLocaleString('id-ID')} Dilihat
             </span>
           </div>
 
@@ -605,7 +778,9 @@ const InfoDetailPage = () => {
           {/* Article Body Content */}
           <div
             className="info-detail-body"
-            dangerouslySetInnerHTML={{ __html: item.description || '' }}
+            dangerouslySetInnerHTML={{
+              __html: sanitizeHtml(item.description || ''),
+            }}
             style={{
               fontSize: '1rem',
               lineHeight: 1.75,
@@ -689,24 +864,204 @@ const InfoDetailPage = () => {
           </div>
         </article>
 
+        {/* Retention Feature 1: Dukung Produk Warga Rawa Arum (Spotlight UMKM) */}
+        {featuredUmkms.length > 0 && (
+          <section className="news-umkm-spotlight">
+            <div className="news-umkm-header">
+              <div>
+                <span
+                  className="section-tag"
+                  style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem' }}
+                >
+                  Pemberdayaan Ekonomi Pemuda
+                </span>
+                <h3 className="news-umkm-title">
+                  <i
+                    className="fa-solid fa-store"
+                    style={{ color: 'var(--accent)' }}
+                  ></i>
+                  Dukung Usaha Warga Rawa Arum
+                </h3>
+              </div>
+              <Link
+                to="/umkm"
+                className="btn btn-outline news-umkm-btn news-umkm-btn--desktop"
+              >
+                Katalog UMKM Lengkap{' '}
+                <i
+                  className="fa-solid fa-arrow-right-long"
+                  style={{ marginLeft: '4px' }}
+                ></i>
+              </Link>
+            </div>
+            <p
+              style={{
+                fontSize: '0.88rem',
+                color: 'var(--text-secondary)',
+                marginBottom: '1rem',
+              }}
+            >
+              Membeli produk &amp; jasa warga lokal membantu menggerakkan roda
+              ekonomi Kelurahan Rawa Arum.
+            </p>
+            <div className="news-umkm-grid">
+              {featuredUmkms.map((u) => (
+                <Link
+                  key={u._id}
+                  to={`/informasi/${u._id}`}
+                  className="news-umkm-card"
+                >
+                  <div className="news-umkm-img-wrapper">
+                    <img
+                      src={formatImageUrl(
+                        u.imageUrl || '/assets/potensi_umkm.png'
+                      )}
+                      alt={u.title}
+                      className="news-umkm-img"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = '/assets/potensi_umkm.png';
+                      }}
+                    />
+                  </div>
+                  <div className="news-umkm-body">
+                    <h4 className="news-umkm-name">{u.title}</h4>
+                    <span className="news-umkm-price">
+                      {u.priceRange
+                        ? u.priceRange
+                        : u.badge || 'UMKM Rawa Arum'}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {/* Mobile-only bottom button */}
+            <div className="news-umkm-bottom-action">
+              <Link
+                to="/umkm"
+                className="btn btn-outline news-umkm-btn news-umkm-btn--mobile"
+              >
+                Katalog UMKM Lengkap{' '}
+                <i
+                  className="fa-solid fa-arrow-right-long"
+                  style={{ marginLeft: '4px' }}
+                ></i>
+              </Link>
+            </div>
+          </section>
+        )}
+
+        {/* Retention Feature 3: Jelajahi Portal Karang Taruna Rawa Arum */}
+        <section className="news-explore-section">
+          <div className="news-explore-header">
+            <h3 className="news-explore-title">
+              <i
+                className="fa-solid fa-compass"
+                style={{ color: 'var(--accent)', marginRight: '8px' }}
+              ></i>
+              Jelajahi Portal Karang Taruna Rawa Arum
+            </h3>
+            <p className="news-explore-subtitle">
+              Portal ini menyediakan berbagai layanan publik &amp; pemberdayaan
+              pemuda. Temukan fitur yang Anda butuhkan:
+            </p>
+          </div>
+          <div className="news-explore-grid">
+            <Link to="/umkm" className="news-explore-card">
+              <div className="news-explore-icon">
+                <i className="fa-solid fa-bag-shopping"></i>
+              </div>
+              <div className="news-explore-info">
+                <span className="news-explore-label">Katalog UMKM</span>
+                <span className="news-explore-subtext">
+                  Produk &amp; jasa warga
+                </span>
+              </div>
+            </Link>
+
+            <Link to="/loker" className="news-explore-card">
+              <div className="news-explore-icon">
+                <div className="news-explore-icon-inner">
+                  <i className="fa-solid fa-briefcase"></i>
+                </div>
+              </div>
+              <div className="news-explore-info">
+                <span className="news-explore-label">Info Loker</span>
+                <span className="news-explore-subtext">Lowongan industri</span>
+              </div>
+            </Link>
+
+            <Link to="/keuangan" className="news-explore-card">
+              <div className="news-explore-icon">
+                <i className="fa-solid fa-vault"></i>
+              </div>
+              <div className="news-explore-info">
+                <span className="news-explore-label">Transparansi Kas</span>
+                <span className="news-explore-subtext">
+                  Laporan dana terbuka
+                </span>
+              </div>
+            </Link>
+
+            <Link to="/cuaca" className="news-explore-card">
+              <div className="news-explore-icon">
+                <i className="fa-solid fa-cloud-sun"></i>
+              </div>
+              <div className="news-explore-info">
+                <span className="news-explore-label">Cuaca &amp; Udara</span>
+                <span className="news-explore-subtext">Sensor real-time</span>
+              </div>
+            </Link>
+
+            <Link to="/kemitraan" className="news-explore-card">
+              <div className="news-explore-icon">
+                <i className="fa-solid fa-handshake"></i>
+              </div>
+              <div className="news-explore-info">
+                <span className="news-explore-label">Kemitraan CSR</span>
+                <span className="news-explore-subtext">
+                  Kolaborasi industri
+                </span>
+              </div>
+            </Link>
+          </div>
+        </section>
+
         {/* Related Articles Section */}
         {relatedItems.length > 0 && (
-          <div>
-            <div style={{ marginBottom: '1.5rem' }}>
-              <h3
-                style={{
-                  fontSize: '1.35rem',
-                  fontWeight: 900,
-                  color: 'var(--primary-deep)',
-                }}
-              >
-                Informasi & Berita Terkait
+          <div
+            className="news-related-container"
+            style={{ marginTop: '2.5rem' }}
+          >
+            <div className="news-related-header">
+              <h3 className="news-related-title">
+                Informasi &amp; Berita Terkait
               </h3>
+              <Link
+                to="/kegiatan"
+                className="btn btn-outline news-related-btn news-related-btn--desktop"
+              >
+                Lihat Berita Lainnya{' '}
+                <i className="fa-solid fa-arrow-right-long" />
+              </Link>
             </div>
-            <div className="grid-informasi">
+
+            <div className="grid-informasi-4">
               {relatedItems.map((rel) => (
                 <InfoCard key={rel._id} item={rel} />
               ))}
+            </div>
+
+            {/* Mobile-only bottom button */}
+            <div className="news-related-bottom-action">
+              <Link
+                to="/kegiatan"
+                className="btn btn-outline news-related-btn news-related-btn--mobile"
+              >
+                Lihat Berita Lainnya{' '}
+                <i className="fa-solid fa-arrow-right-long" />
+              </Link>
             </div>
           </div>
         )}

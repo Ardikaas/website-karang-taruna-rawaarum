@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { fetchPartners, formatImageUrl } from '../services/api';
+import SEO from '../components/SEO';
+import { buildBreadcrumbSchema } from '../constants/seoData';
 
 const formatWebsiteUrl = (url = '') => {
   const trimmed = (url || '').trim();
@@ -109,6 +111,25 @@ const KemitraanPage = () => {
 
   return (
     <div className="subpage-layout">
+      <SEO
+        title="Kemitraan & Sponsorship - Karang Taruna Kelurahan Rawa Arum"
+        description="Peluang kolaborasi, program CSR industri, dan sponsorship bersama Karang Taruna Kelurahan Rawa Arum untuk pembangunan kepemudaan yang berkelanjutan di Kota Cilegon."
+        keywords="Kemitraan Karang Taruna, Sponsor Karang Taruna Cilegon, CSR Rawa Arum, Kolaborasi Industri Cilegon, Karang Taruna Rawa Arum"
+        canonicalUrl="/kemitraan"
+        schema={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'AboutPage',
+              name: 'Kemitraan & Sponsorship Karang Taruna Rawa Arum',
+              description:
+                'Informasi kemitraan, kolaborasi CSR industri, dan sponsorship Karang Taruna Kelurahan Rawa Arum.',
+              url: 'https://kttunasarum.com/kemitraan',
+            },
+            buildBreadcrumbSchema([{ name: 'Kemitraan', url: '/kemitraan' }]),
+          ],
+        }}
+      />
       {/* Background glow effects */}
       <div className="subpage-bg-glow"></div>
 

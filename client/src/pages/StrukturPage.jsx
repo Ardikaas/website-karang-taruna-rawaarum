@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { fetchPengurus, groupPengurusData } from '../services/api';
 import { getAvatarPhoto } from '../constants/structureData';
+import SEO from '../components/SEO';
+import { buildBreadcrumbSchema } from '../constants/seoData';
 
 const formatSocialUrl = (url = '') => {
   let trimmed = (url || '').trim();
@@ -178,6 +180,27 @@ const StrukturPage = () => {
 
   return (
     <div className="subpage-layout">
+      <SEO
+        title="Struktur Pengurus Karang Taruna Kelurahan Rawa Arum Periode Aktif"
+        description="Susunan kepengurusan resmi Karang Taruna Kelurahan Rawa Arum, Kec. Grogol, Kota Cilegon. Mengenal jajaran pembina, pengurus harian, dan koordinator bidang kerja."
+        keywords="Pengurus Karang Taruna Rawa Arum, Struktur Organisasi Karang Taruna Cilegon, Ketua Karang Taruna Rawa Arum, Pemuda Rawa Arum"
+        canonicalUrl="/struktur"
+        schema={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'AboutPage',
+              name: 'Struktur Organisasi Karang Taruna Kelurahan Rawa Arum',
+              description:
+                'Bagan struktur organisasi dan kepengurusan Karang Taruna Kelurahan Rawa Arum, Kota Cilegon.',
+              url: 'https://kttunasarum.com/struktur',
+            },
+            buildBreadcrumbSchema([
+              { name: 'Struktur Organisasi', url: '/struktur' },
+            ]),
+          ],
+        }}
+      />
       {/* Background patterns */}
       <div className="subpage-bg-glow"></div>
 

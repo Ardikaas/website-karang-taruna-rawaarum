@@ -504,6 +504,10 @@ const AdminUmkmPage = () => {
   const totalProduk = umkms.filter((u) => u.categoryType === 'produk').length;
   const totalJasa = umkms.filter((u) => u.categoryType === 'jasa').length;
   const totalVerified = umkms.filter((u) => u.isVerified).length;
+  const totalWaClicks = umkms.reduce(
+    (sum, u) => sum + (u.whatsappClicksCount || 0),
+    0
+  );
 
   if (loading && umkms.length === 0) {
     return (
@@ -1642,6 +1646,19 @@ const AdminUmkmPage = () => {
             <div className="admin-stat-label">Terverifikasi Resmi</div>
           </div>
         </div>
+
+        <div className="admin-stat-card">
+          <div
+            className="admin-stat-icon"
+            style={{ background: '#d1fae5', color: '#059669' }}
+          >
+            <i className="fa-brands fa-whatsapp" />
+          </div>
+          <div>
+            <div className="admin-stat-value">{totalWaClicks}</div>
+            <div className="admin-stat-label">Total Klik WhatsApp</div>
+          </div>
+        </div>
       </div>
 
       {/* Main Table & Filter Section */}
@@ -1712,6 +1729,7 @@ const AdminUmkmPage = () => {
                     <th>Jenis &amp; Sub-Kategori</th>
                     <th>Kontak WA &amp; Alamat</th>
                     <th>Verifikasi</th>
+                    <th style={{ textAlign: 'center' }}>Klik WA</th>
                     <th style={{ textAlign: 'right' }}>Aksi</th>
                   </tr>
                 </thead>
@@ -1826,6 +1844,24 @@ const AdminUmkmPage = () => {
                             </span>
                           )}
                         </button>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '0.85rem',
+                            fontWeight: 800,
+                            color: '#059669',
+                            background: '#d1fae5',
+                            padding: '0.2rem 0.65rem',
+                            borderRadius: '50px',
+                          }}
+                        >
+                          <i className="fa-brands fa-whatsapp" />
+                          {item.whatsappClicksCount || 0}
+                        </span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '0.35rem' }}>

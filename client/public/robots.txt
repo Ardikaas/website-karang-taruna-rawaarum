@@ -1,0 +1,32 @@
+# Robots.txt for Karang Taruna Kelurahan Rawa Arum (https://kttunasarum.com)
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /admin
+Disallow: /pengurus/
+Disallow: /pengurus
+Disallow: /login
+Disallow: /api/
+
+# Allow indexing for public uploads and assets
+Allow: /assets/
+Allow: /uploads/
+Allow: /sitemap.xml
+
+# Search Engine Crawlers Optimization
+User-agent: Googlebot
+Allow: /
+Disallow: /admin/
+Disallow: /pengurus/
+Disallow: /login
+Disallow: /api/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /admin/
+Disallow: /pengurus/
+Disallow: /login
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://kttunasarum.com/sitemap.xml

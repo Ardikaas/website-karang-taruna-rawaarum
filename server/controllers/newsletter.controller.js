@@ -1,4 +1,10 @@
 const Subscriber = require('../models/Subscriber');
+const nodemailer = require('nodemailer');
+const {
+  isValidObjectId,
+  sanitizeInput,
+  safeErrorMessage,
+} = require('../utils/security');
 
 /**
  * @desc    Subscribe a new email to the newsletter
@@ -8,21 +14,33 @@ const createSubscriber = async (req, res) => {
   try {
     const { email } = req.body;
 
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ error: 'Alamat email wajib diisi.' });
     }
 
-    const existing = await Subscriber.findOne({ email });
+    const cleanEmail = sanitizeInput(email.trim().toLowerCase());
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res
+        .status(400)
+        .json({ error: 'Format alamat email tidak valid.' });
+    }
+
+    const existing = await Subscriber.findOne({ email: cleanEmail });
     if (existing) {
-      return res.status(400).json({ error: 'Email is already subscribed' });
+      return res.status(400).json({
+        error: 'Email ini sudah terdaftar sebagai pelanggan newsletter.',
+      });
     }
 
-    const newSub = new Subscriber({ email });
+    const newSub = new Subscriber({ email: cleanEmail });
     const savedSub = await newSub.save();
 
     res.status(201).json({ success: true, data: savedSub });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res
+      .status(400)
+      .json({ error: err.message || 'Gagal berlangganan newsletter.' });
   }
 };
 
@@ -30,12 +48,14 @@ const createSubscriber = async (req, res) => {
  * @desc    Get all newsletter subscribers
  * @route   GET /api/newsletter
  */
-const getSubscribers = async (req, res) => {
+const getSubscribers = async (_req, res) => {
   try {
     const subscribers = await Subscriber.find().sort({ createdAt: -1 });
     res.json(subscribers);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal mengambil data subscriber.'),
+    });
   }
 };
 
@@ -46,19 +66,24 @@ const getSubscribers = async (req, res) => {
  */
 const deleteSubscriber = async (req, res) => {
   try {
-    const deleted = await Subscriber.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID subscriber tidak valid.' });
+    }
+
+    const deleted = await Subscriber.findByIdAndDelete(id);
 
     if (!deleted) {
       return res.status(404).json({ error: 'Subscriber tidak ditemukan.' });
     }
 
-    res.json({ message: 'Subscriber berhasil dihapus.', id: req.params.id });
+    res.json({ message: 'Subscriber berhasil dihapus.', id });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal menghapus subscriber.') });
   }
 };
-
-const nodemailer = require('nodemailer');
 
 /**
  * @desc    Broadcast newsletter to all subscribers
@@ -70,15 +95,22 @@ const broadcastNewsletter = async (req, res) => {
     const { subject, content } = req.body;
 
     if (!subject || !content) {
-      return res.status(400).json({ error: 'Subjek dan isi pesan wajib diisi.' });
+      return res
+        .status(400)
+        .json({ error: 'Subjek dan isi pesan wajib diisi.' });
     }
+
+    const cleanSubject = sanitizeInput(subject);
+    const cleanContent = sanitizeInput(content);
 
     const subscribers = await Subscriber.find({}, 'email');
     if (subscribers.length === 0) {
-      return res.status(400).json({ error: 'Belum ada subscriber newsletter terdaftar.' });
+      return res
+        .status(400)
+        .json({ error: 'Belum ada subscriber newsletter terdaftar.' });
     }
 
-    const emailList = subscribers.map(sub => sub.email);
+    const emailList = subscribers.map((sub) => sub.email);
 
     // Configure Nodemailer Transporter
     const transporter = nodemailer.createTransport({
@@ -95,8 +127,8 @@ const broadcastNewsletter = async (req, res) => {
     const mailOptions = {
       from: `"Karang Taruna Rawa Arum" <${process.env.SMTP_USER}>`,
       to: process.env.SMTP_USER, // Send to self
-      bcc: emailList,            // Hide recipient list from subscribers
-      subject: subject,
+      bcc: emailList, // Hide recipient list from subscribers
+      subject: cleanSubject,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #edf2f7; border-radius: 8px;">
           <div style="text-align: center; margin-bottom: 20px; border-bottom: 1px solid #edf2f7; padding-bottom: 20px;">
@@ -104,7 +136,7 @@ const broadcastNewsletter = async (req, res) => {
             <p style="color: #f97316; font-size: 0.9rem; margin: 5px 0 0;">Update Newsletter Resmi</p>
           </div>
           <div style="line-height: 1.6; color: #2d3748; font-size: 1rem;">
-            ${content.replace(/\n/g, '<br />')}
+            ${cleanContent.replace(/\n/g, '<br />')}
           </div>
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #edf2f7; text-align: center; font-size: 0.8rem; color: #718096;">
             <p style="margin: 0;">Pesan ini dikirim secara otomatis ke pelanggan newsletter Karang Taruna Rawa Arum.</p>
@@ -122,7 +154,9 @@ const broadcastNewsletter = async (req, res) => {
       count: emailList.length,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal menyebarkan newsletter.') });
   }
 };
 
