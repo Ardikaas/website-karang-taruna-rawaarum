@@ -46,11 +46,9 @@ const getRegistrations = async (_req, res) => {
     const registrations = await Registration.find().sort({ createdAt: -1 });
     res.json(registrations);
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: safeErrorMessage(err, 'Gagal mengambil data pendaftaran.'),
-      });
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal mengambil data pendaftaran.'),
+    });
   }
 };
 

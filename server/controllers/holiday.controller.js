@@ -20,11 +20,9 @@ const getActiveHolidays = async (_req, res) => {
 
     res.json(items);
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: safeErrorMessage(err, 'Gagal mengambil data hari besar.'),
-      });
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal mengambil data hari besar.'),
+    });
   }
 };
 
@@ -38,11 +36,9 @@ const getAllHolidays = async (_req, res) => {
     const items = await HolidayEvent.find().sort({ startDate: -1 });
     res.json(items);
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: safeErrorMessage(err, 'Gagal mengambil daftar hari besar.'),
-      });
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal mengambil daftar hari besar.'),
+    });
   }
 };
 
@@ -206,11 +202,9 @@ const toggleHolidayStatus = async (req, res) => {
       item,
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: safeErrorMessage(err, 'Gagal mengubah status hari besar.'),
-      });
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal mengubah status hari besar.'),
+    });
   }
 };
 

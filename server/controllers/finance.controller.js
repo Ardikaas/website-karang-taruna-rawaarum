@@ -87,11 +87,9 @@ const getFinanceSummary = async (_req, res) => {
       categoryBreakdown,
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: safeErrorMessage(err, 'Gagal menghitung ringkasan keuangan.'),
-      });
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal menghitung ringkasan keuangan.'),
+    });
   }
 };
 
@@ -114,11 +112,9 @@ const getTransactionById = async (req, res) => {
     }
     res.json(item);
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: safeErrorMessage(err, 'Gagal mengambil data transaksi.'),
-      });
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal mengambil data transaksi.'),
+    });
   }
 };
 

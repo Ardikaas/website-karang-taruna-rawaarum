@@ -10,11 +10,9 @@ const getPrograms = async (_req, res) => {
     const list = await Program.find().sort({ createdAt: -1 });
     res.json(list);
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: safeErrorMessage(err, 'Gagal mengambil data program kerja.'),
-      });
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal mengambil data program kerja.'),
+    });
   }
 };
 

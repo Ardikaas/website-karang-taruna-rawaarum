@@ -16,11 +16,9 @@ const getActiveAchievements = async (_req, res) => {
     });
     res.json(items);
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: safeErrorMessage(err, 'Gagal mengambil apresiasi aktif.'),
-      });
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal mengambil apresiasi aktif.'),
+    });
   }
 };
 
@@ -34,11 +32,9 @@ const getAllAchievements = async (_req, res) => {
     const items = await Achievement.find().sort({ createdAt: -1 });
     res.json(items);
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: safeErrorMessage(err, 'Gagal mengambil daftar apresiasi.'),
-      });
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal mengambil daftar apresiasi.'),
+    });
   }
 };
 
@@ -160,11 +156,9 @@ const toggleAchievementStatus = async (req, res) => {
       item,
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: safeErrorMessage(err, 'Gagal mengubah status apresiasi.'),
-      });
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal mengubah status apresiasi.'),
+    });
   }
 };
 

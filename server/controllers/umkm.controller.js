@@ -100,11 +100,9 @@ const incrementUmkmViewCount = async (req, res) => {
 
     res.json({ viewsCount: item.viewsCount });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: safeErrorMessage(err, 'Gagal memperbarui tayangan UMKM.'),
-      });
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal memperbarui tayangan UMKM.'),
+    });
   }
 };
 
@@ -301,11 +299,9 @@ const toggleVerifyUmkm = async (req, res) => {
       isVerified: item.isVerified,
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: safeErrorMessage(err, 'Gagal mengubah verifikasi UMKM.'),
-      });
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal mengubah verifikasi UMKM.'),
+    });
   }
 };
 

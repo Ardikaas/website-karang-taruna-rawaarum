@@ -28,11 +28,9 @@ const createSubscriber = async (req, res) => {
 
     const existing = await Subscriber.findOne({ email: cleanEmail });
     if (existing) {
-      return res
-        .status(400)
-        .json({
-          error: 'Email ini sudah terdaftar sebagai pelanggan newsletter.',
-        });
+      return res.status(400).json({
+        error: 'Email ini sudah terdaftar sebagai pelanggan newsletter.',
+      });
     }
 
     const newSub = new Subscriber({ email: cleanEmail });
@@ -55,11 +53,9 @@ const getSubscribers = async (_req, res) => {
     const subscribers = await Subscriber.find().sort({ createdAt: -1 });
     res.json(subscribers);
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: safeErrorMessage(err, 'Gagal mengambil data subscriber.'),
-      });
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal mengambil data subscriber.'),
+    });
   }
 };
 

@@ -25,11 +25,9 @@ const getInfoItems = async (req, res) => {
 
     res.json(items);
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: safeErrorMessage(err, 'Gagal mengambil data informasi.'),
-      });
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal mengambil data informasi.'),
+    });
   }
 };
 
@@ -55,11 +53,9 @@ const getInfoItemById = async (req, res) => {
     }
     res.json(item);
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: safeErrorMessage(err, 'Gagal mengambil detail informasi.'),
-      });
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal mengambil detail informasi.'),
+    });
   }
 };
 
@@ -84,11 +80,9 @@ const incrementInfoViewCount = async (req, res) => {
     }
     res.json({ viewsCount: item.viewsCount });
   } catch (err) {
-    res
-      .status(500)
-      .json({
-        error: safeErrorMessage(err, 'Gagal memperbarui jumlah tayangan.'),
-      });
+    res.status(500).json({
+      error: safeErrorMessage(err, 'Gagal memperbarui jumlah tayangan.'),
+    });
   }
 };
 
