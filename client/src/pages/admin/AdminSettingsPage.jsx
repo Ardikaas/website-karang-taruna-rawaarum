@@ -418,6 +418,11 @@ const AdminSettingsPage = () => {
               'Selamat Ulang Tahun! Semoga bertambahnya usia membawa keberkahan dan kesehatan.',
             whatsapp: '',
           },
+          isMaintenanceMode: data.isMaintenanceMode || false,
+          maintenanceMessage:
+            data.maintenanceMessage ||
+            'Website Karang Taruna Kelurahan Rawa Arum sedang dalam proses pemeliharaan dan peningkatan sistem (*Scheduled Maintenance*).',
+          maintenanceEndTime: data.maintenanceEndTime || '',
         });
       } catch (_err) {
         setSettingsError('Gagal memuat pengaturan situs.');
@@ -691,6 +696,16 @@ const AdminSettingsPage = () => {
           onClick={() => setActiveTab('security')}
         >
           <i className="fa-solid fa-shield-halved" /> Keamanan Akun
+        </button>
+        <button
+          className={`admin-tab-btn ${activeTab === 'maintenance' ? 'active' : ''}`}
+          onClick={() => setActiveTab('maintenance')}
+        >
+          <i
+            className="fa-solid fa-screwdriver-wrench"
+            style={{ color: '#0ea5e9' }}
+          />{' '}
+          Mode Pemeliharaan (503)
         </button>
       </div>
 
@@ -3247,6 +3262,204 @@ const AdminSettingsPage = () => {
             </div>
           )}
         </div>
+      )}
+
+      {/* ── TAB: MAINTENANCE MODE MANAGEMENT (503) ── */}
+      {activeTab === 'maintenance' && (
+        <form onSubmit={handleSettingsSubmit}>
+          <div className="admin-card" style={{ marginBottom: '1.5rem' }}>
+            <div className="admin-card__header">
+              <h2 className="admin-card__title">
+                <i
+                  className="fa-solid fa-screwdriver-wrench"
+                  style={{ color: '#0ea5e9', marginRight: '0.5rem' }}
+                />
+                Konfigurasi Mode Pemeliharaan Sistem (Maintenance 503)
+              </h2>
+              <p className="admin-card__desc">
+                Saat mode pemeliharaan diaktifkan, seluruh pengunjung publik
+                akan diarahkan ke halaman informasi{' '}
+                <strong>HTTP 503 Maintenance</strong>. Pengurus dan
+                Administrator tetap dapat masuk dan mengelola sistem melalui
+                portal ini.
+              </p>
+            </div>
+            <div className="admin-card__body">
+              {/* Toggle Switch */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: settings.isMaintenanceMode
+                    ? '#eff6ff'
+                    : '#f8fafc',
+                  border: `1.5px solid ${settings.isMaintenanceMode ? '#38bdf8' : '#e2e8f0'}`,
+                  borderRadius: 'var(--radius-md)',
+                  padding: '1.25rem 1.5rem',
+                  marginBottom: '1.5rem',
+                }}
+              >
+                <div>
+                  <h4
+                    style={{
+                      margin: '0 0 0.25rem',
+                      fontSize: '1rem',
+                      fontWeight: 800,
+                      color: settings.isMaintenanceMode
+                        ? '#0369a1'
+                        : 'var(--primary-deep)',
+                    }}
+                  >
+                    Status Mode Pemeliharaan:{' '}
+                    <span
+                      style={{
+                        color: settings.isMaintenanceMode
+                          ? '#0284c7'
+                          : '#64748b',
+                      }}
+                    >
+                      {settings.isMaintenanceMode
+                        ? 'AKTIF (ON)'
+                        : 'TIDAK AKTIF (OFF)'}
+                    </span>
+                  </h4>
+                  <p
+                    style={{ margin: 0, fontSize: '0.84rem', color: '#64748b' }}
+                  >
+                    {settings.isMaintenanceMode
+                      ? '⚠️ Perhatian: Publik sedang tidak dapat mengakses halaman utama website.'
+                      : '✅ Website saat ini beroperasi normal dan dapat diakses oleh seluruh pengunjung publik.'}
+                  </p>
+                </div>
+
+                <label
+                  style={{
+                    position: 'relative',
+                    display: 'inline-block',
+                    width: '56px',
+                    height: '30px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={settings.isMaintenanceMode}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        isMaintenanceMode: e.target.checked,
+                      }))
+                    }
+                    style={{ opacity: 0, width: 0, height: 0 }}
+                  />
+                  <span
+                    style={{
+                      position: 'absolute',
+                      cursor: 'pointer',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: settings.isMaintenanceMode
+                        ? '#0284c7'
+                        : '#cbd5e1',
+                      transition: '.3s',
+                      borderRadius: '30px',
+                    }}
+                  >
+                    <span
+                      style={{
+                        position: 'absolute',
+                        content: "''",
+                        height: '22px',
+                        width: '22px',
+                        left: settings.isMaintenanceMode ? '28px' : '4px',
+                        bottom: '4px',
+                        backgroundColor: 'white',
+                        transition: '.3s',
+                        borderRadius: '50%',
+                      }}
+                    />
+                  </span>
+                </label>
+              </div>
+
+              {/* Maintenance Message */}
+              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                <label className="form-label" style={{ fontWeight: 700 }}>
+                  Pesan Pemberitahuan untuk Pengunjung Publik:
+                </label>
+                <textarea
+                  className="form-control"
+                  rows={4}
+                  value={settings.maintenanceMessage}
+                  onChange={(e) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      maintenanceMessage: e.target.value,
+                    }))
+                  }
+                  placeholder="Contoh: Website Karang Taruna sedang dalam proses peningkatan layanan (*Scheduled Maintenance*)..."
+                />
+                <span
+                  className="form-hint"
+                  style={{ fontSize: '0.75rem', color: '#64748b' }}
+                >
+                  Pesan ini akan ditampilkan secara prominen pada kartu halaman
+                  error 503 publik.
+                </span>
+              </div>
+
+              {/* Estimated Completion Time */}
+              <div className="form-group">
+                <label className="form-label" style={{ fontWeight: 700 }}>
+                  Estimasi Waktu Selesai (Opsional):
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={settings.maintenanceEndTime}
+                  onChange={(e) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      maintenanceEndTime: e.target.value,
+                    }))
+                  }
+                  placeholder="Contoh: Hari Ini pukul 18:00 WIB"
+                />
+              </div>
+            </div>
+
+            <div
+              className="admin-card__footer"
+              style={{
+                padding: '1rem 1.5rem',
+                background: '#f8fafc',
+                borderTop: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'flex-end',
+              }}
+            >
+              <button
+                type="submit"
+                className="admin-btn admin-btn--primary"
+                disabled={settingsSaving}
+              >
+                {settingsSaving ? (
+                  <>
+                    <i className="fa-solid fa-spinner fa-spin" /> Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-floppy-disk" /> Simpan Pengaturan
+                    Pemeliharaan
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </form>
       )}
     </div>
   );

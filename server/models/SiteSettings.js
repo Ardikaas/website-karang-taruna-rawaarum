@@ -72,6 +72,15 @@ const SiteSettingsSchema = new Schema(
       },
       whatsapp: { type: String, default: '' },
     },
+
+    // Mode Pemeliharaan Sistem (Maintenance Mode 503)
+    isMaintenanceMode: { type: Boolean, default: false },
+    maintenanceMessage: {
+      type: String,
+      default:
+        'Website Karang Taruna Kelurahan Rawa Arum sedang dalam proses pemeliharaan dan peningkatan sistem (*Scheduled Maintenance*).',
+    },
+    maintenanceEndTime: { type: String, default: '' },
   },
   { timestamps: true }
 );

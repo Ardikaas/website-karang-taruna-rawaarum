@@ -46,6 +46,16 @@ const rateLimiter = (options = {}) => {
       'unknown';
     const now = Date.now();
 
+    // In non-production environments, allow localhost requests without strict throttling
+    const isLocalhost =
+      ip === '127.0.0.1' ||
+      ip === '::1' ||
+      ip === '::ffff:127.0.0.1' ||
+      ip === 'localhost';
+    if (process.env.NODE_ENV !== 'production' && isLocalhost && max <= 30) {
+      return next();
+    }
+
     if (!rateLimitStore[ip]) {
       rateLimitStore[ip] = [];
     }
