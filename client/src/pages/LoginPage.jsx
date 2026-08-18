@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import SEO from '../components/SEO';
 
 import { getDashboardRouteByRole } from '../constants/roles';
 
@@ -52,6 +53,11 @@ const LoginPage = () => {
 
   return (
     <div className="auth-page-container">
+      <SEO
+        title="Masuk Portal Pengurus"
+        description="Portal autentikasi pengurus dan administrator Karang Taruna Kelurahan Rawa Arum."
+        noIndex={true}
+      />
       {/* Background decoration */}
       <div className="auth-bg-shapes">
         <div className="auth-bg-circle auth-bg-circle--1" />

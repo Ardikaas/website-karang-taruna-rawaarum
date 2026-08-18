@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { sanitizeHtml } from '../utils/sanitizeHtml';
 
 /**
  * Reusable InfoCard component for rendering content items across Home,
@@ -88,7 +89,9 @@ const InfoCard = ({ item, linkTo, customBtnText }) => {
 
         <p
           className="info-desc"
-          dangerouslySetInnerHTML={{ __html: item.description || '' }}
+          dangerouslySetInnerHTML={{
+            __html: sanitizeHtml(item.description || ''),
+          }}
         />
 
         <Link to={detailLink} className="info-btn">

@@ -1,17 +1,26 @@
 const Achievement = require('../models/Achievement');
+const {
+  isValidObjectId,
+  sanitizeObject,
+  safeErrorMessage,
+} = require('../utils/security');
 
 /**
  * @desc    Get all active achievements for public display (Home Banner Carousel)
  * @route   GET /api/achievements/active
  */
-const getActiveAchievements = async (req, res) => {
+const getActiveAchievements = async (_req, res) => {
   try {
     const items = await Achievement.find({ isActive: true }).sort({
       createdAt: -1,
     });
     res.json(items);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({
+        error: safeErrorMessage(err, 'Gagal mengambil apresiasi aktif.'),
+      });
   }
 };
 
@@ -20,12 +29,16 @@ const getActiveAchievements = async (req, res) => {
  * @route   GET /api/achievements
  * @access  Protected (admin/pengurus)
  */
-const getAllAchievements = async (req, res) => {
+const getAllAchievements = async (_req, res) => {
   try {
     const items = await Achievement.find().sort({ createdAt: -1 });
     res.json(items);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({
+        error: safeErrorMessage(err, 'Gagal mengambil daftar apresiasi.'),
+      });
   }
 };
 
@@ -36,6 +49,7 @@ const getAllAchievements = async (req, res) => {
  */
 const createAchievement = async (req, res) => {
   try {
+    const sanitizedBody = sanitizeObject(req.body);
     const {
       memberName,
       title,
@@ -45,7 +59,7 @@ const createAchievement = async (req, res) => {
       date,
       whatsapp,
       isActive,
-    } = req.body;
+    } = sanitizedBody;
 
     if (!memberName || !title) {
       return res
@@ -68,7 +82,9 @@ const createAchievement = async (req, res) => {
     await item.save();
     res.status(201).json(item);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal membuat apresiasi.') });
   }
 };
 
@@ -79,6 +95,12 @@ const createAchievement = async (req, res) => {
  */
 const updateAchievement = async (req, res) => {
   try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID apresiasi tidak valid.' });
+    }
+
+    const sanitizedBody = sanitizeObject(req.body);
     const {
       memberName,
       title,
@@ -88,9 +110,9 @@ const updateAchievement = async (req, res) => {
       date,
       whatsapp,
       isActive,
-    } = req.body;
+    } = sanitizedBody;
 
-    const item = await Achievement.findById(req.params.id);
+    const item = await Achievement.findById(id);
     if (!item) {
       return res.status(404).json({ error: 'Data apresiasi tidak ditemukan.' });
     }
@@ -107,7 +129,9 @@ const updateAchievement = async (req, res) => {
     await item.save();
     res.json(item);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal memperbarui apresiasi.') });
   }
 };
 
@@ -118,7 +142,12 @@ const updateAchievement = async (req, res) => {
  */
 const toggleAchievementStatus = async (req, res) => {
   try {
-    const item = await Achievement.findById(req.params.id);
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID apresiasi tidak valid.' });
+    }
+
+    const item = await Achievement.findById(id);
     if (!item) {
       return res.status(404).json({ error: 'Data apresiasi tidak ditemukan.' });
     }
@@ -131,7 +160,11 @@ const toggleAchievementStatus = async (req, res) => {
       item,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({
+        error: safeErrorMessage(err, 'Gagal mengubah status apresiasi.'),
+      });
   }
 };
 
@@ -142,17 +175,24 @@ const toggleAchievementStatus = async (req, res) => {
  */
 const deleteAchievement = async (req, res) => {
   try {
-    const item = await Achievement.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID apresiasi tidak valid.' });
+    }
+
+    const item = await Achievement.findByIdAndDelete(id);
     if (!item) {
       return res.status(404).json({ error: 'Data apresiasi tidak ditemukan.' });
     }
 
     res.json({
       message: 'Data apresiasi berhasil dihapus.',
-      id: req.params.id,
+      id,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal menghapus apresiasi.') });
   }
 };
 

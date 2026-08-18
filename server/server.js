@@ -1,12 +1,12 @@
-/* eslint-disable no-console */
-/* eslint-disable no-console */
 const express = require('express');
-
 const cors = require('cors');
+const helmet = require('helmet');
 const mongoose = require('mongoose');
+const path = require('path');
 require('dotenv').config();
 
 const connectDB = require('./config/db');
+const rateLimiter = require('./middleware/rateLimiter');
 
 // Route modules
 const infoRoutes = require('./routes/info.routes');
@@ -24,21 +24,80 @@ const financeRoutes = require('./routes/finance.routes');
 const achievementRoutes = require('./routes/achievement.routes');
 const holidayRoutes = require('./routes/holiday.routes');
 const weatherRoutes = require('./routes/weather.routes');
+const seoRoutes = require('./routes/seo.routes');
 const { recordWeatherSnapshot } = require('./controllers/weather.controller');
-const path = require('path');
 
 const app = express();
 
-// --------------- Database Connection ---------------
+// Trust first proxy (Reverse Proxy like Cloudflare, Nginx)
+app.set('trust proxy', 1);
+
+// Disable X-Powered-By header & apply enhanced Helmet security headers
+app.disable('x-powered-by');
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // Avoid breaking external CDN resources & fonts
+    crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow images in /uploads
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    xContentTypeOptions: true,
+    xFrameOptions: { action: 'sameorigin' },
+    xXssProtection: true,
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+  })
+);
+
+// Database Connection
 connectDB();
 
-// --------------- Middleware ---------------
-app.use(cors());
-app.use(express.json({ limit: '20mb' }));
-app.use(express.urlencoded({ limit: '20mb', extended: true }));
+// Global CORS Middleware
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+  : [
+      'https://kttunasarum.com',
+      'http://localhost:5173',
+      'http://localhost:5555',
+      'http://127.0.0.1:5173',
+    ];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        allowedOrigins.includes('*')
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error('Akses diblokir oleh kebijakan CORS'));
+      }
+    },
+    credentials: true,
+  })
+);
+
+// Request body parsers with secure payload limits
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
-// --------------- API Routes ---------------
+// Global API rate limiter (300 requests per 15 min per IP)
+const globalApiLimiter = rateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  message: 'Terlalu banyak permintaan API. Harap tunggu beberapa saat.',
+});
+app.use('/api', globalApiLimiter);
+
+// Public SEO Routes (Sitemap & Robots)
+app.use('/', seoRoutes);
+
+// API Routes
+app.use('/api', seoRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/info', infoRoutes);
 app.use('/api/umkm', umkmRoutes);
@@ -55,65 +114,93 @@ app.use('/api/achievements', achievementRoutes);
 app.use('/api/holidays', holidayRoutes);
 app.use('/api/weather', weatherRoutes);
 
-// --------------- Models for Dynamic Social Media OG Preview ---------------
-const Umkm = require('./models/Umkm');
+// Models for Dynamic Social Media Open Graph Preview for Crawlers
 const InfoItem = require('./models/InfoItem');
+const Umkm = require('./models/Umkm');
 
-const stripHtml = (html = '') => {
-  return (html || '')
-    .replace(/<[^>]*>?/gm, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-};
+/**
+ * SSR Endpoint for Dynamic WhatsApp / Facebook / Twitter Link Preview for UMKM
+ * When crawler requests /umkm/:slug/:id or /umkm/:id, serve full meta tags & JSON-LD
+ */
+app.get(['/umkm/:slug/:id', '/umkm/:id'], async (req, res, next) => {
+  const userAgent = req.headers['user-agent'] || '';
+  const isBot =
+    /bot|crawler|spider|crawling|facebookexternalhit|whatsapp|telegrambot|twitterbot|slackbot|discordbot/i.test(
+      userAgent
+    );
 
-const getAbsoluteImageUrl = (imgPath) => {
-  if (!imgPath)
-    return 'https://kttunasarum.com/assets/karang-taruna-seeklogo.png';
-  if (imgPath.startsWith('http://') || imgPath.startsWith('https://'))
-    return imgPath;
-
-  let formatted = (imgPath || '').trim();
-  if (!formatted.startsWith('/uploads/') && !formatted.startsWith('/assets/')) {
-    if (formatted.startsWith('uploads/')) formatted = `/${formatted}`;
-    else if (formatted.startsWith('/')) formatted = `/uploads${formatted}`;
-    else formatted = `/uploads/${formatted}`;
+  if (!isBot) {
+    return next();
   }
 
-  if (!formatted.startsWith('/')) formatted = `/${formatted}`;
-  return `https://kttunasarum.com${formatted}`;
-};
-
-// --------------- Dynamic Open Graph Preview Routes ---------------
-
-// Dynamic UMKM Open Graph Link Preview (WhatsApp, Telegram, Facebook, Twitter, Discord, Slack, etc.)
-app.get(['/umkm/:id', '/umkm/:slug/:id'], async (req, res, next) => {
   try {
-    const umkmId = req.params.id;
-    const item = await Umkm.findById(umkmId);
-    if (!item) return next();
+    const rawId = req.params.id || req.params.slug;
+    let item = null;
 
-    const title = `${item.title} - UMKM Rawa Arum`;
-    const description =
-      stripHtml(item.description).substring(0, 160) ||
-      'Showcase UMKM Kelurahan Rawa Arum, Kec. Grogol, Kota Cilegon.';
-    const rawImage =
-      item.imageUrl || (Array.isArray(item.images) && item.images[0]);
-    const imageUrl = getAbsoluteImageUrl(rawImage);
-    const slug = req.params.slug || 'detail';
-    const pageUrl = `https://kttunasarum.com/umkm/${slug}/${umkmId}`;
+    if (mongoose.Types.ObjectId.isValid(rawId)) {
+      item = await Umkm.findById(rawId);
+    }
 
-    res.send(`<!DOCTYPE html>
+    if (
+      !item &&
+      req.params.id &&
+      mongoose.Types.ObjectId.isValid(req.params.id)
+    ) {
+      item = await Umkm.findById(req.params.id);
+    }
+
+    if (!item) {
+      return next();
+    }
+
+    const siteBase = (
+      process.env.SITE_URL || 'https://kttunasarum.com'
+    ).replace(/\/$/, '');
+    const pageUrl = `${siteBase}/umkm/${encodeURIComponent(item.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}/${item._id}`;
+    const pageTitle = `${item.title} - UMKM Rawa Arum`;
+    const rawDesc = (item.description || '')
+      .replace(/<[^>]*>?/gm, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const pageDesc =
+      rawDesc.length > 160 ? rawDesc.substring(0, 157) + '...' : rawDesc;
+
+    let imageUrl = item.imageUrl || '/assets/potensi_umkm.png';
+    if (!imageUrl.startsWith('http')) {
+      imageUrl = `${siteBase}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+    }
+
+    const structuredData = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': item.categoryType === 'jasa' ? 'LocalBusiness' : 'Product',
+      name: item.title,
+      description: pageDesc,
+      image: [imageUrl],
+      url: pageUrl,
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: item.address || 'Kelurahan Rawa Arum',
+        addressLocality: 'Cilegon',
+        addressRegion: 'Banten',
+        addressCountry: 'ID',
+      },
+    });
+
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    return res.send(`<!DOCTYPE html>
 <html lang="id">
   <head>
     <meta charset="UTF-8">
-    <title>${title}</title>
-    <meta name="description" content="${description}">
+    <title>${pageTitle}</title>
+    <meta name="description" content="${pageDesc}">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="${pageUrl}">
 
     <!-- Open Graph / WhatsApp / Facebook / Telegram / LinkedIn / Discord -->
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="product">
     <meta property="og:url" content="${pageUrl}">
-    <meta property="og:title" content="${title}">
-    <meta property="og:description" content="${description}">
+    <meta property="og:title" content="${pageTitle}">
+    <meta property="og:description" content="${pageDesc}">
     <meta property="og:image" content="${imageUrl}">
     <meta property="og:image:secure_url" content="${imageUrl}">
     <meta property="og:site_name" content="Karang Taruna Rawa Arum">
@@ -122,16 +209,19 @@ app.get(['/umkm/:id', '/umkm/:slug/:id'], async (req, res, next) => {
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="${pageUrl}">
-    <meta name="twitter:title" content="${title}">
-    <meta name="twitter:description" content="${description}">
+    <meta name="twitter:title" content="${pageTitle}">
+    <meta name="twitter:description" content="${pageDesc}">
     <meta name="twitter:image" content="${imageUrl}">
+
+    <!-- Schema.org Structured Data -->
+    <script type="application/ld+json">${structuredData}</script>
 
     <meta http-equiv="refresh" content="0;url=${pageUrl}">
   </head>
   <body>
-    <h1>${title}</h1>
-    <p>${description}</p>
-    <a href="${pageUrl}">Buka Halaman UMKM Karang Taruna Rawa Arum</a>
+    <h1>${pageTitle}</h1>
+    <p>${pageDesc}</p>
+    <a href="${pageUrl}">Buka Katalog UMKM Karang Taruna Rawa Arum</a>
   </body>
 </html>`);
   } catch (_err) {
@@ -139,32 +229,89 @@ app.get(['/umkm/:id', '/umkm/:slug/:id'], async (req, res, next) => {
   }
 });
 
-// Dynamic News / Informasi / Loker Open Graph Link Preview
+/**
+ * SSR Endpoint for Dynamic Social Media Preview for News / Berita / Lowongan / Pengumuman
+ */
 app.get(['/informasi/:id', '/info/:id'], async (req, res, next) => {
+  const userAgent = req.headers['user-agent'] || '';
+  const isBot =
+    /bot|crawler|spider|crawling|facebookexternalhit|whatsapp|telegrambot|twitterbot|slackbot|discordbot/i.test(
+      userAgent
+    );
+
+  if (!isBot) {
+    return next();
+  }
+
   try {
-    const infoId = req.params.id;
-    const item = await InfoItem.findById(infoId);
-    if (!item) return next();
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return next();
+    }
 
-    const title = `${item.title} - Kabar Rawa Arum`;
-    const description =
-      stripHtml(item.description).substring(0, 160) ||
-      'Informasi resmi Karang Taruna Kelurahan Rawa Arum, Kec. Grogol, Kota Cilegon.';
-    const imageUrl = getAbsoluteImageUrl(item.imageUrl);
-    const pageUrl = `https://kttunasarum.com/informasi/${infoId}`;
+    const item = await InfoItem.findById(id);
+    if (!item) {
+      return next();
+    }
 
-    res.send(`<!DOCTYPE html>
+    const siteBase = (
+      process.env.SITE_URL || 'https://kttunasarum.com'
+    ).replace(/\/$/, '');
+    const pageUrl = `${siteBase}/informasi/${item._id}`;
+    const pageTitle = `${item.title} - Karang Taruna Kelurahan Rawa Arum`;
+    const rawDesc = (item.description || '')
+      .replace(/<[^>]*>?/gm, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const pageDesc =
+      rawDesc.length > 160 ? rawDesc.substring(0, 157) + '...' : rawDesc;
+
+    let imageUrl = item.imageUrl || '/assets/info_kegiatan.png';
+    if (!imageUrl.startsWith('http')) {
+      imageUrl = `${siteBase}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+    }
+
+    const structuredData = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'NewsArticle',
+      headline: item.title,
+      description: pageDesc,
+      image: [imageUrl],
+      datePublished: item.createdAt || new Date().toISOString(),
+      dateModified: item.updatedAt || new Date().toISOString(),
+      author: {
+        '@type': 'Organization',
+        name: 'Karang Taruna Kelurahan Rawa Arum',
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'Karang Taruna Kelurahan Rawa Arum',
+        logo: {
+          '@type': 'ImageObject',
+          url: `${siteBase}/assets/karang-taruna-seeklogo.png`,
+        },
+      },
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': pageUrl,
+      },
+    });
+
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    return res.send(`<!DOCTYPE html>
 <html lang="id">
   <head>
     <meta charset="UTF-8">
-    <title>${title}</title>
-    <meta name="description" content="${description}">
+    <title>${pageTitle}</title>
+    <meta name="description" content="${pageDesc}">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="${pageUrl}">
 
     <!-- Open Graph / WhatsApp / Facebook / Telegram / LinkedIn / Discord -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="${pageUrl}">
-    <meta property="og:title" content="${title}">
-    <meta property="og:description" content="${description}">
+    <meta property="og:title" content="${pageTitle}">
+    <meta property="og:description" content="${pageDesc}">
     <meta property="og:image" content="${imageUrl}">
     <meta property="og:image:secure_url" content="${imageUrl}">
     <meta property="og:site_name" content="Karang Taruna Rawa Arum">
@@ -173,15 +320,18 @@ app.get(['/informasi/:id', '/info/:id'], async (req, res, next) => {
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="${pageUrl}">
-    <meta name="twitter:title" content="${title}">
-    <meta name="twitter:description" content="${description}">
+    <meta name="twitter:title" content="${pageTitle}">
+    <meta name="twitter:description" content="${pageDesc}">
     <meta name="twitter:image" content="${imageUrl}">
+
+    <!-- Schema.org Structured Data -->
+    <script type="application/ld+json">${structuredData}</script>
 
     <meta http-equiv="refresh" content="0;url=${pageUrl}">
   </head>
   <body>
-    <h1>${title}</h1>
-    <p>${description}</p>
+    <h1>${pageTitle}</h1>
+    <p>${pageDesc}</p>
     <a href="${pageUrl}">Buka Informasi Karang Taruna Rawa Arum</a>
   </body>
 </html>`);
@@ -190,7 +340,7 @@ app.get(['/informasi/:id', '/info/:id'], async (req, res, next) => {
   }
 });
 
-// --------------- Health & Index ---------------
+// Health & Index
 app.get('/', (_req, res) => {
   res.json({ message: 'Welcome to the Karangtaruna Rawa Arum Modular API' });
 });
@@ -203,7 +353,17 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-// --------------- Server Startup ---------------
+// Global Error Handler Middleware
+app.use((err, _req, res, _next) => {
+  res.status(err.status || 500).json({
+    error:
+      process.env.NODE_ENV === 'production'
+        ? 'Terjadi kesalahan internal pada server.'
+        : err.message || 'Internal Server Error',
+  });
+});
+
+// Server Startup
 const PORT = process.env.PORT || 5555;
 
 const startServer = async () => {
@@ -216,14 +376,12 @@ const startServer = async () => {
     }, 5000);
     setInterval(recordWeatherSnapshot, 30 * 60 * 1000);
 
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  } catch (err) {
-    console.error('Server startup failed. Running in offline fallback mode.');
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT} (Database offline)`);
-    });
+    app.listen(PORT);
+  } catch (_err) {
+    process.stderr.write(
+      'Server startup failed. Running in offline fallback mode.\n'
+    );
+    app.listen(PORT);
   }
 };
 

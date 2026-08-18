@@ -4,6 +4,8 @@ import {
   fetchDetailedWeatherRawaArum,
   fetchWeatherHistory,
 } from '../services/api';
+import SEO from '../components/SEO';
+import { buildBreadcrumbSchema } from '../constants/seoData';
 
 const CuacaPage = () => {
   const [weatherData, setWeatherData] = useState(null);
@@ -270,6 +272,25 @@ const CuacaPage = () => {
 
   return (
     <div className="cuaca-page-wrapper">
+      <SEO
+        title="Pemantauan & Prakiraan Cuaca Wilayah Rawa Arum - Kota Cilegon"
+        description="Informasi prakiraan cuaca real-time, grafik histori suhu, kelembaban, kecepatan angin, dan parameter meteorologi wilayah Kelurahan Rawa Arum, Kec. Grogol, Kota Cilegon."
+        keywords="Cuaca Rawa Arum, Prakiraan Cuaca Cilegon, Suhu Rawa Arum, Meteorologi Grogol Cilegon, Info Cuaca Banten"
+        canonicalUrl="/cuaca"
+        schema={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'WebPage',
+              name: 'Pemantauan & Prakiraan Cuaca Rawa Arum Cilegon',
+              description:
+                'Stasiun meteorologi digital dan prakiraan cuaca real-time Karang Taruna Kelurahan Rawa Arum.',
+              url: 'https://kttunasarum.com/cuaca',
+            },
+            buildBreadcrumbSchema([{ name: 'Prakiraan Cuaca', url: '/cuaca' }]),
+          ],
+        }}
+      />
       <div className="container">
         {/* Sleek Balanced Banner Card */}
         <div

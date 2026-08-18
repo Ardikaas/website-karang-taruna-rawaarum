@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { fetchUmkms } from '../services/api';
 import InfoCard from '../components/InfoCard';
 import { getUmkmDetailUrl } from '../utils/slugify';
+import SEO from '../components/SEO';
+import { buildBreadcrumbSchema } from '../constants/seoData';
 
 const UmkmPage = () => {
   const [items, setItems] = useState([]);
@@ -31,6 +33,25 @@ const UmkmPage = () => {
       className="informasi-section"
       style={{ paddingTop: '140px', minHeight: '85vh', paddingBottom: '5rem' }}
     >
+      <SEO
+        title="Direktori & Katalog UMKM Rawa Arum - Produk & Jasa Usaha Pemuda Cilegon"
+        description="Dukung ekonomi lokal dengan berbelanja di UMKM Kelurahan Rawa Arum, Kota Cilegon. Temukan aneka produk kuliner, fashion, kerajinan, hingga jasa profesional karya warga."
+        keywords="UMKM Rawa Arum, Produk Kuliner Cilegon, Jasa Rawa Arum, Usaha Pemuda Cilegon, Belanja Lokal Rawa Arum"
+        canonicalUrl="/umkm"
+        schema={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'CollectionPage',
+              name: 'Direktori UMKM Kelurahan Rawa Arum',
+              description:
+                'Katalog dan direktori usaha mikro kecil menengah warga Kelurahan Rawa Arum, Cilegon.',
+              url: 'https://kttunasarum.com/umkm',
+            },
+            buildBreadcrumbSchema([{ name: 'Showcase UMKM', url: '/umkm' }]),
+          ],
+        }}
+      />
       <div className="container">
         <div className="section-header" data-watermark="CATALOG">
           <span className="section-tag">

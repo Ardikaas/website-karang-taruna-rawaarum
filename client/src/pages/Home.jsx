@@ -21,6 +21,11 @@ import {
   fetchSiteSettings,
   fetchActiveAchievements,
 } from '../services/api';
+import SEO from '../components/SEO';
+import {
+  ORGANIZATION_SCHEMA,
+  buildBreadcrumbSchema,
+} from '../constants/seoData';
 
 const SLIDE_INTERVAL_MS = 6000;
 
@@ -74,6 +79,15 @@ const Home = ({ onOpenRegModal }) => {
 
   return (
     <>
+      <SEO
+        title="Karang Taruna Kelurahan Rawa Arum - Wadah Generasi Muda Berkarya & Berdaya"
+        description="Portal resmi Karang Taruna Kelurahan Rawa Arum, Kec. Grogol, Kota Cilegon. Wadah kepemudaan, inovasi sosial, direktori UMKM, informasi lowongan kerja, dan kegiatan kemasyarakatan."
+        canonicalUrl="/"
+        schema={{
+          '@context': 'https://schema.org',
+          '@graph': [ORGANIZATION_SCHEMA, buildBreadcrumbSchema([])],
+        }}
+      />
       <Hero
         currentSlide={currentSlide}
         slides={HERO_SLIDES}

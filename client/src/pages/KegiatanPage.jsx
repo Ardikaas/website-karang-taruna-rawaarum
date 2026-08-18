@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 
 import { fetchInfoItems } from '../services/api';
 import InfoCard from '../components/InfoCard';
+import SEO from '../components/SEO';
+import { buildBreadcrumbSchema } from '../constants/seoData';
 
 const KegiatanPage = () => {
   const [items, setItems] = useState([]);
@@ -43,6 +45,27 @@ const KegiatanPage = () => {
       className="informasi-section"
       style={{ paddingTop: '140px', minHeight: '80vh' }}
     >
+      <SEO
+        title="Berita & Dokumentasi Kegiatan Pemuda Karang Taruna Rawa Arum"
+        description="Dokumentasi aksi nyata, agenda kegiatan sosial, olahraga, seni budaya, dan berita terkini Karang Taruna Kelurahan Rawa Arum, Kota Cilegon."
+        keywords="Kegiatan Pemuda Rawa Arum, Berita Rawa Arum, Acara Karang Taruna Cilegon, Aksi Sosial Rawa Arum, Pemuda Cilegon"
+        canonicalUrl="/kegiatan"
+        schema={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'CollectionPage',
+              name: 'Berita & Dokumentasi Kegiatan Karang Taruna Rawa Arum',
+              description:
+                'Dokumentasi berita dan kegiatan Karang Taruna Kelurahan Rawa Arum, Kec. Grogol, Kota Cilegon.',
+              url: 'https://kttunasarum.com/kegiatan',
+            },
+            buildBreadcrumbSchema([
+              { name: 'Kegiatan & Berita', url: '/kegiatan' },
+            ]),
+          ],
+        }}
+      />
       <div className="container">
         <div className="section-header" data-watermark="ACTIVITIES">
           <span className="section-tag">Aksi & Informasi Pemuda</span>

@@ -6,6 +6,7 @@ import {
   deletePartner,
   uploadImage,
 } from '../../services/api';
+import { sanitizeHtml } from '../../utils/sanitizeHtml';
 
 const INITIAL_FORM = {
   name: '',
@@ -592,7 +593,7 @@ const AdminPartnerPage = () => {
                             whiteSpace: 'nowrap',
                           }}
                           dangerouslySetInnerHTML={{
-                            __html: item.description || '-',
+                            __html: sanitizeHtml(item.description || '-'),
                           }}
                         />
                       </td>

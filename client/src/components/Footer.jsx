@@ -160,8 +160,8 @@ const Footer = ({
             &copy; 2026 Karang Taruna Rawa Arum. All rights reserved.
           </p>
           <div className="bottom-links">
-            <Link to="/">Kebijakan Privasi</Link>
-            <Link to="/">Syarat & Ketentuan</Link>
+            <Link to="/kebijakan-privasi">Kebijakan Privasi</Link>
+            <Link to="/syarat-ketentuan">Syarat &amp; Ketentuan</Link>
           </div>
         </div>
       </div>

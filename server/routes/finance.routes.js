@@ -8,13 +8,18 @@ const {
   updateTransaction,
   deleteTransaction,
 } = require('../controllers/finance.controller');
-const { authMiddleware } = require('../middleware/auth.middleware');
+const {
+  authMiddleware,
+  requireRole,
+} = require('../middleware/auth.middleware');
+
+const allowedFinanceRoles = requireRole('superadmin', 'admin', 'pengurus');
 
 router.get('/', getTransactions);
 router.get('/summary', getFinanceSummary);
 router.get('/:id', getTransactionById);
-router.post('/', authMiddleware, createTransaction);
-router.put('/:id', authMiddleware, updateTransaction);
-router.delete('/:id', authMiddleware, deleteTransaction);
+router.post('/', authMiddleware, allowedFinanceRoles, createTransaction);
+router.put('/:id', authMiddleware, allowedFinanceRoles, updateTransaction);
+router.delete('/:id', authMiddleware, allowedFinanceRoles, deleteTransaction);
 
 module.exports = router;

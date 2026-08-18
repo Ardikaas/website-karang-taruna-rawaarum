@@ -1,5 +1,11 @@
 const Finance = require('../models/Finance');
 const FinanceAuditLog = require('../models/FinanceAuditLog');
+const {
+  isValidObjectId,
+  sanitizeInput,
+  sanitizeObject,
+  safeErrorMessage,
+} = require('../utils/security');
 
 /**
  * @desc    Get financial transactions list with optional filter & search
@@ -12,25 +18,30 @@ const getTransactions = async (req, res) => {
     const filter = {};
 
     if (type && type !== 'all') {
-      filter.type = type.toLowerCase();
+      filter.type = sanitizeInput(type.toLowerCase());
     }
 
     if (category && category !== 'all') {
-      filter.category = category;
+      filter.category = sanitizeInput(category);
     }
 
-    if (search) {
+    if (search && typeof search === 'string' && search.trim() !== '') {
+      const sanitizedSearch = search
+        .trim()
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { category: { $regex: search, $options: 'i' } },
+        { title: { $regex: sanitizedSearch, $options: 'i' } },
+        { description: { $regex: sanitizedSearch, $options: 'i' } },
+        { category: { $regex: sanitizedSearch, $options: 'i' } },
       ];
     }
 
     const items = await Finance.find(filter).sort({ date: -1, createdAt: -1 });
     res.json(items);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal mengambil data keuangan.') });
   }
 };
 
@@ -38,7 +49,7 @@ const getTransactions = async (req, res) => {
  * @desc    Get summary statistics (Total Pemasukan, Total Pengeluaran, Saldo Kas)
  * @route   GET /api/finance/summary
  */
-const getFinanceSummary = async (req, res) => {
+const getFinanceSummary = async (_req, res) => {
   try {
     const items = await Finance.find();
 
@@ -76,7 +87,11 @@ const getFinanceSummary = async (req, res) => {
       categoryBreakdown,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({
+        error: safeErrorMessage(err, 'Gagal menghitung ringkasan keuangan.'),
+      });
   }
 };
 
@@ -86,7 +101,12 @@ const getFinanceSummary = async (req, res) => {
  */
 const getTransactionById = async (req, res) => {
   try {
-    const item = await Finance.findById(req.params.id);
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID transaksi tidak valid.' });
+    }
+
+    const item = await Finance.findById(id);
     if (!item) {
       return res
         .status(404)
@@ -94,7 +114,11 @@ const getTransactionById = async (req, res) => {
     }
     res.json(item);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({
+        error: safeErrorMessage(err, 'Gagal mengambil data transaksi.'),
+      });
   }
 };
 
@@ -105,6 +129,7 @@ const getTransactionById = async (req, res) => {
  */
 const createTransaction = async (req, res) => {
   try {
+    const sanitizedBody = sanitizeObject(req.body);
     const {
       title,
       type,
@@ -115,7 +140,7 @@ const createTransaction = async (req, res) => {
       proofUrl,
       proofName,
       recordedBy,
-    } = req.body;
+    } = sanitizedBody;
 
     if (!title || !type || amount === undefined || amount === null) {
       return res.status(400).json({
@@ -144,7 +169,7 @@ const createTransaction = async (req, res) => {
     const newRecord = new Finance({
       title,
       type: type.toLowerCase(),
-      amount: Number(amount),
+      amount: Math.abs(Number(amount)),
       date: date ? new Date(date) : new Date(),
       category: category || 'Kas Rutin',
       description: description || '',
@@ -191,7 +216,9 @@ const createTransaction = async (req, res) => {
 
     res.status(201).json(saved);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res
+      .status(400)
+      .json({ error: err.message || 'Gagal menyimpan transaksi.' });
   }
 };
 
@@ -202,6 +229,12 @@ const createTransaction = async (req, res) => {
  */
 const updateTransaction = async (req, res) => {
   try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID transaksi tidak valid.' });
+    }
+
+    const sanitizedBody = sanitizeObject(req.body);
     const {
       title,
       type,
@@ -212,79 +245,13 @@ const updateTransaction = async (req, res) => {
       proofUrl,
       proofName,
       recordedBy,
-    } = req.body;
+    } = sanitizedBody;
 
-    const existing = await Finance.findById(req.params.id);
+    const existing = await Finance.findById(id);
     if (!existing) {
       return res
         .status(404)
         .json({ error: 'Data transaksi kas tidak ditemukan.' });
-    }
-
-    const changes = [];
-    const fieldDiffs = [];
-
-    if (title !== undefined && title.trim() !== existing.title) {
-      changes.push(`Judul: "${existing.title}" ➔ "${title}"`);
-      fieldDiffs.push({
-        field: 'title',
-        oldValue: existing.title,
-        newValue: title,
-      });
-    }
-    if (amount !== undefined && Number(amount) !== existing.amount) {
-      changes.push(
-        `Nominal: Rp ${existing.amount.toLocaleString('id-ID')} ➔ Rp ${Number(amount).toLocaleString('id-ID')}`
-      );
-      fieldDiffs.push({
-        field: 'amount',
-        oldValue: existing.amount,
-        newValue: Number(amount),
-      });
-    }
-    if (type !== undefined && type.toLowerCase() !== existing.type) {
-      changes.push(
-        `Tipe: ${existing.type.toUpperCase()} ➔ ${type.toUpperCase()}`
-      );
-      fieldDiffs.push({
-        field: 'type',
-        oldValue: existing.type,
-        newValue: type.toLowerCase(),
-      });
-    }
-    if (category !== undefined && category !== existing.category) {
-      changes.push(`Kategori: "${existing.category}" ➔ "${category}"`);
-      fieldDiffs.push({
-        field: 'category',
-        oldValue: existing.category,
-        newValue: category,
-      });
-    }
-    if (date !== undefined) {
-      const oldD = new Date(existing.date).toISOString().split('T')[0];
-      const newD = new Date(date).toISOString().split('T')[0];
-      if (oldD !== newD) {
-        changes.push(`Tanggal: ${oldD} ➔ ${newD}`);
-        fieldDiffs.push({ field: 'date', oldValue: oldD, newValue: newD });
-      }
-    }
-    if (description !== undefined && description !== existing.description) {
-      changes.push(
-        `Rincian/Catatan: "${existing.description || '-'}" ➔ "${description}"`
-      );
-      fieldDiffs.push({
-        field: 'description',
-        oldValue: existing.description,
-        newValue: description,
-      });
-    }
-    if (proofUrl !== undefined && proofUrl !== existing.proofUrl) {
-      changes.push(`Foto Bukti Nota Diperbarui`);
-      fieldDiffs.push({
-        field: 'proofUrl',
-        oldValue: '[Foto Lama]',
-        newValue: '[Foto Baru]',
-      });
     }
 
     const editorInfo =
@@ -295,6 +262,63 @@ const updateTransaction = async (req, res) => {
     const clientIp =
       req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '';
     const userAgent = req.headers['user-agent'] || '';
+
+    // Calculate detailed field differences for audit trail
+    const changes = [];
+    const fieldDiffs = [];
+
+    if (title !== undefined && title !== existing.title) {
+      changes.push(`Judul: "${existing.title}" -> "${title}"`);
+      fieldDiffs.push({
+        field: 'title',
+        oldValue: existing.title,
+        newValue: title,
+      });
+    }
+    if (type !== undefined && type.toLowerCase() !== existing.type) {
+      changes.push(
+        `Tipe: ${existing.type.toUpperCase()} -> ${type.toUpperCase()}`
+      );
+      fieldDiffs.push({
+        field: 'type',
+        oldValue: existing.type,
+        newValue: type.toLowerCase(),
+      });
+    }
+    if (amount !== undefined && Number(amount) !== existing.amount) {
+      changes.push(
+        `Nominal: Rp ${existing.amount.toLocaleString('id-ID')} -> Rp ${Number(amount).toLocaleString('id-ID')}`
+      );
+      fieldDiffs.push({
+        field: 'amount',
+        oldValue: existing.amount,
+        newValue: Number(amount),
+      });
+    }
+    if (category !== undefined && category !== existing.category) {
+      changes.push(`Kategori: "${existing.category}" -> "${category}"`);
+      fieldDiffs.push({
+        field: 'category',
+        oldValue: existing.category,
+        newValue: category,
+      });
+    }
+    if (description !== undefined && description !== existing.description) {
+      changes.push(`Deskripsi diubah`);
+      fieldDiffs.push({
+        field: 'description',
+        oldValue: existing.description,
+        newValue: description,
+      });
+    }
+    if (proofUrl !== undefined && proofUrl !== existing.proofUrl) {
+      changes.push(proofUrl ? 'Bukti nota diperbarui' : 'Bukti nota dihapus');
+      fieldDiffs.push({
+        field: 'proofUrl',
+        oldValue: existing.proofUrl ? 'Ada Bukti' : 'Tidak Ada',
+        newValue: proofUrl ? 'Ada Bukti' : 'Tidak Ada',
+      });
+    }
 
     if (changes.length > 0) {
       const logEntry = {
@@ -310,7 +334,7 @@ const updateTransaction = async (req, res) => {
 
     if (title !== undefined) existing.title = title;
     if (type !== undefined) existing.type = type.toLowerCase();
-    if (amount !== undefined) existing.amount = Number(amount);
+    if (amount !== undefined) existing.amount = Math.abs(Number(amount));
     if (date !== undefined) existing.date = new Date(date);
     if (category !== undefined) existing.category = category;
     if (description !== undefined) existing.description = description;
@@ -342,7 +366,9 @@ const updateTransaction = async (req, res) => {
 
     res.json(updated);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res
+      .status(400)
+      .json({ error: err.message || 'Gagal memperbarui transaksi.' });
   }
 };
 
@@ -353,7 +379,12 @@ const updateTransaction = async (req, res) => {
  */
 const deleteTransaction = async (req, res) => {
   try {
-    const existing = await Finance.findById(req.params.id);
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID transaksi tidak valid.' });
+    }
+
+    const existing = await Finance.findById(id);
     if (!existing) {
       return res
         .status(404)
@@ -369,7 +400,7 @@ const deleteTransaction = async (req, res) => {
       req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '';
     const userAgent = req.headers['user-agent'] || '';
 
-    // 1. Write Permanent Forensic Snapshot to Hidden Developer Collection BEFORE DELETION
+    // Write Permanent Forensic Snapshot to Hidden Developer Collection BEFORE DELETION
     try {
       await FinanceAuditLog.create({
         originalTransactionId: existing._id,
@@ -408,16 +439,17 @@ const deleteTransaction = async (req, res) => {
       // Silent error fallback for audit log
     }
 
-    // 2. Delete from active web view collection
-    await Finance.findByIdAndDelete(req.params.id);
+    await Finance.findByIdAndDelete(id);
 
     res.json({
       message:
         'Pencatatan transaksi kas berhasil dihapus dari tampilan web (Arsip Forensik Tersimpan Permanen di Database).',
-      id: req.params.id,
+      id,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal menghapus transaksi.') });
   }
 };
 

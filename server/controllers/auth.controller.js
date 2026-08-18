@@ -66,6 +66,21 @@ const login = async (req, res) => {
 
     await user.save();
 
+    // Log Successful Login Activity
+    try {
+      const ActivityLog = require('../models/ActivityLog');
+      await ActivityLog.create({
+        userId: user._id,
+        userName: user.name || user.username,
+        userRole: user.role || 'pengurus',
+        action: 'LOGIN',
+        details: `Login berhasil dari perangkat (${req.ip || 'IP Publik'})`,
+        ipAddress: req.ip || req.headers['x-forwarded-for'] || '',
+      });
+    } catch (_logErr) {
+      // Ignore log error
+    }
+
     res.json({
       token: accessToken, // for backward compatibility
       accessToken,
@@ -130,12 +145,10 @@ const refreshToken = async (req, res) => {
       // Security Alert: Token reuse detected! Revoke all session tokens for safety.
       user.refreshTokens = [];
       await user.save();
-      return res
-        .status(401)
-        .json({
-          error:
-            'Terdeteksi penyalahgunaan token. Semua sesi telah dicabut untuk keamanan.',
-        });
+      return res.status(401).json({
+        error:
+          'Terdeteksi penyalahgunaan token. Semua sesi telah dicabut untuk keamanan.',
+      });
     }
 
     // Rotate tokens: generate new pair & replace used token
@@ -226,10 +239,15 @@ const changePassword = async (req, res) => {
         .json({ error: 'Password lama dan baru wajib diisi.' });
     }
 
-    if (newPassword.length < 6) {
-      return res
-        .status(400)
-        .json({ error: 'Password baru minimal harus 6 karakter.' });
+    if (
+      newPassword.length < 8 ||
+      !/\d/.test(newPassword) ||
+      !/[a-zA-Z]/.test(newPassword)
+    ) {
+      return res.status(400).json({
+        error:
+          'Password baru minimal 8 karakter dan harus mengombinasikan huruf dan angka.',
+      });
     }
 
     const user = await User.findById(req.user.id);

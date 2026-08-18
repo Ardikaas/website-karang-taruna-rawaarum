@@ -10,18 +10,25 @@ const {
   deleteUmkm,
   toggleVerifyUmkm,
 } = require('../controllers/umkm.controller');
-const { verifyToken } = require('../middleware/auth.middleware');
+const {
+  verifyToken,
+  requireRole,
+  requireAdmin,
+} = require('../middleware/auth.middleware');
+const { viewClickLimiter } = require('../middleware/rateLimiter');
 
-// Public endpoints
+const allowedUmkmRoles = requireRole('superadmin', 'admin', 'pengurus');
+
+// Public endpoints with rate limiter protection
 router.get('/', getUmkms);
 router.get('/:id', getUmkmById);
-router.post('/:id/view', incrementUmkmViewCount);
-router.post('/:id/click', incrementUmkmClickCount);
+router.post('/:id/view', viewClickLimiter, incrementUmkmViewCount);
+router.post('/:id/click', viewClickLimiter, incrementUmkmClickCount);
 
 // Protected Admin / Pengurus endpoints
-router.post('/', verifyToken, createUmkm);
-router.put('/:id', verifyToken, updateUmkm);
-router.delete('/:id', verifyToken, deleteUmkm);
-router.patch('/:id/verify', verifyToken, toggleVerifyUmkm);
+router.post('/', verifyToken, allowedUmkmRoles, createUmkm);
+router.put('/:id', verifyToken, allowedUmkmRoles, updateUmkm);
+router.delete('/:id', verifyToken, allowedUmkmRoles, deleteUmkm);
+router.patch('/:id/verify', verifyToken, requireAdmin, toggleVerifyUmkm);
 
 module.exports = router;

@@ -9,6 +9,9 @@ import {
 import InfoCard from '../components/InfoCard';
 import DocPreviewModal from '../components/DocPreviewModal';
 import { getUmkmDetailUrl } from '../utils/slugify';
+import SEO from '../components/SEO';
+import { buildBreadcrumbSchema } from '../constants/seoData';
+import { sanitizeHtml } from '../utils/sanitizeHtml';
 
 const UmkmDetailPage = () => {
   const { id } = useParams();
@@ -302,9 +305,54 @@ const UmkmDetailPage = () => {
   };
 
   const computedPriceDisplay = getComputedPriceRange();
+  const rawDescription =
+    (item.description || '')
+      .replace(/<[^>]*>?/gm, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 160) ||
+    'Showcase UMKM Kelurahan Rawa Arum, Kec. Grogol, Kota Cilegon.';
+  const pageCanonical = `/umkm/${item.slug || 'detail'}/${item._id}`;
 
   return (
     <div className="subpage-layout">
+      <SEO
+        title={`${item.title} - UMKM Kelurahan Rawa Arum Cilegon`}
+        description={rawDescription}
+        keywords={`${item.title}, UMKM Rawa Arum, Produk ${item.title}, Kuliner Cilegon, Jasa Cilegon`}
+        ogImage={
+          item.imageUrl || (Array.isArray(item.images) && item.images[0])
+        }
+        canonicalUrl={pageCanonical}
+        schema={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'LocalBusiness',
+              name: item.title,
+              description: rawDescription,
+              image:
+                item.imageUrl ||
+                (Array.isArray(item.images) && item.images[0]) ||
+                'https://kttunasarum.com/assets/karang-taruna-seeklogo.png',
+              url: `https://kttunasarum.com${pageCanonical}`,
+              telephone: item.whatsapp || '+6281234567890',
+              address: {
+                '@type': 'PostalAddress',
+                streetAddress: item.address || 'Kelurahan Rawa Arum',
+                addressLocality: 'Grogol',
+                addressRegion: 'Banten',
+                postalCode: '42436',
+                addressCountry: 'ID',
+              },
+            },
+            buildBreadcrumbSchema([
+              { name: 'Showcase UMKM', url: '/umkm' },
+              { name: item.title, url: pageCanonical },
+            ]),
+          ],
+        }}
+      />
       <div className="container" style={{ maxWidth: '1000px' }}>
         {/* Breadcrumb Header */}
         <div
@@ -1017,7 +1065,9 @@ const UmkmDetailPage = () => {
             Tentang Usaha &amp; Layanan
           </h3>
           <div
-            dangerouslySetInnerHTML={{ __html: item.description || '' }}
+            dangerouslySetInnerHTML={{
+              __html: sanitizeHtml(item.description || ''),
+            }}
             style={{
               fontSize: '0.95rem',
               lineHeight: 1.7,

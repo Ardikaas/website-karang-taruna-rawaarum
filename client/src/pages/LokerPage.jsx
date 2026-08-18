@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { fetchInfoItems } from '../services/api';
 import InfoCard from '../components/InfoCard';
+import SEO from '../components/SEO';
+import { buildBreadcrumbSchema } from '../constants/seoData';
 
 const LokerPage = () => {
   const [items, setItems] = useState([]);
@@ -27,6 +29,25 @@ const LokerPage = () => {
 
   return (
     <div className="subpage-layout">
+      <SEO
+        title="Lowongan Kerja & Pusat Karir Pemuda Rawa Arum - Kota Cilegon"
+        description="Informasi lowongan kerja terbaru, magang industri, dan pelatihan keahlian kerja bagi generasi muda di wilayah Kelurahan Rawa Arum dan Kota Cilegon."
+        keywords="Loker Cilegon, Lowongan Kerja Rawa Arum, Magang Cilegon, Karir Pemuda Cilegon, Pelatihan Kerja Banten"
+        canonicalUrl="/loker"
+        schema={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'CollectionPage',
+              name: 'Pusat Karir & Lowongan Kerja Karang Taruna Rawa Arum',
+              description:
+                'Pusat informasi karir, lowongan kerja industri, magang, dan pelatihan kerja Kelurahan Rawa Arum.',
+              url: 'https://kttunasarum.com/loker',
+            },
+            buildBreadcrumbSchema([{ name: 'Lowongan Kerja', url: '/loker' }]),
+          ],
+        }}
+      />
       <div className="subpage-bg-glow"></div>
       <div className="container subpage-container">
         <div className="subpage-header">

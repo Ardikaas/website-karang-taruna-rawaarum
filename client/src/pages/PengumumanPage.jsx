@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 
 import { fetchInfoItems } from '../services/api';
 import InfoCard from '../components/InfoCard';
+import SEO from '../components/SEO';
+import { buildBreadcrumbSchema } from '../constants/seoData';
 
 const PengumumanPage = () => {
   const [items, setItems] = useState([]);
@@ -31,6 +33,25 @@ const PengumumanPage = () => {
       className="informasi-section"
       style={{ paddingTop: '140px', minHeight: '80vh' }}
     >
+      <SEO
+        title="Papan Pengumuman & Rilis Resmi Karang Taruna Kelurahan Rawa Arum"
+        description="Pengumuman resmi, edaran organisasi, serta informasi penting dari Karang Taruna Kelurahan Rawa Arum, Kecamatan Grogol, Kota Cilegon."
+        keywords="Pengumuman Rawa Arum, Edaran Karang Taruna, Berita Resmi Rawa Arum, Info Kelurahan Rawa Arum Cilegon"
+        canonicalUrl="/pengumuman"
+        schema={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'CollectionPage',
+              name: 'Papan Pengumuman Resmi Karang Taruna Rawa Arum',
+              description:
+                'Pengumuman dan edaran resmi dari Karang Taruna Kelurahan Rawa Arum, Cilegon.',
+              url: 'https://kttunasarum.com/pengumuman',
+            },
+            buildBreadcrumbSchema([{ name: 'Pengumuman', url: '/pengumuman' }]),
+          ],
+        }}
+      />
       <div className="container">
         <div className="section-header" data-watermark="NOTICE">
           <span className="section-tag">Papan Pengumuman Resmi</span>

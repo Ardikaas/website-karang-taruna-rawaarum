@@ -1,10 +1,15 @@
 const HolidayEvent = require('../models/HolidayEvent');
+const {
+  isValidObjectId,
+  sanitizeObject,
+  safeErrorMessage,
+} = require('../utils/security');
 
 /**
  * @desc    Get all currently active holiday events (public display)
  * @route   GET /api/holidays/active
  */
-const getActiveHolidays = async (req, res) => {
+const getActiveHolidays = async (_req, res) => {
   try {
     const now = new Date();
     const items = await HolidayEvent.find({
@@ -15,7 +20,11 @@ const getActiveHolidays = async (req, res) => {
 
     res.json(items);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({
+        error: safeErrorMessage(err, 'Gagal mengambil data hari besar.'),
+      });
   }
 };
 
@@ -24,20 +33,19 @@ const getActiveHolidays = async (req, res) => {
  * @route   GET /api/holidays
  * @access  Protected (admin/pengurus)
  */
-const getAllHolidays = async (req, res) => {
+const getAllHolidays = async (_req, res) => {
   try {
     const items = await HolidayEvent.find().sort({ startDate: -1 });
     res.json(items);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({
+        error: safeErrorMessage(err, 'Gagal mengambil daftar hari besar.'),
+      });
   }
 };
 
-/**
- * @desc    Create a new holiday event
- * @route   POST /api/holidays
- * @access  Protected (admin/pengurus)
- */
 const parseStartOfDay = (dateInput) => {
   const d = new Date(dateInput);
   if (isNaN(d.getTime())) return d;
@@ -59,6 +67,7 @@ const parseEndOfDay = (dateInput) => {
  */
 const createHoliday = async (req, res) => {
   try {
+    const sanitizedBody = sanitizeObject(req.body);
     const {
       title,
       subtitle,
@@ -70,7 +79,7 @@ const createHoliday = async (req, res) => {
       particleImages,
       emoji,
       isActive,
-    } = req.body;
+    } = sanitizedBody;
 
     if (!startDate || !endDate) {
       return res
@@ -104,7 +113,9 @@ const createHoliday = async (req, res) => {
     await item.save();
     res.status(201).json(item);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal membuat hari besar.') });
   }
 };
 
@@ -115,6 +126,12 @@ const createHoliday = async (req, res) => {
  */
 const updateHoliday = async (req, res) => {
   try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID hari besar tidak valid.' });
+    }
+
+    const sanitizedBody = sanitizeObject(req.body);
     const {
       title,
       subtitle,
@@ -126,9 +143,9 @@ const updateHoliday = async (req, res) => {
       particleImages,
       emoji,
       isActive,
-    } = req.body;
+    } = sanitizedBody;
 
-    const item = await HolidayEvent.findById(req.params.id);
+    const item = await HolidayEvent.findById(id);
     if (!item) {
       return res
         .status(404)
@@ -144,6 +161,7 @@ const updateHoliday = async (req, res) => {
     if (bannerImageUrl !== undefined) item.bannerImageUrl = bannerImageUrl;
     if (particleImages !== undefined)
       item.particleImages = Array.isArray(particleImages) ? particleImages : [];
+    if (emoji !== undefined) item.emoji = emoji;
     if (isActive !== undefined) item.isActive = isActive;
 
     if (item.endDate < item.startDate) {
@@ -155,7 +173,9 @@ const updateHoliday = async (req, res) => {
     await item.save();
     res.json(item);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal memperbarui hari besar.') });
   }
 };
 
@@ -166,7 +186,12 @@ const updateHoliday = async (req, res) => {
  */
 const toggleHolidayStatus = async (req, res) => {
   try {
-    const item = await HolidayEvent.findById(req.params.id);
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID hari besar tidak valid.' });
+    }
+
+    const item = await HolidayEvent.findById(id);
     if (!item) {
       return res
         .status(404)
@@ -181,7 +206,11 @@ const toggleHolidayStatus = async (req, res) => {
       item,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({
+        error: safeErrorMessage(err, 'Gagal mengubah status hari besar.'),
+      });
   }
 };
 
@@ -192,7 +221,12 @@ const toggleHolidayStatus = async (req, res) => {
  */
 const deleteHoliday = async (req, res) => {
   try {
-    const item = await HolidayEvent.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID hari besar tidak valid.' });
+    }
+
+    const item = await HolidayEvent.findByIdAndDelete(id);
     if (!item) {
       return res
         .status(404)
@@ -201,10 +235,12 @@ const deleteHoliday = async (req, res) => {
 
     res.json({
       message: 'Data hari besar berhasil dihapus.',
-      id: req.params.id,
+      id,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal menghapus hari besar.') });
   }
 };
 

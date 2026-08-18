@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getRoleConfig } from '../constants/roles';
+import SEO from './SEO';
 
 const ALL_NAV_ITEMS = [
   {
@@ -104,6 +105,11 @@ const AdminLayout = ({ children }) => {
 
   return (
     <div className="admin-shell">
+      <SEO
+        title="Portal Pengurus & Administrasi"
+        description="Portal manajemen dan administrasi internal Karang Taruna Kelurahan Rawa Arum."
+        noIndex={true}
+      />
       {/* ── Mobile Header Topbar ── */}
       <header className="admin-mobile-topbar">
         <div className="admin-mobile-topbar__brand">

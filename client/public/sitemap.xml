@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <!-- Homepage -->
+  <url>
+    <loc>https://kttunasarum.com/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://kttunasarum.com/assets/karang-taruna-seeklogo.png</image:loc>
+      <image:title>Karang Taruna Kelurahan Rawa Arum</image:title>
+    </image:image>
+  </url>
+
+  <!-- Showcase UMKM -->
+  <url>
+    <loc>https://kttunasarum.com/umkm</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Lowongan Kerja & Karir -->
+  <url>
+    <loc>https://kttunasarum.com/loker</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Berita & Dokumentasi Kegiatan -->
+  <url>
+    <loc>https://kttunasarum.com/kegiatan</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Papan Pengumuman Resmi -->
+  <url>
+    <loc>https://kttunasarum.com/pengumuman</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Program Kerja -->
+  <url>
+    <loc>https://kttunasarum.com/program</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Struktur Kepengurusan -->
+  <url>
+    <loc>https://kttunasarum.com/struktur</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Kemitraan & Sponsorship -->
+  <url>
+    <loc>https://kttunasarum.com/kemitraan</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Kontak & Sekretariat -->
+  <url>
+    <loc>https://kttunasarum.com/kontak</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Transparansi Keuangan -->
+  <url>
+    <loc>https://kttunasarum.com/keuangan</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Meteorologi & Cuaca Rawa Arum -->
+  <url>
+    <loc>https://kttunasarum.com/cuaca</loc>
+    <changefreq>hourly</changefreq>
+    <priority>0.7</priority>
+  </url>
+</urlset>

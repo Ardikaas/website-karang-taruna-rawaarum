@@ -10,6 +10,9 @@ import {
 import { useToast } from '../context/ToastContext';
 import InfoCard from '../components/InfoCard';
 import DocPreviewModal from '../components/DocPreviewModal';
+import SEO from '../components/SEO';
+import { buildBreadcrumbSchema } from '../constants/seoData';
+import { sanitizeHtml } from '../utils/sanitizeHtml';
 
 const InfoDetailPage = () => {
   const { id } = useParams();
@@ -332,8 +335,72 @@ const InfoDetailPage = () => {
     );
   }
 
+  const cleanDescription =
+    (item.description || '')
+      .replace(/<[^>]*>?/gm, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 160) ||
+    'Informasi resmi Karang Taruna Kelurahan Rawa Arum, Kec. Grogol, Kota Cilegon.';
+  const pageCanonical = `/informasi/${item._id}`;
+  const headerImageUrl = item.imageUrl
+    ? formatImageUrl(item.imageUrl)
+    : 'https://kttunasarum.com/assets/karang-taruna-seeklogo.png';
+
+  const typeNameMap = {
+    loker: 'Lowongan Kerja',
+    kegiatan: 'Kegiatan Pemuda',
+    pengumuman: 'Pengumuman',
+    berita: 'Berita',
+  };
+  const categoryLabel = typeNameMap[item.type] || 'Informasi';
+
   return (
     <div className="subpage-layout">
+      <SEO
+        title={`${item.title} - Karang Taruna Kelurahan Rawa Arum`}
+        description={cleanDescription}
+        keywords={`${item.title}, Karang Taruna Rawa Arum, Berita Rawa Arum, Info Cilegon, ${categoryLabel}`}
+        ogImage={headerImageUrl}
+        ogType="article"
+        canonicalUrl={pageCanonical}
+        schema={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'NewsArticle',
+              headline: item.title,
+              description: cleanDescription,
+              image: [headerImageUrl],
+              datePublished: item.createdAt || new Date().toISOString(),
+              dateModified: item.updatedAt || new Date().toISOString(),
+              author: {
+                '@type': 'Organization',
+                name: 'Karang Taruna Kelurahan Rawa Arum',
+              },
+              publisher: {
+                '@type': 'Organization',
+                name: 'Karang Taruna Kelurahan Rawa Arum',
+                logo: {
+                  '@type': 'ImageObject',
+                  url: 'https://kttunasarum.com/assets/karang-taruna-seeklogo.png',
+                },
+              },
+              mainEntityOfPage: {
+                '@type': 'WebPage',
+                '@id': `https://kttunasarum.com${pageCanonical}`,
+              },
+            },
+            buildBreadcrumbSchema([
+              {
+                name: categoryLabel,
+                url: `/${item.type === 'berita' ? 'kegiatan' : item.type || 'kegiatan'}`,
+              },
+              { name: item.title, url: pageCanonical },
+            ]),
+          ],
+        }}
+      />
       <div className="container" style={{ maxWidth: '920px' }}>
         {/* Breadcrumb & Navigation */}
         <div
@@ -711,7 +778,9 @@ const InfoDetailPage = () => {
           {/* Article Body Content */}
           <div
             className="info-detail-body"
-            dangerouslySetInnerHTML={{ __html: item.description || '' }}
+            dangerouslySetInnerHTML={{
+              __html: sanitizeHtml(item.description || ''),
+            }}
             style={{
               fontSize: '1rem',
               lineHeight: 1.75,

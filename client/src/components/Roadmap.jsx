@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { fetchPrograms } from '../services/api';
+import { sanitizeHtml } from '../utils/sanitizeHtml';
 
 const DEFAULT_PROGRAMS = [
   {
@@ -179,7 +180,7 @@ const Roadmap = () => {
                           <div
                             className="sm-card-desc"
                             dangerouslySetInnerHTML={{
-                              __html: item.description,
+                              __html: sanitizeHtml(item.description),
                             }}
                           ></div>
 
@@ -236,7 +237,7 @@ const Roadmap = () => {
                           <div
                             className="sm-card-desc"
                             dangerouslySetInnerHTML={{
-                              __html: item.description,
+                              __html: sanitizeHtml(item.description),
                             }}
                           ></div>
 

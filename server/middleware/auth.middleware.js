@@ -1,4 +1,14 @@
+/* eslint-disable no-console */
 const jwt = require('jsonwebtoken');
+
+if (
+  process.env.NODE_ENV === 'production' &&
+  (!process.env.ACCESS_TOKEN_SECRET || !process.env.REFRESH_TOKEN_SECRET)
+) {
+  console.error(
+    'PERINGATAN KEAMANAN PRODUKSI: ACCESS_TOKEN_SECRET atau REFRESH_TOKEN_SECRET belum diatur di .env!'
+  );
+}
 
 const ACCESS_TOKEN_SECRET =
   process.env.ACCESS_TOKEN_SECRET ||

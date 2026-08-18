@@ -1,11 +1,16 @@
 const Pengurus = require('../models/Pengurus');
+const {
+  isValidObjectId,
+  sanitizeObject,
+  safeErrorMessage,
+} = require('../utils/security');
 
 /**
  * @desc    Get all pengurus members
  * @route   GET /api/pengurus
  * @access  Public
  */
-const getPengurus = async (req, res) => {
+const getPengurus = async (_req, res) => {
   try {
     const list = await Pengurus.find()
       .sort({
@@ -58,7 +63,9 @@ const getPengurus = async (req, res) => {
 
     res.json(syncedList);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal mengambil data pengurus.') });
   }
 };
 
@@ -111,6 +118,7 @@ const filterValidSocials = (socialsArr) => {
  */
 const createPengurus = async (req, res) => {
   try {
+    const sanitizedBody = sanitizeObject(req.body);
     const {
       name,
       role,
@@ -121,7 +129,7 @@ const createPengurus = async (req, res) => {
       imageUrl,
       isKoordinator,
       socials,
-    } = req.body;
+    } = sanitizedBody;
 
     if (!name || !role || !category) {
       return res
@@ -164,7 +172,9 @@ const createPengurus = async (req, res) => {
     const saved = await newMember.save();
     res.status(201).json(saved);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res
+      .status(400)
+      .json({ error: err.message || 'Gagal menambahkan pengurus.' });
   }
 };
 
@@ -175,6 +185,12 @@ const createPengurus = async (req, res) => {
  */
 const updatePengurus = async (req, res) => {
   try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID pengurus tidak valid.' });
+    }
+
+    const sanitizedBody = sanitizeObject(req.body);
     const {
       name,
       role,
@@ -185,9 +201,9 @@ const updatePengurus = async (req, res) => {
       imageUrl,
       isKoordinator,
       socials,
-    } = req.body;
+    } = sanitizedBody;
 
-    const existingMember = await Pengurus.findById(req.params.id);
+    const existingMember = await Pengurus.findById(id);
     if (!existingMember) {
       return res.status(404).json({ error: 'Data pengurus tidak ditemukan.' });
     }
@@ -234,11 +250,10 @@ const updatePengurus = async (req, res) => {
       updateData.socials = filterValidSocials(socials);
     }
 
-    const updated = await Pengurus.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true, runValidators: true }
-    );
+    const updated = await Pengurus.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
 
     // 2-Way Sync: If linked to a User account, sync Name, Image, & Socials back to User model
     if (targetUserId) {
@@ -261,7 +276,9 @@ const updatePengurus = async (req, res) => {
 
     res.json(updated);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res
+      .status(400)
+      .json({ error: err.message || 'Gagal memperbarui data pengurus.' });
   }
 };
 
@@ -272,7 +289,12 @@ const updatePengurus = async (req, res) => {
  */
 const deletePengurus = async (req, res) => {
   try {
-    const deleted = await Pengurus.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID pengurus tidak valid.' });
+    }
+
+    const deleted = await Pengurus.findByIdAndDelete(id);
 
     if (!deleted) {
       return res.status(404).json({ error: 'Data pengurus tidak ditemukan.' });
@@ -280,10 +302,12 @@ const deletePengurus = async (req, res) => {
 
     res.json({
       message: 'Anggota pengurus berhasil dihapus.',
-      id: req.params.id,
+      id,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal menghapus pengurus.') });
   }
 };
 
@@ -292,7 +316,7 @@ const deletePengurus = async (req, res) => {
  * @route   POST /api/pengurus/generate-accounts
  * @access  Protected (admin/superadmin)
  */
-const generatePengurusAccounts = async (req, res) => {
+const generatePengurusAccounts = async (_req, res) => {
   try {
     const bcrypt = require('bcryptjs');
     const User = require('../models/User');
@@ -380,7 +404,9 @@ const generatePengurusAccounts = async (req, res) => {
       accounts: results,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal membuat akun pengurus.') });
   }
 };
 

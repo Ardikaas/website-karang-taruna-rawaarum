@@ -1,4 +1,10 @@
 const Umkm = require('../models/Umkm');
+const {
+  isValidObjectId,
+  sanitizeInput,
+  sanitizeObject,
+  safeErrorMessage,
+} = require('../utils/security');
 
 /**
  * @desc    Get all UMKM items with search and category filtering
@@ -11,15 +17,18 @@ const getUmkms = async (req, res) => {
     const filter = {};
 
     if (categoryType && categoryType !== 'all') {
-      filter.categoryType = categoryType.toLowerCase();
+      filter.categoryType = sanitizeInput(categoryType.toLowerCase());
     }
 
     if (subCategory && subCategory !== 'all') {
-      filter.subCategory = subCategory;
+      filter.subCategory = sanitizeInput(subCategory);
     }
 
-    if (search && search.trim() !== '') {
-      const regex = new RegExp(search.trim(), 'i');
+    if (search && typeof search === 'string' && search.trim() !== '') {
+      const sanitizedSearch = search
+        .trim()
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(sanitizedSearch, 'i');
       filter.$or = [
         { title: regex },
         { description: regex },
@@ -35,7 +44,9 @@ const getUmkms = async (req, res) => {
       .sort({ createdAt: -1 });
     res.json(items);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal mengambil data UMKM.') });
   }
 };
 
@@ -45,7 +56,12 @@ const getUmkms = async (req, res) => {
  */
 const getUmkmById = async (req, res) => {
   try {
-    const item = await Umkm.findById(req.params.id)
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID UMKM tidak valid.' });
+    }
+
+    const item = await Umkm.findById(id)
       .populate('ownerUser', 'name email role phone avatar')
       .populate('createdBy', 'name email role');
 
@@ -55,7 +71,9 @@ const getUmkmById = async (req, res) => {
 
     res.json(item);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal mengambil detail UMKM.') });
   }
 };
 
@@ -65,8 +83,13 @@ const getUmkmById = async (req, res) => {
  */
 const incrementUmkmViewCount = async (req, res) => {
   try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID UMKM tidak valid.' });
+    }
+
     const item = await Umkm.findByIdAndUpdate(
-      req.params.id,
+      id,
       { $inc: { viewsCount: 1 } },
       { new: true }
     ).select('viewsCount');
@@ -77,15 +100,26 @@ const incrementUmkmViewCount = async (req, res) => {
 
     res.json({ viewsCount: item.viewsCount });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({
+        error: safeErrorMessage(err, 'Gagal memperbarui tayangan UMKM.'),
+      });
   }
 };
 
 const sanitizeCertificationDocs = (docs) => {
   if (!Array.isArray(docs)) return [];
-  return docs.filter(
-    (doc) => doc && typeof doc.fileUrl === 'string' && doc.fileUrl.trim() !== ''
-  );
+  return docs
+    .filter(
+      (doc) =>
+        doc && typeof doc.fileUrl === 'string' && doc.fileUrl.trim() !== ''
+    )
+    .map((doc) => ({
+      name: sanitizeInput(doc.name || 'Sertifikasi'),
+      fileUrl: sanitizeInput(doc.fileUrl),
+      type: sanitizeInput(doc.type || 'image'),
+    }));
 };
 
 /**
@@ -94,6 +128,7 @@ const sanitizeCertificationDocs = (docs) => {
  */
 const createUmkm = async (req, res) => {
   try {
+    const sanitizedBody = sanitizeObject(req.body);
     const {
       title,
       ownerName,
@@ -113,7 +148,7 @@ const createUmkm = async (req, res) => {
       imageUrl,
       images,
       itemsList,
-    } = req.body;
+    } = sanitizedBody;
 
     if (!title || !description) {
       return res
@@ -148,7 +183,7 @@ const createUmkm = async (req, res) => {
     const saved = await newUmkm.save();
     res.status(201).json(saved);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: err.message || 'Gagal menambahkan UMKM.' });
   }
 };
 
@@ -158,7 +193,12 @@ const createUmkm = async (req, res) => {
  */
 const updateUmkm = async (req, res) => {
   try {
-    const existing = await Umkm.findById(req.params.id);
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID UMKM tidak valid.' });
+    }
+
+    const existing = await Umkm.findById(id);
     if (!existing) {
       return res.status(404).json({ error: 'Data UMKM tidak ditemukan.' });
     }
@@ -178,21 +218,22 @@ const updateUmkm = async (req, res) => {
       }
     }
 
-    const updateData = { ...req.body };
+    const sanitizedBody = sanitizeObject(req.body);
+    const updateData = { ...sanitizedBody };
     if (updateData.certificationDocs) {
       updateData.certificationDocs = sanitizeCertificationDocs(
-        updateData.certificationDocs
+        req.body.certificationDocs
       );
     }
 
-    const updated = await Umkm.findByIdAndUpdate(req.params.id, updateData, {
+    const updated = await Umkm.findByIdAndUpdate(id, updateData, {
       new: true,
       runValidators: true,
     });
 
     res.json(updated);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: err.message || 'Gagal memperbarui UMKM.' });
   }
 };
 
@@ -202,7 +243,12 @@ const updateUmkm = async (req, res) => {
  */
 const deleteUmkm = async (req, res) => {
   try {
-    const existing = await Umkm.findById(req.params.id);
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID UMKM tidak valid.' });
+    }
+
+    const existing = await Umkm.findById(id);
     if (!existing) {
       return res.status(404).json({ error: 'Data UMKM tidak ditemukan.' });
     }
@@ -222,10 +268,12 @@ const deleteUmkm = async (req, res) => {
       }
     }
 
-    await Umkm.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Data UMKM berhasil dihapus.' });
+    await Umkm.findByIdAndDelete(id);
+    res.json({ message: 'Data UMKM berhasil dihapus.', id });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal menghapus UMKM.') });
   }
 };
 
@@ -235,7 +283,12 @@ const deleteUmkm = async (req, res) => {
  */
 const toggleVerifyUmkm = async (req, res) => {
   try {
-    const item = await Umkm.findById(req.params.id);
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID UMKM tidak valid.' });
+    }
+
+    const item = await Umkm.findById(id);
     if (!item) {
       return res.status(404).json({ error: 'Data UMKM tidak ditemukan.' });
     }
@@ -248,7 +301,11 @@ const toggleVerifyUmkm = async (req, res) => {
       isVerified: item.isVerified,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({
+        error: safeErrorMessage(err, 'Gagal mengubah verifikasi UMKM.'),
+      });
   }
 };
 
@@ -259,8 +316,13 @@ const toggleVerifyUmkm = async (req, res) => {
  */
 const incrementUmkmClickCount = async (req, res) => {
   try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ error: 'ID UMKM tidak valid.' });
+    }
+
     const { itemId } = req.body || {};
-    const item = await Umkm.findById(req.params.id);
+    const item = await Umkm.findById(id);
 
     if (!item) {
       return res.status(404).json({ error: 'Data UMKM tidak ditemukan.' });
@@ -268,7 +330,7 @@ const incrementUmkmClickCount = async (req, res) => {
 
     item.whatsappClicksCount = (item.whatsappClicksCount || 0) + 1;
 
-    if (itemId && Array.isArray(item.itemsList)) {
+    if (itemId && isValidObjectId(itemId) && Array.isArray(item.itemsList)) {
       const targetSub = item.itemsList.id(itemId);
       if (targetSub) {
         targetSub.clicksCount = (targetSub.clicksCount || 0) + 1;
@@ -282,7 +344,9 @@ const incrementUmkmClickCount = async (req, res) => {
       itemsList: item.itemsList,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res
+      .status(500)
+      .json({ error: safeErrorMessage(err, 'Gagal mencatat klik WhatsApp.') });
   }
 };
 
